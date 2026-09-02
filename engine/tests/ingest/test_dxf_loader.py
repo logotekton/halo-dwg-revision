@@ -4,7 +4,7 @@ from pathlib import Path
 
 import ezdxf
 
-from halo_engine.ingest.dxf_loader import load_dxf
+from halo_engine.ingest.dxf_loader import DIAG_DUPLICATE_HANDLE, load_dxf
 
 
 def _write_minimal_dxf(path: Path, *, extra_entities_tags: str = "") -> None:
@@ -32,8 +32,40 @@ def test_load_dxf_reads_a_clean_file(tmp_path: Path) -> None:
     assert result.fingerprintguid is not None
     assert isinstance(result.audit_errors, list)
     assert result.audit_error_count == len(result.audit_errors)
+    assert result.diagnostics == []
     lines = list(result.doc.modelspace().query("LINE"))
     assert len(lines) == 1
+
+
+def test_load_dxf_diagnoses_a_duplicate_handle(tmp_path: Path) -> None:
+    """A malformed producer writing two entities with the same handle (brief
+    W3-08, G0 follow-up 2 -- observed on real acad-ts-written DXF) must not
+    be silent stderr noise: ``load_dxf`` turns ezdxf's ``logger.warning``
+    into a ``LoadResult.diagnostics`` entry instead. This is the *cause*;
+    ``halo_engine.ingest.stats``'s ``dead-attrib`` diagnostic is the
+    downstream *effect*, once ``Drawing.audit()`` fixes the collision up by
+    destroying one of the two entities.
+    """
+    doc = ezdxf.new("R2018", setup=True)
+    msp = doc.modelspace()
+    line1 = msp.add_line((0, 0), (10, 10))
+    line2 = msp.add_line((20, 20), (30, 30))
+    duplicated_handle = line1.dxf.handle
+    p = tmp_path / "dup_handle.dxf"
+    doc.saveas(str(p))
+
+    text = p.read_text(encoding="utf-8")
+    target = f"  5\n{line2.dxf.handle}\n"
+    assert text.count(target) == 1, "fixture setup must find line2's handle tag uniquely"
+    text = text.replace(target, f"  5\n{duplicated_handle}\n", 1)
+    p.write_text(text, encoding="utf-8")
+
+    result = load_dxf(p)
+
+    assert result.recovered is False
+    dup_diags = [d for d in result.diagnostics if d["code"] == DIAG_DUPLICATE_HANDLE]
+    assert dup_diags, f"expected a {DIAG_DUPLICATE_HANDLE} diagnostic, got {result.diagnostics}"
+    assert dup_diags[0]["handle"] == duplicated_handle
 
 
 def test_load_dxf_falls_back_to_recover_on_broken_structure(tmp_path: Path) -> None:

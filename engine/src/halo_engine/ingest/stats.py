@@ -27,6 +27,33 @@ Definitions, verbatim from the contract:
 * ``insert_by_block``: block name -> INSERT count (XREF blocks included).
 * ``bbox``: union of ``geometricExtents`` of every entity attributed to the
   bucket (top-level entities plus that bucket's ATTRIBs).
+
+Robustness (brief W3-08, G0 follow-up 2): two malformations observed on real
+acad-ts-written DXF (``fixtures/generated/F06.dwg``/``F03.dwg`` round-tripped
+through ``acad-bridge dwg2dxf``, both reproduced in
+``tests/ingest/test_stats_robustness.py``) must turn into a diagnostic and a
+skip, never an uncaught exception:
+
+* A **dead ATTRIB** (``entity.is_alive is False``) inside ``insert.attribs``.
+  ezdxf's own ``Drawing.audit()`` silently destroys one of two entities that
+  share a handle (acad-ts's DXF writer occasionally emits a duplicate
+  handle -- see ``packages/acad-bridge/README.md`` "Known acad-ts gaps"); the
+  owning INSERT's ``attribs`` list still holds the now-``dxf``-less object,
+  and touching ``attrib.dxf.text``/``.layer`` raises ``AttributeError``.
+* A **zero-length OCS/direction vector** (e.g. an MTEXT ``text_direction`` of
+  ``(0, 0, 0)``). ezdxf's typed attribute setter normally refuses this
+  (``validator=is_not_null_vector, fixer=RETURN_DEFAULT``), but entities
+  loaded through ezdxf's ``fast_load_dxfattribs`` path (MTEXT among them)
+  bypass that validator, so a genuinely zero vector written by a buggy
+  producer survives into the in-memory document. ``ezdxf.bbox.extents()``
+  then builds an ``OCS``/``UCS`` from it and ``Vec3.normalize()`` raises
+  ``ZeroDivisionError``.
+
+Diagnostics never enter the returned document (the schema is closed,
+``additionalProperties: false``, and this is cross-check data, not geometry
+truth) -- callers that want them pass a list via the ``diagnostics`` keyword
+and it is appended to in place, brief "Defaults for ambiguity": ``{code,
+message, handle?, layer?}`` per entry.
 """
 
 from __future__ import annotations
@@ -42,6 +69,7 @@ import ezdxf.bbox
 from ezdxf.document import Drawing
 from ezdxf.entities import DXFGraphic
 from ezdxf.layouts import Layout
+from ezdxf.math import BoundingBox
 
 SCHEMA_VERSION = "0.1"
 
@@ -52,6 +80,50 @@ TEXT_TYPES = {"TEXT", "MTEXT"}
 FLATTEN_DISTANCE = 0.01
 #: HatchBoundaryPath.path_type_flags bits: EXTERNAL(1) | OUTERMOST(16).
 _EXTERNAL_OR_OUTERMOST = 0b10001
+
+#: Diagnostic ``code`` for a dead ATTRIB skipped in ``insert.attribs``.
+DIAG_DEAD_ATTRIB = "dead-attrib"
+#: Diagnostic ``code`` for a computation excluded by a zero-length OCS/direction vector.
+DIAG_ZERO_LENGTH_OCS_VECTOR = "zero-length-ocs-vector"
+#: Diagnostic ``code`` for an ATTRIB/SEQEND/VERTEX handed to us as a top-level entity.
+DIAG_UNEXPECTED_OWNED_ENTITY = "unexpected-owned-entity-at-top-level"
+#: Types the contract (stats-definition.md) says are never counted at the top level --
+#: they belong to their owning entity. A well-formed file never yields these from a
+#: layout's top-level iterator; a malformed producer can (observed on acad-ts DXF
+#: output: a SEQEND left outside its INSERT's structure after a duplicate-handle fixup).
+_OWNED_ENTITY_TYPES = frozenset({"ATTRIB", "SEQEND", "VERTEX"})
+
+
+def _diagnostic(
+    code: str, message: str, *, handle: str | None = None, layer: str | None = None
+) -> dict[str, Any]:
+    """One ``{code, message, handle?, layer?}`` entry (brief W3-08 "Defaults for ambiguity").
+
+    Optional keys are omitted rather than written as ``null`` -- keeps the
+    ``*.working.json`` meta a caller eventually writes this into terse.
+    """
+    entry: dict[str, Any] = {"code": code, "message": message}
+    if handle is not None:
+        entry["handle"] = handle
+    if layer is not None:
+        entry["layer"] = layer
+    return entry
+
+
+def _safe_handle(entity: DXFGraphic) -> str | None:
+    """``entity.dxf.handle``, or ``None`` if ``entity`` is not alive."""
+    try:
+        return str(entity.dxf.handle)
+    except AttributeError:
+        return None
+
+
+def _safe_layer(entity: DXFGraphic) -> str | None:
+    """``entity.dxf.layer``, or ``None`` if ``entity`` is not alive."""
+    try:
+        return str(entity.dxf.layer)
+    except AttributeError:
+        return None
 
 
 def producer_info() -> dict[str, str]:
@@ -184,10 +256,54 @@ def hatch_area(entity: DXFGraphic) -> float:
     return total
 
 
-def _bbox_of(entities: list[DXFGraphic]) -> dict[str, list[float]] | None:
-    if not entities:
-        return None
-    box = ezdxf.bbox.extents(entities)
+def _bbox_of(
+    entities: list[DXFGraphic], diagnostics: list[dict[str, Any]]
+) -> dict[str, list[float]] | None:
+    """Union bbox of ``entities``, computed one entity at a time.
+
+    ``ezdxf.bbox.extents()`` normally takes the whole list in one call, but
+    that means a single bad entity takes the *entire* bucket's bbox down
+    with it. Excluding just that entity keeps the rest of the union intact.
+    Two ways one entity can fail here (module docstring):
+
+    * ``ZeroDivisionError`` -- a zero-length OCS/direction vector.
+    * ``AttributeError`` -- an INSERT whose bbox ``ezdxf.bbox.extents()``
+      computes by disassembling into the block's geometry *and the INSERT's
+      own ATTRIBs* (attributes are visual, so they count towards the bbox
+      too). That disassembly does not check ``is_alive`` the way this
+      module's own attrib loop does, so a dead ATTRIB (see
+      ``compute_layer_stats``) blows up here even though ``entity`` itself
+      -- the INSERT -- is perfectly alive.
+    """
+    box = BoundingBox()
+    for entity in entities:
+        try:
+            entity_box = ezdxf.bbox.extents([entity])
+        except ZeroDivisionError:
+            diagnostics.append(
+                _diagnostic(
+                    DIAG_ZERO_LENGTH_OCS_VECTOR,
+                    f"{entity.dxftype()} has a zero-length OCS/direction vector; "
+                    "excluded from bbox",
+                    handle=_safe_handle(entity),
+                    layer=_safe_layer(entity),
+                )
+            )
+            continue
+        except AttributeError:
+            diagnostics.append(
+                _diagnostic(
+                    DIAG_DEAD_ATTRIB,
+                    f"{entity.dxftype()} #{_safe_handle(entity)} bbox computation touched "
+                    "a destroyed sub-entity (duplicate-handle ATTRIB fixed up by ezdxf's "
+                    "audit); excluded from bbox",
+                    handle=_safe_handle(entity),
+                    layer=_safe_layer(entity),
+                )
+            )
+            continue
+        if entity_box.has_data:
+            box.extend(entity_box)
     if not box.has_data:
         return None
     return {
@@ -205,13 +321,46 @@ class _Bucket:
     insert_by_block: dict[str, int] = field(default_factory=dict)
     bbox_entities: list[DXFGraphic] = field(default_factory=list)
 
-    def add_top_level(self, entity: DXFGraphic) -> None:
+    def add_top_level(self, entity: DXFGraphic, diagnostics: list[dict[str, Any]]) -> None:
         t = entity.dxftype()
+        if t in _OWNED_ENTITY_TYPES:
+            diagnostics.append(
+                _diagnostic(
+                    DIAG_UNEXPECTED_OWNED_ENTITY,
+                    f"{t} appeared as a top-level entity (should be owned by another "
+                    "entity); excluded from count_by_type per stats-definition.md",
+                    handle=_safe_handle(entity),
+                    layer=_safe_layer(entity),
+                )
+            )
+            return
         self.count_by_type[t] = self.count_by_type.get(t, 0) + 1
         if t in LENGTH_TYPES:
-            self.length_sum_mm += entity_length(entity)
+            try:
+                self.length_sum_mm += entity_length(entity)
+            except ZeroDivisionError:
+                diagnostics.append(
+                    _diagnostic(
+                        DIAG_ZERO_LENGTH_OCS_VECTOR,
+                        f"{t} length computation failed on a zero-length OCS/direction "
+                        "vector; excluded from length_sum_mm",
+                        handle=_safe_handle(entity),
+                        layer=_safe_layer(entity),
+                    )
+                )
         if t == "HATCH":
-            self.hatch_area_sum_mm2 += hatch_area(entity)
+            try:
+                self.hatch_area_sum_mm2 += hatch_area(entity)
+            except ZeroDivisionError:
+                diagnostics.append(
+                    _diagnostic(
+                        DIAG_ZERO_LENGTH_OCS_VECTOR,
+                        "HATCH area computation failed on a zero-length OCS/direction "
+                        "vector; excluded from hatch_area_sum_mm2",
+                        handle=_safe_handle(entity),
+                        layer=_safe_layer(entity),
+                    )
+                )
         if t in TEXT_TYPES:
             self.texts.append(entity.dxf.text if t == "TEXT" else entity.text)
         if t == "INSERT":
@@ -223,7 +372,7 @@ class _Bucket:
         self.texts.append(attrib.dxf.text)
         self.bbox_entities.append(attrib)
 
-    def to_aggregate(self) -> dict[str, Any]:
+    def to_aggregate(self, diagnostics: list[dict[str, Any]]) -> dict[str, Any]:
         count_by_type = dict(sorted(self.count_by_type.items()))
         aggregate: dict[str, Any] = {
             "entity_count": sum(count_by_type.values()),
@@ -234,7 +383,7 @@ class _Bucket:
             "text_hash": _text_hash(self.texts),
             "insert_by_block": dict(sorted(self.insert_by_block.items())),
         }
-        bbox = _bbox_of(self.bbox_entities)
+        bbox = _bbox_of(self.bbox_entities, diagnostics)
         if bbox is not None:
             aggregate["bbox"] = bbox
         return aggregate
@@ -251,8 +400,20 @@ def _iter_spaces(doc: Drawing) -> list[Layout]:
     return spaces
 
 
-def compute_layer_stats(doc: Drawing, *, file_sha256: str) -> dict[str, Any]:
-    """Compute the full ``LayerStatsDocument`` for ``doc``."""
+def compute_layer_stats(
+    doc: Drawing,
+    *,
+    file_sha256: str,
+    diagnostics: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Compute the full ``LayerStatsDocument`` for ``doc``.
+
+    ``diagnostics``, when given, is appended to in place with one entry per
+    entity this function had to skip or partially exclude instead of raising
+    (module docstring: dead ATTRIBs, zero-length OCS/direction vectors).
+    Never written into the returned document itself.
+    """
+    diag: list[dict[str, Any]] = diagnostics if diagnostics is not None else []
     buckets: dict[tuple[str, str], _Bucket] = {}
 
     def bucket_for(space: str, layer: str) -> _Bucket:
@@ -267,15 +428,27 @@ def compute_layer_stats(doc: Drawing, *, file_sha256: str) -> dict[str, Any]:
         space = _space_label(layout)
         for entity in layout:
             layer = unicodedata.normalize("NFC", entity.dxf.layer)
-            bucket_for(space, layer).add_top_level(entity)
+            bucket_for(space, layer).add_top_level(entity, diag)
             if entity.dxftype() == "INSERT":
                 for attrib in entity.attribs:
+                    if not attrib.is_alive:
+                        diag.append(
+                            _diagnostic(
+                                DIAG_DEAD_ATTRIB,
+                                f"INSERT #{entity.dxf.handle} on layer {layer!r} "
+                                "references a destroyed ATTRIB (duplicate handle in "
+                                "the source file, fixed up by ezdxf's audit); skipped",
+                                handle=entity.dxf.handle,
+                                layer=layer,
+                            )
+                        )
+                        continue
                     attrib_layer = unicodedata.normalize("NFC", attrib.dxf.layer)
                     bucket_for(space, attrib_layer).add_attrib(attrib)
 
     bucket_docs = []
     for (space, layer), bucket in sorted(buckets.items(), key=lambda kv: (kv[0][1], kv[0][0])):
-        bucket_docs.append({"layer": layer, "space": space, "aggregate": bucket.to_aggregate()})
+        bucket_docs.append({"layer": layer, "space": space, "aggregate": bucket.to_aggregate(diag)})
 
     totals_bucket = _Bucket()
     for bucket in buckets.values():
@@ -293,11 +466,14 @@ def compute_layer_stats(doc: Drawing, *, file_sha256: str) -> dict[str, Any]:
         "file_sha256": file_sha256,
         "producer": producer_info(),
         "buckets": bucket_docs,
-        "totals": totals_bucket.to_aggregate(),
+        "totals": totals_bucket.to_aggregate(diag),
     }
 
 
 __all__ = [
+    "DIAG_DEAD_ATTRIB",
+    "DIAG_UNEXPECTED_OWNED_ENTITY",
+    "DIAG_ZERO_LENGTH_OCS_VECTOR",
     "FLATTEN_DISTANCE",
     "LENGTH_TYPES",
     "SCHEMA_VERSION",

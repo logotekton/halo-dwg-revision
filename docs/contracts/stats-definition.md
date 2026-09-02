@@ -35,3 +35,10 @@ Fable 고정, 2026-09-02. 근거: ADR-0002 §6, `packages/schema/src/stats/layer
 - `count_by_type` 키는 **raw DXF 레코드명**이다(MULTILEADER, TRACE 그대로). 스키마 `layer-stats.schema.json`의 키 제약을 NDJ 열거형에서 `^[A-Z][A-Z0-9_]*$` 패턴으로 완화했다. NDJ의 `MLEADER` 정규화는 NDJ 문서에만 적용된다.
 - 픽스처의 ATTRIB 소유자(그룹 330)는 INSERT 핸들이다(AutoCAD 방식). ezdxf 기본값(레이아웃 블록 레코드)으로 두면 mlightcad가 ATTRIB를 INSERT에 붙이지 못한다. 실제 도면에서 소유자가 레이아웃인 ATTRIB가 나오면 뷰어 측 `text_count`가 낮게 나온다 → 교차검증 화이트리스트 후보.
 - **알려진 격차(화이트리스트 후보, W2-04):** (1) mlightcad 스플라인 길이는 `flattening(0.01)`급이 아니어서 F01에서 ezdxf 대비 약 11% 크다. 후속: cad-core가 NURBS를 직접 평탄화(W3-02 또는 별도 태스크). (2) 텍스트·치수·지시선만 있는 레이어의 bbox는 폰트 의존 extents라 1mm 임계를 넘는다. 텍스트 보유 버킷의 bbox 차이는 AMBER로 취급.
+
+## 교차검증 도구 도입 시 확정(2026-09-02, W2-04)
+- **곡선 길이의 정본은 ezdxf**다. ezdxf는 허용오차 0.1→0.0001에서 8123.213…8123.749mm(F01 스플라인)로 수렴하는 유일한 구현이다. mlightcad(+11.3%)와 acad-ts(−3.3%, fit-point 스플라인을 보간하지 않음)가 수정 대상이며, 수정되면 화이트리스트 W01~W03을 제거한다.
+- 텍스트 보유 레이어의 bbox 격차는 **AMBER 유지**(뷰어 줌-투-레이어가 bbox를 쓰므로 비교 자체는 계속한다).
+- acad-ts의 잔여 인코딩 결함(텍스트 값 후행 0xA0 바이트 절단, 예: '층고')은 상류 이슈 대상이며 그때까지 W08로 AMBER. `dwg2dxf` 1차 변환기 판단(W2-06)의 감점 사유로 반영한다.
+- RED/AMBER 레이어의 신뢰도 감점 계수(예: RED 0.5, AMBER 0.9, 필드별 세분)는 P4 룰 YAML에 둔다. 교차검증 코드에는 상수를 넣지 않는다(임계=계약, 감점=룰).
+- 교차검증 입력은 `.dxf` 정본만이다. `.dwg`는 변환 과정의 손실(acad-ts X-TITLE INSERT)까지 섞이므로 변환기 평가(W2-06)에서만 다룬다.

@@ -149,13 +149,34 @@ function truthFor(name, dirs) {
   return null;
 }
 
+/**
+ * Best-effort one-line cause from a failed run. `/usr/bin/time -l` appends its
+ * own resource block to stderr, so "last line" is useless; look for a Python
+ * exception, a Node error, or a V8 OOM banner instead.
+ */
+function causeOf(r) {
+  const text = `${r.stderr}\n${r.stdout}`;
+  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+  const patterns = [
+    /^[A-Za-z_][\w.]*(Error|Exception|Exit):/, // Python / Node exception line
+    /JavaScript heap out of memory/,
+    /Allocation failed/,
+    /Killed|SIGKILL|SIGABRT/,
+  ];
+  for (const p of patterns) {
+    const hit = lines.find((l) => p.test(l));
+    if (hit) return hit.slice(0, 220);
+  }
+  if (r.timedOut) return 'timeout';
+  if (r.signal) return `killed by ${r.signal}`;
+  return `exit ${String(r.status)}`;
+}
+
 function engineStats(dxfPath, outJson, timeout) {
   const r = runTimed('uv', ['run', '--project', 'engine', 'halo-engine', 'stats', dxfPath, '--out', outJson], {
     timeout,
   });
-  if (!r.ok) {
-    return { r, doc: null, error: (r.stderr.trim().split('\n').pop() ?? `exit ${String(r.status)}`).slice(0, 200) };
-  }
+  if (!r.ok) return { r, doc: null, error: causeOf(r) };
   return { r, doc: JSON.parse(readFileSync(outJson, 'utf8')) };
 }
 
@@ -176,7 +197,16 @@ function runAcad(file, heap, args, work) {
     ? [...nodeArgs(heap), cli, 'dwg2dxf', file, out]
     : [...nodeArgs(heap), cli, 'stats', file, '--out', out];
   const r = runTimed(process.execPath, argv, { timeout: args.timeout });
-  return { r, out, mode: isDwg ? 'dwg2dxf' : 'stats', producesDxf: isDwg, producesStats: !isDwg };
+  const res = { r, out, mode: isDwg ? 'dwg2dxf' : 'stats', producesDxf: isDwg, producesStats: !isDwg };
+  if (isDwg && r.ok) {
+    // Second, untimed read: what acad-ts itself thinks it read out of the DWG.
+    // Needed because ezdxf may refuse the DXF acad-ts writes, and then the
+    // primary fidelity cell says nothing about the *parse*.
+    const selfOut = join(work, `${stem(file)}.acad-selfview.json`);
+    const s = runTimed(process.execPath, [cli, 'stats', file, '--out', selfOut], { timeout: args.timeout });
+    if (s.ok) res.selfView = selfOut;
+  }
+  return res;
 }
 
 function runDxfOut(file, heap, args, work) {
@@ -213,34 +243,31 @@ function runEngine(file, args, work) {
   return { r, out, mode: 'ezdxf stats', producesStats: r.ok };
 }
 
-/** The browser path is batched: one driver run covers every file. */
-function runBrowserBatch(files, args, work) {
-  const names = files.map((f) => basename(f));
-  const report = join(work, 'browser.report.json');
+/**
+ * One driver process per file: a fresh Node + a fresh Chromium + a fresh Vite,
+ * so one file's leftovers cannot inflate the next file's RSS baseline (and a
+ * hung run cannot take the rest of the matrix down with it).
+ */
+function runBrowserFile(file, args, work) {
+  const name = basename(file);
+  const report = join(work, `${name.replace(/\./g, '_')}.browser.report.json`);
   const spike = join(ROOT, 'spikes', 'mlightcad');
   const argv = [
     'scripts/bench-browser.mjs',
     '--files',
-    names.join(','),
+    name,
     '--report',
     report,
     '--timeout',
     String(args.timeout),
   ];
-  if (!args.browserRender) argv.push('--dxfout');
-  else argv.push('--render');
-  const r = runTimed(process.execPath, argv, { cwd: spike, timeout: args.timeout * (files.length + 1) });
-  let rows = [];
+  argv.push(args.browserRender ? '--render' : '--dxfout');
+  const r = runTimed(process.execPath, argv, { cwd: spike, timeout: args.timeout + 120 });
   try {
-    rows = JSON.parse(readFileSync(report, 'utf8')).rows;
+    return JSON.parse(readFileSync(report, 'utf8')).rows;
   } catch {
-    rows = files.map((f) => ({
-      file: basename(f),
-      ok: false,
-      error: (r.stderr.trim().split('\n').pop() ?? 'driver failed').slice(0, 300),
-    }));
+    return [{ file: name, ok: false, error: causeOf(r) }];
   }
-  return { r, rows, sinkDir: join(spike, 'out', 'bench') };
 }
 
 // --------------------------------------------------------------------------
@@ -267,6 +294,20 @@ for (const file of args.files) {
 
   for (const path of args.paths) {
     if (path === 'browser') continue; // batched below
+    if (path === 'engine' && file.toLowerCase().endsWith('.dwg')) {
+      // ADR-0002 §5: the engine reads DXF only. Not a failure, a scope line.
+      rows.push({
+        file: basename(file),
+        inputBytes,
+        path,
+        mode: 'ezdxf stats',
+        heap: 'default',
+        runs: 0,
+        ok: null,
+        error: 'not applicable: the engine reads DXF only (ADR-0002 §5)',
+      });
+      continue;
+    }
     for (const heap of path === 'engine' ? ['default'] : args.heaps) {
       const attempts = [];
       let last = null;
@@ -293,10 +334,7 @@ for (const file of args.files) {
         outputBytes: last.r.ok && existsSync(last.out) ? statSync(last.out).size : null,
       };
       if (!last.r.ok) {
-        const tail = (last.r.stderr || last.r.stdout || '').trim().split('\n').filter(Boolean);
-        row.error = last.r.timedOut
-          ? `timeout after ${String(args.timeout)}s`
-          : (tail.find((l) => /error|Error|FATAL|failed|heap/.test(l)) ?? tail.pop() ?? `exit ${String(last.r.status)}`).slice(0, 300);
+        row.error = last.r.timedOut ? `timeout after ${String(args.timeout)}s` : causeOf(last.r);
         if (last.detail?.error) row.error = last.detail.error.split('\n')[0].slice(0, 300);
       }
       if (last.detail) {
@@ -323,6 +361,13 @@ for (const file of args.files) {
           row.fidelity = es.doc ? fidelityOf(es.doc, file, args) : { error: es.error };
           row.fidelitySource = 'ezdxf on output DXF';
         }
+        if (last.selfView) {
+          try {
+            row.parserSelfView = fidelityOf(JSON.parse(readFileSync(last.selfView, 'utf8')), file, args);
+          } catch {
+            /* ignore: the self-view is a secondary signal */
+          }
+        }
       }
       rows.push(row);
       process.stderr.write(
@@ -333,8 +378,26 @@ for (const file of args.files) {
 }
 
 if (args.paths.includes('browser')) {
-  const batch = runBrowserBatch(args.files, args, args.work);
-  for (const br of batch.rows) {
+  const browserRows = [];
+  for (const f of args.files) {
+    const runs = existsSync(resolve(ROOT, f)) && statSync(resolve(ROOT, f)).size > args.largeBytes ? args.repeatLarge : args.repeat;
+    const attempts = [];
+    for (let i = 0; i < runs; i++) {
+      const got = runBrowserFile(f, args, args.work);
+      attempts.push(got[0]);
+      if (got[0]?.ok !== true) break; // do not repeat a failure
+    }
+    const last = attempts[attempts.length - 1];
+    browserRows.push({
+      ...last,
+      runs: attempts.length,
+      medianTotalMs: median(
+        attempts.map((a) => (a.render ? a.render.ms : (a.parse?.ms ?? 0) + (a.dxfOut?.ms ?? 0)))
+      ),
+      medianPeakRssBytes: median(attempts.map((a) => a.peakRssBytes)),
+    });
+  }
+  for (const br of browserRows) {
     const src = args.files.find((f) => basename(f) === br.file) ?? br.file;
     const row = {
       file: br.file,
@@ -405,8 +468,8 @@ writeFileSync(
 );
 
 const head = [
-  '| file | input | path | mode | heap | runs | time (median) | peak RSS | out | fidelity vs truth |',
-  '|---|---:|---|---|---|---:|---:|---:|---:|---|',
+  '| file | input | path | mode | heap | runs | time (median) | peak RSS | result | fidelity vs truth | parser self-view |',
+  '|---|---:|---|---|---|---:|---:|---:|---|---|---|',
 ];
 const body = rows.map((r) =>
   [
@@ -418,8 +481,15 @@ const body = rows.map((r) =>
     String(r.runs ?? ''),
     r.ok ? `${secs(r.timeMsMedian)} s` : '—',
     r.peakRssBytesMedian ? `${mb(r.peakRssBytesMedian)} MB` : '—',
-    r.ok ? (r.outputBytes || r.detail?.outputBytes ? `${mb(r.outputBytes ?? r.detail.outputBytes)} MB` : 'ok') : `FAIL: ${r.error ?? '?'}`,
+    r.ok === null
+      ? `n/a: ${r.error ?? ''}`
+      : r.ok
+        ? r.outputBytes || r.detail?.outputBytes
+          ? `${mb(r.outputBytes ?? r.detail.outputBytes)} MB out`
+          : 'ok'
+        : `FAIL: ${r.error ?? '?'}`,
     fidelityCell(r.fidelity),
+    r.parserSelfView ? fidelityCell(r.parserSelfView) : '—',
   ].join(' | ')
 );
 process.stdout.write([...head, ...body.map((b) => `| ${b} |`)].join('\n') + '\n');

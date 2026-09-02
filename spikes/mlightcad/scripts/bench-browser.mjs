@@ -141,11 +141,14 @@ async function runFile(name, args, handle) {
     ok: false,
   };
 
-  const browser = await chromium.launch({
+  // launchServer (not launch): only BrowserServer exposes the browser process,
+  // and its pid is the root of the tree we sample.
+  const server = await chromium.launchServer({
     args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
   });
-  handle.browser = browser;
-  const pid = browser.process()?.pid;
+  const browser = await chromium.connect(server.wsEndpoint());
+  handle.browser = { close: async () => server.close() };
+  const pid = server.process().pid;
   const sampler = new RssSampler(pid);
   const consoleLines = [];
   try {
@@ -178,7 +181,9 @@ async function runFile(name, args, handle) {
       row.parse.rss = sampler.peak(tp0, Date.now());
 
       if (args.dxfout && row.parse.ok) {
-        const sink = `${name.replace(/\.(dwg|dxf)$/i, '')}.browser.dxf`;
+        // Keep the source extension in the name: F06.dwg and F06.dxf are two
+        // different runs and must not overwrite each other's output.
+        const sink = `${name.replace(/\./g, '_')}.browser.dxf`;
         const td0 = Date.now();
         row.dxfOut = await page.evaluate((s) => window.__bench.dxfOut(s), sink);
         row.dxfOut.rss = sampler.peak(td0, Date.now());
@@ -195,6 +200,7 @@ async function runFile(name, args, handle) {
     row.peakLargestProcRssBytes = sampler.peak(0, Date.now())?.largestProcRssBytes ?? null;
     row.console = consoleLines.slice(-25);
     await browser.close().catch(() => {});
+    await server.close().catch(() => {});
   }
   return row;
 }

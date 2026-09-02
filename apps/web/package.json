@@ -1,0 +1,36 @@
+{
+  "name": "@dmcad/web",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "lint": "cd ../.. && eslint apps/web/src apps/web/scripts apps/web/vite.config.ts apps/web/vitest.config.ts --config eslint.config.js",
+    "lint:fixtures": "cd ../.. && eslint apps/web/lint-fixtures --config eslint.config.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run && node scripts/check-lint-fixtures.mjs"
+  },
+  "dependencies": {
+    "i18next": "26.4.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-i18next": "17.0.13"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.3",
+    "@testing-library/dom": "10.4.1",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.3",
+    "@types/node": "24.9.1",
+    "@types/react": "19.2.6",
+    "@types/react-dom": "19.2.5",
+    "@vitejs/plugin-react": "5.2.0",
+    "jsdom": "30.0.1",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3",
+    "vite": "7.3.6",
+    "vitest": "3.2.7"
+  }
+}

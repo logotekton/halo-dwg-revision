@@ -42,6 +42,11 @@ const haloApi = {
       }
     },
   },
+  // W3-01: docs/contracts/wave-3.md "IPC 채널" -- halocad:files:pick-drawings.
+  files: {
+    pickDrawings: (): Promise<string[]> =>
+      ipcRenderer.invoke('halocad:files:pick-drawings') as Promise<string[]>,
+  },
 }
 
 export type HaloApi = typeof haloApi

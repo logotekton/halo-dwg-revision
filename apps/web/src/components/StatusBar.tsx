@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { EngineStatus } from '../api/types'
-import { registerHaloTestHooks } from '../test-hooks'
+import { registerHaloTestHook } from '../test-hooks'
 
 /**
  * `null` before the main process has ever pushed a status (renderer just
@@ -31,7 +31,7 @@ export function StatusBar() {
   useEffect(() => window.halocad.engine.onStatus(setStatus), [])
 
   useEffect(() => {
-    registerHaloTestHooks(() => displayState(statusRef.current))
+    registerHaloTestHook('getStatus', () => displayState(statusRef.current))
   }, [])
 
   const label = t(`status.engine.${displayState(status)}`, {
@@ -40,8 +40,15 @@ export function StatusBar() {
   })
 
   return (
-    <footer className="flex h-7 shrink-0 items-center border-t border-neutral-800 bg-neutral-900 px-4 text-xs text-neutral-400">
+    <footer className="flex h-7 shrink-0 items-center justify-between border-t border-neutral-800 bg-neutral-900 px-4 text-xs text-neutral-400">
       <span>{label}</span>
+      {/* Real values (cursor position, drawing units) come from W3-02's
+          CadHost -- these are static reserved slots per brief W3-01
+          Constraints: "상태바 ... 좌표·단위 자리". */}
+      <span className="flex items-center gap-3">
+        <span>{t('status.coordinates')}</span>
+        <span>{t('status.units')}</span>
+      </span>
     </footer>
   )
 }

@@ -1,6 +1,9 @@
 import type { EngineConnection, EngineStatus } from './types'
 
 export interface HaloCadApi {
+  files: {
+    pickDrawings(): Promise<string[]>
+  }
   app: {
     getVersion: () => Promise<string>
     platform: string

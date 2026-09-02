@@ -68,6 +68,10 @@ if [ -f pnpm-lock.yaml ]; then
     node tools/license-check.mjs && ok "licenses" || bad "licenses"
   fi
   if [ "$E2E" = 1 ]; then
+    # e2e launches the BUILT app (apps/desktop/out + apps/web/dist): build first so a stale dist
+    # never masquerades as the current source.
+    step "build (for e2e)"
+    pnpm build >/dev/null && ok "built" || bad "build"
     step "e2e"
     pnpm -r --if-present run e2e && ok "e2e" || bad "e2e"
   fi

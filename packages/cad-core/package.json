@@ -1,0 +1,38 @@
+{
+  "name": "@halo-cad/cad-core",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Halo CAD viewer-side CAD core: the single mlightcad import surface, layer statistics and NDJ export (ADR-0002)",
+  "license": "GPL-3.0-only",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@halo-cad/schema": "workspace:*",
+    "@mlightcad/cad-simple-viewer": "1.6.3",
+    "@mlightcad/data-model": "1.14.3",
+    "mitt": "3.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@mlightcad/mtext-renderer": "0.12.4",
+    "@mlightcad/three-renderer": "1.6.3",
+    "@types/node": "24.3.0",
+    "@velipso/polybool": "1.1.1",
+    "eslint": "10.9.1",
+    "lodash-es": "4.17.21",
+    "three": "0.172.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.69.0",
+    "vitest": "3.2.4"
+  }
+}

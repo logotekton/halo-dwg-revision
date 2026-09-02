@@ -1,0 +1,34 @@
+{
+  "name": "@halo-cad/dwg-io-gpl",
+  "version": "0.0.1",
+  "private": true,
+  "description": "GPL boundary package: registers the LibreDWG DWG converter with mlightcad and copies its worker assets (CLAUDE.md rule 3)",
+  "license": "GPL-3.0-only",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "scripts"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "copy-worker-assets": "node scripts/copy-worker-assets.mjs"
+  },
+  "dependencies": {
+    "@mlightcad/data-model": "1.14.3",
+    "@mlightcad/libredwg-converter": "3.14.3",
+    "@mlightcad/libredwg-web": "0.7.10"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.3.0",
+    "eslint": "10.9.1",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.69.0",
+    "vitest": "3.2.4"
+  }
+}

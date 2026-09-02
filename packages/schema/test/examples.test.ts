@@ -66,12 +66,21 @@ const CASES: Record<string, ExampleCase> = {
   "consistency.ok.json": {
     validate: validateConsistencyCheckSet,
     valid: true,
-    reason: "same-basis equalities plus the cross-basis inequality ADR-0003 permits",
+    reason:
+      "same-basis equalities plus the cross-basis inequality ADR-0003 permits, plus the " +
+      "addendum's CH<->CH equality against a CEILING_PLAN source",
   },
   "consistency.bad.json": {
     validate: validateConsistencyCheckSet,
     valid: false,
     reason: "cross-basis equality between the finished floor level and the structural level",
+  },
+  "consistency.bad-ch-eq-no-ceiling-plan.json": {
+    validate: validateConsistencyCheckSet,
+    valid: false,
+    reason:
+      "ADR-0003 addendum proof: CH<->CH equality is still rejected when neither source is " +
+      "CEILING_PLAN",
   },
   "markup.json": { validate: validateMarkupSidecar, valid: true, reason: "cloud, arrow and note" },
   "tags.json": {

@@ -19,10 +19,16 @@ export type Ulid = string;
  */
 export type LevelKind = "SL" | "FL" | "FLOOR_HEIGHT" | "CH";
 /**
- * Which drawing or table a height value was read from. `LEVEL_TABLE` and `FINISH_SCHEDULE` are the sources that yield `CH`; `ELEVATION`, `SECTION` and `STRUCT_PLAN` yield `SL` and `FL` (ADR-0003).
+ * Which drawing or table a height value was read from. `LEVEL_TABLE` and `FINISH_SCHEDULE` are the sources that yield `CH`; `ELEVATION`, `SECTION` and `STRUCT_PLAN` yield `SL` and `FL` (ADR-0003). `CEILING_PLAN` also yields `CH`, only when the ceiling plan drawing itself labels a ceiling height (ADR-0003 addendum, 2026-09-03) -- it is the one source a `CH`<->`CH` consistency check may compare against `LEVEL_TABLE`/`FINISH_SCHEDULE` with `EQ` (`levels/consistency-check.schema.json`).
  */
 export type LevelSource =
-  "ELEVATION" | "SECTION" | "STRUCT_PLAN" | "LEVEL_TABLE" | "FINISH_SCHEDULE" | "USER";
+  | "ELEVATION"
+  | "SECTION"
+  | "STRUCT_PLAN"
+  | "LEVEL_TABLE"
+  | "FINISH_SCHEDULE"
+  | "CEILING_PLAN"
+  | "USER";
 /**
  * Lowercase hex sha256 digest of a file's bytes.
  */

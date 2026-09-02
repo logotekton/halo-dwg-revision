@@ -1,0 +1,16 @@
+{
+  "schema_version": "0.1",
+  "checks": [
+    {
+      "id": "CH_EQ_CH_NO_CEILING_PLAN",
+      "left_kind": "CH",
+      "right_kind": "CH",
+      "operator": "EQ",
+      "tolerance_mm": 15,
+      "left_source": "LEVEL_TABLE",
+      "right_source": "FINISH_SCHEDULE",
+      "severity": "ERROR",
+      "description": "Forbidden by ADR-0003's addendum: a CH<->CH equality is only allowed when at least one source is CEILING_PLAN. Neither source here is, so this stays rejected exactly like before the addendum."
+    }
+  ]
+}

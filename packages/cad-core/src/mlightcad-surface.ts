@@ -47,6 +47,13 @@ import {
 } from '@mlightcad/data-model';
 import type { AcDbEntity } from '@mlightcad/data-model';
 
+import {
+  fitPointSplineLength,
+  nurbsFromControlPoints,
+  nurbsLength,
+  scanSplineFitData,
+} from './curve-length';
+import type { SplineFitData } from './curve-length';
 import type {
   CadBlock,
   CadDocumentHandle,
@@ -250,6 +257,44 @@ function lengthFromIntersectCurves(entity: AcDbEntity): number {
     if (carrier && typeof carrier.length === 'number') total += carrier.length;
   }
   return total;
+}
+
+/**
+ * SPLINE length by our own NURBS flattening (`curve-length.ts`) instead of
+ * `AcGeSpline3d.length`.
+ *
+ * Two different corrections hide behind one call:
+ *
+ * 1. **Fit-point splines.** `AcDbSpline.fromDwgSpline` turns DXF groups
+ *    11/21/31 into control points with a *uniform* parametrisation, while
+ *    AutoCAD, BricsCAD and ezdxf use chord parametrisation with natural knots.
+ *    The two curves pass through the same points and differ in between — on
+ *    F01 by +11.3%, the gap that whitelist W01 covered. `splineFits` carries
+ *    the fit points read straight from the file, so the curve is rebuilt the
+ *    way the engine builds it.
+ * 2. **Control-point splines.** The stored control points are exact, and here
+ *    mlightcad's own `length` already agrees with flattening to 3e-5%; going
+ *    through the same code path anyway removes the dependency on an
+ *    implementation detail of a pinned version.
+ *
+ * Falls back to the intersect-curve sum when neither route produces a curve.
+ */
+function splineLength(entity: AcDbEntity, fit: SplineFitData | undefined): number {
+  if (fit) {
+    const fromFitPoints = fitPointSplineLength(fit);
+    if (fromFitPoints !== null) return fromFitPoints;
+  }
+  const geo = readGeo<SplineGeo>(entity);
+  if (geo) {
+    const curve = nurbsFromControlPoints({
+      degree: geo.degree,
+      controlPoints: geo.controlPoints.map(vec),
+      knots: geo.knots,
+      ...(geo.weights ? { weights: geo.weights } : {}),
+    });
+    if (curve) return nurbsLength(curve);
+  }
+  return lengthFromIntersectCurves(entity);
 }
 
 /**
@@ -614,7 +659,8 @@ class SurfaceEntity implements CadEntity {
     private readonly entity: AcDbEntity,
     space: CadSpace,
     path: CadHandle[],
-    readonly file: string | undefined
+    readonly file: string | undefined,
+    private readonly splineFits: ReadonlyMap<string, SplineFitData> = new Map()
   ) {
     this.handle = entity.objectId;
     this.dxfType = entity.dxfTypeName;
@@ -651,6 +697,9 @@ class SurfaceEntity implements CadEntity {
   curveLength(path: CurveLengthPath = 'intersect-curves'): number | null {
     if (!LENGTH_TYPES.has(this.type)) return 0;
     if (path === 'entity-properties') return lengthFromProperties(this.entity);
+    if (this.type === 'SPLINE') {
+      return splineLength(this.entity, this.splineFits.get(this.handle.toUpperCase()));
+    }
     return lengthFromIntersectCurves(this.entity);
   }
 
@@ -678,7 +727,15 @@ class SurfaceEntity implements CadEntity {
     if (!(entity instanceof AcDbBlockReference)) return [];
     const out: CadEntity[] = [];
     for (const attribute of entity.attributeIterator()) {
-      out.push(new SurfaceEntity(attribute, this.space, [...this.path, this.handle], this.file));
+      out.push(
+        new SurfaceEntity(
+          attribute,
+          this.space,
+          [...this.path, this.handle],
+          this.file,
+          this.splineFits
+        )
+      );
     }
     return out;
   }
@@ -698,7 +755,8 @@ class SurfaceDocument implements CadDocumentHandle {
   constructor(
     private database: AcDbDatabase | null,
     readonly header: CadHeader,
-    readonly fileSha256: string | undefined
+    readonly fileSha256: string | undefined,
+    private readonly splineFits: ReadonlyMap<string, SplineFitData> = new Map()
   ) {}
 
   private db(): AcDbDatabase {
@@ -779,7 +837,7 @@ class SurfaceDocument implements CadDocumentHandle {
       const view: CadSpaceView = {
         space,
         blockRecordHandle: record.objectId,
-        entities: () => iterateSpace(record, space, this.fileSha256),
+        entities: () => iterateSpace(record, space, this.fileSha256, this.splineFits),
       };
       if (isModel) model.push(view);
       else paper.push({ view, order: paper.length });
@@ -803,10 +861,11 @@ class SurfaceDocument implements CadDocumentHandle {
 function* iterateSpace(
   record: { newIterator(): Iterable<AcDbEntity> },
   space: CadSpace,
-  file: string | undefined
+  file: string | undefined,
+  splineFits: ReadonlyMap<string, SplineFitData>
 ): Iterable<CadEntity> {
   for (const entity of record.newIterator()) {
-    yield new SurfaceEntity(entity, space, [], file);
+    yield new SurfaceEntity(entity, space, [], file, splineFits);
   }
 }
 
@@ -831,6 +890,11 @@ export async function openDxfDatabase(
 ): Promise<CadDocumentHandle> {
   const copy = bytes.slice(0);
   const { acadver, codepage } = readHeaderVariables(copy);
+  // One extra pass over the bytes before the parser runs: data-model discards
+  // SPLINE fit points while reading, and `curveLength` needs them to rebuild
+  // the curve the way ezdxf does (see `splineLength`). The pass is byte-level
+  // and allocates only for the SPLINE records it finds.
+  const splineFits = scanSplineFitData(copy);
   const database = new AcDbDatabase();
   await database.read(copy, { readOnly: true }, AcDbFileType.DXF);
   const version: unknown = database.version;
@@ -845,5 +909,5 @@ export async function openDxfDatabase(
     codepageOverrideByUser: options.encoding !== undefined && options.encoding !== '',
     insunits: database.insunits,
   };
-  return new SurfaceDocument(database, header, options.fileSha256);
+  return new SurfaceDocument(database, header, options.fileSha256, splineFits);
 }

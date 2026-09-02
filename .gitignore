@@ -47,3 +47,5 @@ test-results/
 
 # Claude Code local session settings
 .claude/settings.local.json
+fixtures/**/F11*.drops.json
+fixtures/**/F12*.drops.json

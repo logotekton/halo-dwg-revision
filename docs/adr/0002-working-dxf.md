@@ -8,8 +8,8 @@
 ## 결정
 1. 파일마다 **작업용 DXF 정본(working DXF)** 을 만든다: R2018(AC1032) UTF-8, XREF 임베드(`ezdxf.xref`, 핸들 재번호는 `xref_handle_map`에 기록), 인코딩 보정(CP949 오표기 복구, `\M+1`·`\U+` 디코드).
 2. **뷰어와 엔진은 같은 정본 바이트를 파싱한다.** 따라서 `(file_id, handle)`이 양쪽에서 동일한 키다.
-3. DWG → DXF 변환은 데스크톱 Node utilityProcess에서 수행한다. 1차 acad-ts, 2차 mlightcad data-model `dxfOut()`, 3차 네이티브 LibreDWG `dwg2dxf`(사용자가 설치한 경우). 기본 변환기는 P0 실측(W2-06)으로 확정한다.
-4. 브라우저 WASM(libredwg-web) 파싱은 임포트 중 즉시 미리보기(≤60MB)와 변환 실패 시 대체 경로로만 쓴다.
+3. DWG → DXF 변환은 데스크톱 Node utilityProcess에서 수행한다. **(개정됨 — 아래 "개정 2026-09-02" 참조)** 1차 acad-ts, 2차 mlightcad data-model `dxfOut()`, 3차 네이티브 LibreDWG `dwg2dxf`(사용자가 설치한 경우). 기본 변환기는 P0 실측(W2-06)으로 확정한다.
+4. 브라우저 WASM(libredwg-web) 파싱은 **(개정됨 — 상한은 엔티티 수 25만)** 임포트 중 즉시 미리보기(≤60MB)와 변환 실패 시 대체 경로로만 쓴다.
 5. 엔진은 DXF만 읽는다.
 6. 임포트 후 뷰어의 `statsByLayer()`와 엔진의 `stats.py`(동일 정의: 레이어·공간별 타입 카운트, 길이 합, 해치 면적 합, 텍스트 해시, 블록명별 INSERT, bbox)를 비교해 레이어별 녹/황/적을 표시한다. 적색 레이어에 근거를 둔 항목은 신뢰도를 감점한다.
 7. 엔진이 물량·모델의 단일 진실 소스다. 뷰어는 표시·피킹·측정·편집을 담당하고 측정값은 적산에 들어가지 않는다.
@@ -17,3 +17,14 @@
 ## 결과
 - 원본은 `originals/<sha256>`에 읽기전용으로 보관되고 정본은 `cache/dxf/`에 파생된다.
 - 대용량 정책: 정본 ≤200MB 그대로, 200~600MB 라이트 DXF, >600MB 엔진 전용(썸네일 + 도곽 단위 시트 추출). 임계값은 실측으로 보정.
+
+## 개정 2026-09-02 — W2-06 실측 반영 (`docs/spikes/large-file.md`)
+
+이 절이 위 "결정" 3·4·6항과 "결과"의 대용량 정책을 **대체**한다.
+
+1. **기본 변환기는 mlightcad `AcDbDatabase.dxfOut()`이다.** acad-ts는 보조(DWG 읽기 폴백, 제3파서 교차검증, 유일한 DWG 라이터)로 내린다. 근거: acad-ts가 쓴 DXF는 ezdxf가 읽지 못한다(ATTRIB 서브클래스 마커·태그 그룹 2 누락 → 감사기가 ATTRIB 전량 삭제, MTEXT x축 영벡터, 중복 핸들). 100만 엔티티에서 힙과 무관하게 스택 오버플로. `dxfOut()`은 100만 엔티티를 8.3초/RSS 4.6GB에 통과하고 X-TITLE INSERT도 보존한다.
+2. **실행 위치.** mlightcad의 DWG 파싱은 `AcDbLibreDwgConverter`가 `useWorker: true`를 강제하고 Node에 `Worker` 전역이 없어 순수 Node utilityProcess에서 동작하지 않는다. DWG→DXF는 **숨김 BrowserWindow(워커를 제공하는 렌더러 컨텍스트)**에서 수행하고, utilityProcess는 acad-ts 폴백 전용이다. DXF 입력의 `dxfOut()`은 Node CJS로도 동작한다.
+3. **`dxfOut()` 산출 DXF 후처리 2건 필수:** (a) ATTRIB이 뒤따르는 INSERT에 그룹 `66 1` 삽입(없으면 ezdxf가 ATTRIB을 INSERT에 붙이지 못함), (b) HATCH 경계 경로 그룹 `92`에 External 비트(1) 복원(없으면 해치 면적 부호 반전). 이 둘을 넣으면 F06/F11/F12가 truth와 완전히 일치한다(W3-02 착수 항목).
+4. **"변환 성공"은 stats 교차검증을 통과해야 성공이다(경고가 아니라 차단).** (a) 엔진이 산출 DXF를 `ezdxf.readfile`/`recover`로 열지 못함, (b) 감사기 삭제 건수 > 0, (c) 변환기 보고 엔티티 수와 엔진 `stats.totals.entity_count` 차이 ±0.5% 초과 → 그 변환은 실패로 보고 다음 후보로 폴백한다. 근거: libredwg-web이 오류 없이 20만 중 85개만 반환한 사례.
+5. **대용량 정책은 파일 크기가 아니라 엔티티 수다.** A ≤ 25만(전체 편집), B 25만~80만(뷰어는 라이트 DXF, 엔진은 정본), C > 80만(엔진 전용 + 썸네일·도곽 단위 시트 추출). 파싱 전 1차 추정은 크기 밀도(DXF ≈ 207 B/엔티티, DWG ≈ 26 B/엔티티)로 하고, 정본 생성 후 `entity_count`로 확정한다. B/C 경계는 Chromium 렌더러 힙 상한(≈4GB, 100만 엔티티에서 4.25GB 도달)에서 나오며 기기 RAM과 무관하다. 브라우저 미리보기 상한도 25만 엔티티(DXF 55MB / DWG 8MB 상당)다. 뷰어 렌더 비용은 미측정이라 A 경계는 W3-02에서 재확인한다.
+6. **사용자 문구.** "메모리 부족" 류 표현을 쓰지 않는다(acad-ts 실패는 RAM과 무관). 티어 B: "이 도면은 큽니다. 화면에는 축약본을 열고 물량은 원본으로 계산합니다." 티어 C: "화면에 통째로 열기에 너무 큽니다. 도곽 단위로 나눠 열거나 물량 계산만 진행합니다."

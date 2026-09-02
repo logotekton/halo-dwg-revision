@@ -1,0 +1,3 @@
+# W2-06 scratch: converted DXF/DWG and per-run stats JSON can be hundreds of MB
+# (F11 is 41 MB, F12 is 209 MB). Only the results-*.json summaries are committed.
+work/

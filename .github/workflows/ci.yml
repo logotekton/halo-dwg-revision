@@ -1,0 +1,166 @@
+name: CI
+
+"on":
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PYTHONUTF8: "1"
+
+jobs:
+  ts:
+    name: ts (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, windows-latest]
+    steps:
+      # Windows runners default core.autocrlf=true, which rewrites LF to CRLF on
+      # checkout. tools/verify.sh (and any other bash script) would then fail with
+      # "$'\r': command not found". Disable it before checkout on every OS.
+      - name: Disable git autocrlf
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      # Contract (docs/contracts/wave-2.md): use corepack, not pnpm/action-setup.
+      - name: Enable corepack and activate pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare --activate
+
+      - name: Resolve pnpm store directory
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm -r lint
+
+      - name: Typecheck
+        run: pnpm -r typecheck
+
+      - name: Unit tests
+        run: pnpm -r test
+
+  engine:
+    name: engine (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, windows-latest]
+    steps:
+      - name: Disable git autocrlf
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            engine/pyproject.toml
+
+      - name: Install Python 3.12
+        run: uv python install 3.12
+
+      - name: Sync engine dependencies
+        working-directory: engine
+        run: uv sync --frozen
+
+      - name: Ruff check
+        working-directory: engine
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        working-directory: engine
+        run: uv run ruff format --check .
+
+      - name: Mypy
+        working-directory: engine
+        run: uv run mypy
+
+      - name: Pytest
+        working-directory: engine
+        run: uv run pytest -q
+
+  verify:
+    name: verify (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, windows-latest]
+    # Required leg is macOS (docs/contracts/wave-2.md: "verify ... mac만"). The
+    # Windows leg is attempted via Git Bash per the brief's Constraints section;
+    # known gaps are tracked in docs/dev/ci.md and must not fail the workflow.
+    continue-on-error: ${{ matrix.os == 'windows-latest' }}
+    steps:
+      - name: Disable git autocrlf
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable corepack and activate pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare --activate
+
+      - name: Resolve pnpm store directory
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            engine/pyproject.toml
+
+      - name: Install Python 3.12
+        run: uv python install 3.12
+
+      - name: Run tools/verify.sh
+        run: bash tools/verify.sh

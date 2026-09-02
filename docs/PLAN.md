@@ -85,7 +85,7 @@ halo-cad/
 1. main이 32바이트 토큰 생성 → `halo-engine serve --data-dir <userData>/engine` 실행. env `HALO_ENGINE_TOKEN`(argv 금지), `HALO_ENGINE_PARENT_PID`, `PYTHONUTF8=1`.
 2. 엔진이 `127.0.0.1:0` 바인드 후 stdout 한 줄 `{"event":"ready","port":N,"version":...}`.
 3. main이 `/api/v1/system/health` 폴링(30s), 실패 시 로그 tail + "다시 시도".
-4. preload `window.dmcad.engine.getConnection()`으로 baseUrl+토큰 1회 전달. 렌더러는 openapi-fetch. WS 첫 프레임 `{"type":"auth","token"}`.
+4. preload `window.halocad.engine.getConnection()`으로 baseUrl+토큰 1회 전달. 렌더러는 openapi-fetch. WS 첫 프레임 `{"type":"auth","token"}`.
 5. 부모 PID 감시(부모 종료 시 5초 내 종료). 종료 `POST /system/shutdown` → 5초 → SIGTERM/taskkill. 크래시 시 3회 백오프 재시작, 진행 중 잡 `FAILED(engine_restart)`.
 6. 300ms 초과 작업은 `202 {job_id}`, ProcessPool(spawn, 2), WS `job.progress/done/failed`, `model.changed`. 대용량은 ETag/Range HTTP 스트림.
 7. 개발 모드: `HALO_ENGINE_URL` 지정 시 spawn 생략, `uv run halo-engine serve --dev --reload`에 부착. Electron 없이 브라우저에서 UI 개발 가능.

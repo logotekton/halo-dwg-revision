@@ -36,7 +36,7 @@ viol=$(grep -rnE "@mlightcad/libredwg-(web|converter)" \
         --include='*.ts' --include='*.tsx' --include='*.js' --include='*.mjs' \
         --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=out \
         apps packages 2>/dev/null \
-      | grep -vE '^packages/dwg-io-gpl/|^apps/desktop/src/main/ipc/convert\.ts|^apps/desktop/electron\.vite\.config\.ts' || true)
+      | grep -vE '^packages/dwg-io-gpl/|^apps/desktop/src/main/ipc/convert\.ts|^apps/desktop/electron\.vite\.config\.ts|^apps/web/lint-fixtures/' || true)
 if [ -n "$viol" ]; then echo "$viol"; bad "libredwg imported outside allowed locations"; else ok "boundary respected"; fi
 
 # ---------- height rule: CH must not be equality-compared with SL/FL/FLOOR_HEIGHT (heuristic) ----------

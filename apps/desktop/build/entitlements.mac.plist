@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  W2-08 packaging spike: `hardenedRuntime: false` (electron-builder.yml), so
+  these entitlements are not currently applied by electron-builder's mac
+  signing step (ad-hoc identity: null, no notarization -- see
+  docs/dev/packaging.md). Kept as the standard Electron baseline set so a
+  later task can flip `hardenedRuntime: true` for real codesigning/
+  notarization without first having to author this file from scratch.
+-->
+<plist version="1.0">
+  <dict>
+    <!-- Electron's JIT (V8) needs this under the hardened runtime. -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <true/>
+    <!-- The PyInstaller sidecar binary (extraResources/engine/halo-engine)
+         is ad-hoc signed and not from the Mac App Store / a Developer ID
+         Electron already trusts, so library validation must stay off for
+         Electron to spawn it as a child process under a hardened runtime. -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+  </dict>
+</plist>

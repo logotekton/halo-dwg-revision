@@ -260,36 +260,11 @@ import {
 } from "@node-projects/acad-ts";
 
 // src/acad/entity-types.ts
-var DIRECT = /* @__PURE__ */ new Set([
-  "LINE",
-  "LWPOLYLINE",
-  "POLYLINE",
-  "ARC",
-  "CIRCLE",
-  "ELLIPSE",
-  "SPLINE",
-  "TEXT",
-  "MTEXT",
-  "ATTRIB",
-  "ATTDEF",
-  "INSERT",
-  "HATCH",
-  "DIMENSION",
-  "LEADER",
-  "SOLID",
-  "POINT",
-  "3DFACE"
-]);
-var RENAMED = /* @__PURE__ */ new Map([
-  ["MULTILEADER", "MLEADER"],
-  ["ARC_DIMENSION", "DIMENSION"],
-  ["ACAD_PROXY_ENTITY", "PROXY"]
-]);
-function normalizeEntityType(objectName) {
-  if (DIRECT.has(objectName)) return objectName;
-  const renamed = RENAMED.get(objectName);
-  if (renamed) return renamed;
-  return null;
+var KEY_PATTERN = /^[A-Z][A-Z0-9_]*$/;
+var SEMANTIC_RENAME = /* @__PURE__ */ new Map([["ARC_DIMENSION", "DIMENSION"]]);
+function statsTypeKey(objectName) {
+  const key = SEMANTIC_RENAME.get(objectName) ?? objectName;
+  return KEY_PATTERN.test(key) ? key : null;
 }
 var LENGTH_TYPES = /* @__PURE__ */ new Set([
   "LINE",
@@ -514,12 +489,12 @@ function textValueOf(entity) {
 function processEntity(entity, space, buckets, drops) {
   const isUnknown = entity instanceof UnknownEntity2;
   const isProxy = entity instanceof ProxyEntity2;
-  const normalized = isUnknown || isProxy ? "PROXY" : normalizeEntityType(entity.objectName);
+  const normalized = statsTypeKey(entity.objectName || "ACAD_PROXY_ENTITY");
   const layerName = entity.layer.name;
   if (normalized === null) {
     drops.push({
       reason: "stats-schema-unsupported-type",
-      message: `entity type '${entity.objectName}' is not part of the LayerStatsDocument entity_type enum; excluded from stats`,
+      message: `entity type '${entity.objectName}' does not fit the LayerStatsDocument count_by_type key pattern; excluded from stats`,
       entityType: entity.objectName,
       handle: hex2(entity.handle),
       space,
@@ -530,7 +505,7 @@ function processEntity(entity, space, buckets, drops) {
   if (isUnknown || isProxy) {
     drops.push({
       reason: "acad-ts-unsupported",
-      message: isUnknown ? "acad-ts could not resolve this entity to a known class (read as UnknownEntity); counted as PROXY" : "entity persisted only as proxy graphics (ACAD_PROXY_ENTITY); counted as PROXY",
+      message: isUnknown ? `acad-ts could not fully resolve this entity to a known class (read as UnknownEntity); counted under '${normalized}'` : `entity persisted only as proxy graphics (ACAD_PROXY_ENTITY); counted under '${normalized}'`,
       entityType: entity.objectName || void 0,
       handle: hex2(entity.handle),
       space,

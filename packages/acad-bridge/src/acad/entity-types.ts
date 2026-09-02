@@ -1,66 +1,45 @@
 /**
- * Maps acad-ts's `entity.objectName` (its raw DXF type token, e.g. from
- * `DxfFileToken`) onto `LayerStatsDocument`'s closed `entity_type` enum
- * (packages/schema/src/ndj/entity.schema.json#/$defs/entity_type):
+ * `count_by_type` keys are **raw DXF record names** (`entity.objectName` --
+ * acad-ts's own `DxfFileToken` values, which match the actual DXF group-code
+ * type names, e.g. `MULTILEADER`, not an ACAD UI name or a normalised
+ * label), per the schema's own doc comment
+ * (packages/schema/src/stats/layer-stats.schema.json#/$defs/count_by_type:
+ * "Entity count per raw DXF record name (dxfTypeName, e.g. LINE,
+ * MULTILEADER, TRACE) ... Keys are not normalised to the NDJ entity_type
+ * enum") and the integration note both parsers converged on
+ * (docs/contracts/stats-definition.md "통합에서 확정된 사항").
  *
- *   LINE LWPOLYLINE POLYLINE ARC CIRCLE ELLIPSE SPLINE TEXT MTEXT ATTRIB
- *   ATTDEF INSERT HATCH DIMENSION LEADER MLEADER SOLID POINT 3DFACE PROXY
+ * This is a change from `packages/schema/src/ndj/entity.schema.json`'s
+ * closed `entity_type` enum, which is a *different* constraint used only by
+ * NDJ documents and still has `MLEADER` (not `MULTILEADER`) -- irrelevant
+ * here. `count_by_type`'s own key constraint is just a shape pattern:
+ * `^[A-Z][A-Z0-9_]*$`.
  *
- * Two acad-ts tokens do not match a same-named schema value 1:1:
- *
- * - `MULTILEADER` (acad-ts's `MultiLeader.objectName`, and the real DXF
- *   group-code type name -- see fixtures/README.md Decision 10) has no
- *   `MULTILEADER` entry in the schema enum, only `MLEADER`. This is a
- *   naming split between docs/contracts/stats-definition.md (prose, uses
- *   "MULTILEADER") and the schema (uses "MLEADER") -- see this package's
- *   README "Deviations" and the task report's Questions for gate.
- * - `ARC_DIMENSION` (`DimensionArc.objectName`) is normalised to
- *   `DIMENSION`, per stats-definition.md "DIMENSION 하위 유형은 모두
- *   DIMENSION" -- every other Dimension subclass already reports
- *   `objectName === "DIMENSION"` directly.
- *
- * Anything not listed here (VIEWPORT, XLINE, REGION, MLINE, ...) has no slot
- * in the schema enum at all. `normalizeEntityType` returns `null` for those;
- * the caller excludes the entity from stats and records a
+ * One semantic normalisation from stats-definition.md survives regardless
+ * of key naming: "DIMENSION 하위 유형은 모두 DIMENSION". Every Dimension
+ * subclass reports `objectName === "DIMENSION"` directly except
+ * `DimensionArc`, which reports the DXF subclass token `ARC_DIMENSION` --
+ * mapped back to `DIMENSION` here.
+ */
+const KEY_PATTERN = /^[A-Z][A-Z0-9_]*$/;
+
+const SEMANTIC_RENAME: ReadonlyMap<string, string> = new Map([["ARC_DIMENSION", "DIMENSION"]]);
+
+/**
+ * `count_by_type` key for `objectName`, or `null` if it does not fit the
+ * schema's key pattern at all (observed case: `3DFACE`/`3DSOLID` start with
+ * a digit, which `^[A-Z]...` never matches -- none of fixtures/generated
+ * use either type, so this is a defensive fallback, not a known-affected
+ * path). The caller excludes such an entity from stats and records a
  * `stats-schema-unsupported-type` drop instead of emitting an invalid
  * document (see drops.ts).
  */
-const DIRECT: ReadonlySet<string> = new Set([
-  "LINE",
-  "LWPOLYLINE",
-  "POLYLINE",
-  "ARC",
-  "CIRCLE",
-  "ELLIPSE",
-  "SPLINE",
-  "TEXT",
-  "MTEXT",
-  "ATTRIB",
-  "ATTDEF",
-  "INSERT",
-  "HATCH",
-  "DIMENSION",
-  "LEADER",
-  "SOLID",
-  "POINT",
-  "3DFACE",
-]);
-
-const RENAMED: ReadonlyMap<string, string> = new Map([
-  ["MULTILEADER", "MLEADER"],
-  ["ARC_DIMENSION", "DIMENSION"],
-  ["ACAD_PROXY_ENTITY", "PROXY"],
-]);
-
-/** Normalised type name, or `null` if `objectName` has no schema `entity_type` slot. */
-export function normalizeEntityType(objectName: string): string | null {
-  if (DIRECT.has(objectName)) return objectName;
-  const renamed = RENAMED.get(objectName);
-  if (renamed) return renamed;
-  return null;
+export function statsTypeKey(objectName: string): string | null {
+  const key = SEMANTIC_RENAME.get(objectName) ?? objectName;
+  return KEY_PATTERN.test(key) ? key : null;
 }
 
-/** Normalised types whose `length_sum_mm` contribution is computed by acad/length.ts. */
+/** Raw DXF types whose `length_sum_mm` contribution is computed by acad/length.ts. */
 export const LENGTH_TYPES: ReadonlySet<string> = new Set([
   "LINE",
   "LWPOLYLINE",

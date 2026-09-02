@@ -109,14 +109,17 @@ observed once in a fixture.
   not the bare string `"acad-ts"` docs/contracts/stats-definition.md's prose describes -- the
   schema is what `validateLayerStats` actually checks, and is treated as authoritative wherever the
   two disagree (see this task's report "Deviations from brief" for every such case).
-- `count_by_type`'s keys are the schema's closed `entity_type` enum
-  (`packages/schema/src/ndj/entity.schema.json#/$defs/entity_type`), which uses **`MLEADER`**, not
-  `MULTILEADER` (acad-ts's own, and the real DXF group-code, type name) -- `acad/entity-types.ts`
-  renames it. Anything acad-ts reads that has no slot in that enum at all (e.g. `VIEWPORT`, none of
-  which appear in F01-F10) is excluded from `stats` output and recorded as a
-  `stats-schema-unsupported-type` drop, per the schema's own doc comment ("Anything the parser
-  cannot map to one of these is reported as a whitelist violation by the crosscheck, not emitted as
-  NDJ").
+- `count_by_type`'s keys are **raw DXF record names** (`entity.objectName`, e.g. `MULTILEADER`,
+  not `MLEADER`) matching `^[A-Z][A-Z0-9_]*$`, per
+  `packages/schema/src/stats/layer-stats.schema.json#/$defs/count_by_type` and the post-merge
+  contract note ("통합에서 확정된 사항 ... count_by_type 키는 raw DXF 레코드명이다"). This is a
+  *different*, looser constraint from the closed `entity_type` enum used by NDJ documents
+  (`packages/schema/src/ndj/entity.schema.json`), which does still use `MLEADER` -- irrelevant to
+  `stats` output. The one remaining semantic rename is `DimensionArc`'s DXF subclass token
+  `ARC_DIMENSION` -> `DIMENSION` (stats-definition.md: "DIMENSION 하위 유형은 모두 DIMENSION").
+  Anything whose raw name does not fit the key pattern at all (observed: none in F01-F10; `3DFACE`/
+  `3DSOLID` would not, since they start with a digit) is excluded from `stats` output and recorded
+  as a `stats-schema-unsupported-type` drop.
 - `count_by_type`/`entity_count` exclude ATTRIB (`stats-definition.md`: "ATTRIB·SEQEND·VERTEX는
   세지 않는다(소유 엔티티에 속함)"); ATTRIB still contributes to `text_count`/`text_hash` under its
   *own* layer's bucket. Confirmed against `fixtures/truth/F06.json` (post-merge, now a real
@@ -132,9 +135,17 @@ observed once in a fixture.
   `fixtures/truth/F06.json` exactly. Not part of the brief's named acceptance fields
   (`count_by_type`/`length_sum`/`hatch_area_sum`/`insert_by_block`).
 - `length_sum_mm` includes ELLIPSE, per `stats-definition.md`'s field table (LINE, LWPOLYLINE,
-  POLYLINE(2D), ARC, CIRCLE, ELLIPSE, SPLINE) -- `fixtures/gen`'s own truth-computation
-  (`LENGTH_TYPES` in `fixtures/gen/src/fixtures_gen/stats.py`) omits ELLIPSE, a leftover from the
-  W1-03 brief's older Inputs list. F01 is the only fixture with ELLIPSE entities.
+  POLYLINE(2D), ARC, CIRCLE, ELLIPSE, SPLINE). `fixtures/truth/F01.json` (post-merge, now
+  computed by the same contract) agrees it should be included -- `count_by_type` there lists
+  `ELLIPSE: 2` and F01 is the only fixture with ELLIPSE entities either way -- but the actual
+  **value** differs by about 0.5% (this package: `50449.687945`; truth: `50714.822632`), outside
+  the ±0.1% crosscheck tolerance. F01 also has 2 SPLINE entities; neither ELLIPSE nor SPLINE has an
+  exact closed-form length, so both parsers are approximating a curve by flattening it at a chosen
+  precision, and the two precisions do not agree closely enough. This is the same class of gap the
+  contract already flags as a whitelist candidate for the mlightcad side ("mlightcad 스플라인 길이는
+  flattening(0.01)급이 아니어서 F01에서 ezdxf 대비 약 11% 크다") -- W2-04/G1 should decide whether
+  acad-ts's curve length also needs a whitelist entry, or whether `acad/length.ts`'s flattening
+  precision (`flatteningPrecision` in that file) should be tightened.
 
 ## Round-trip results (DXF -> DWG -> DXF or DXF -> DWG, F01-F10)
 

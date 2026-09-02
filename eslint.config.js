@@ -1,4 +1,4 @@
-// DMCAD workspace ESLint flat config (CLAUDE.md rule 8, ADR-0001).
+// Halo CAD workspace ESLint flat config (CLAUDE.md rule 8, ADR-0001).
 // CommonJS on purpose: root package.json has no "type": "module", so
 // eslint.config.js is loaded as CJS by Node/ESLint without extra config.
 'use strict'

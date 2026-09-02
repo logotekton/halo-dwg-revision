@@ -1,8 +1,8 @@
 {
-  "name": "@dmcad/desktop",
+  "name": "@halo-cad/desktop",
   "private": true,
   "version": "0.0.1",
-  "description": "DMCAD Electron shell (main + preload only; renderer is apps/web)",
+  "description": "Halo CAD Electron shell (main + preload only; renderer is apps/web)",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "node scripts/dev.mjs",

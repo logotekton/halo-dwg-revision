@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { app, BrowserWindow } from 'electron'
 import strings from './strings.ko.json'
 
-export const APP_SCHEME = 'dmcad'
+export const APP_SCHEME = 'halocad'
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -12,13 +12,13 @@ function delay(ms: number): Promise<void> {
 }
 
 /**
- * Test-only smoke hook (opt-in via DMCAD_E2E_SMOKE=1): once the renderer has
+ * Test-only smoke hook (opt-in via HALO_E2E_SMOKE=1): once the renderer has
  * finished loading, prints the actual BrowserWindow title, optionally
  * captures a PNG screenshot via webContents.capturePage(), then quits.
  * Used to verify `pnpm dev` from an automated/non-interactive shell.
  */
 function attachE2eSmokeHook(win: BrowserWindow): void {
-  if (process.env.DMCAD_E2E_SMOKE !== '1') return
+  if (process.env.HALO_E2E_SMOKE !== '1') return
 
   let finished = false
   const finish = async (): Promise<void> => {
@@ -28,7 +28,7 @@ function attachE2eSmokeHook(win: BrowserWindow): void {
     // Deliberate stdout contract for the e2e smoke check (docs/dev/setup.md).
     console.log(`E2E_WINDOW_TITLE:${win.getTitle()}`)
 
-    const screenshotPath = process.env.DMCAD_E2E_SCREENSHOT
+    const screenshotPath = process.env.HALO_E2E_SCREENSHOT
     if (screenshotPath) {
       // Let the compositor actually paint a frame before capturing: right
       // after did-finish-load the window may still be hidden (ready-to-show)
@@ -80,10 +80,10 @@ export function createMainWindow(): BrowserWindow {
     win.show()
   })
 
-  // DMCAD_WEB_DEV_SERVER_URL is set only by scripts/dev.mjs. Its absence
-  // means "run against the built apps/web/dist via the dmcad:// protocol"
-  // (used by `pnpm build && pnpm --filter @dmcad/desktop start`).
-  const devServerUrl = process.env.DMCAD_WEB_DEV_SERVER_URL ?? undefined
+  // HALO_WEB_DEV_SERVER_URL is set only by scripts/dev.mjs. Its absence
+  // means "run against the built apps/web/dist via the halocad:// protocol"
+  // (used by `pnpm build && pnpm --filter @halo-cad/desktop start`).
+  const devServerUrl = process.env.HALO_WEB_DEV_SERVER_URL ?? undefined
   if (devServerUrl) {
     void win.loadURL(devServerUrl)
   } else {

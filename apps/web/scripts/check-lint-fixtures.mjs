@@ -4,7 +4,7 @@
 // Runs ESLint against apps/web/lint-fixtures/ and asserts it FAILS, and
 // fails for the expected reasons. Exits 0 when the guard rules are working
 // (i.e. ESLint correctly rejected the fixtures), exits 1 otherwise.
-// Invoked by `pnpm --filter @dmcad/web test` (see package.json).
+// Invoked by `pnpm --filter @halo-cad/web test` (see package.json).
 //
 // Run from the repo root: eslint.config.js `files` globs (e.g.
 // "apps/web/lint-fixtures/**") are resolved against ESLint's basePath,

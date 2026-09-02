@@ -1,8 +1,8 @@
-import type { DmcadApi } from './index'
+import type { HaloApi } from './index'
 
 declare global {
   interface Window {
-    dmcad: DmcadApi
+    halocad: HaloApi
   }
 }
 

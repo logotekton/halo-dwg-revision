@@ -3,12 +3,12 @@
 // intentionally disabled, see electron.vite.config.ts): starts the
 // independent apps/web Vite dev server, waits for it to accept connections,
 // then runs `electron-vite dev` (main+preload build+watch, auto-launches
-// Electron) with DMCAD_WEB_DEV_SERVER_URL pointing at it.
+// Electron) with HALO_WEB_DEV_SERVER_URL pointing at it.
 import { spawn } from 'node:child_process'
 import net from 'node:net'
 
 const WEB_HOST = '127.0.0.1'
-const WEB_PORT = process.env.DMCAD_WEB_PORT ?? '5173'
+const WEB_PORT = process.env.HALO_WEB_PORT ?? '5173'
 const WEB_URL = `http://${WEB_HOST}:${WEB_PORT}`
 
 /** @type {import('node:child_process').ChildProcess[]} */
@@ -66,7 +66,7 @@ function waitForPort(host, port, timeoutMs) {
 
 const webDev = spawnChild('pnpm', [
   '--filter',
-  '@dmcad/web',
+  '@halo-cad/web',
   'dev',
   '--',
   '--port',
@@ -91,7 +91,7 @@ try {
 }
 
 const electronDev = spawnChild('pnpm', ['exec', 'electron-vite', 'dev'], {
-  DMCAD_WEB_DEV_SERVER_URL: WEB_URL,
+  HALO_WEB_DEV_SERVER_URL: WEB_URL,
 })
 electronDev.on('exit', (code) => {
   killAll()

@@ -25,7 +25,7 @@ export function getMimeType(filePath: string): string {
 }
 
 /**
- * Resolves a `dmcad://app/<pathname>` request to a file inside `distDir`
+ * Resolves a `halocad://app/<pathname>` request to a file inside `distDir`
  * (apps/web/dist), rejecting anything that would escape it. Root and empty
  * paths resolve to index.html so client-side routing has a fallback.
  */

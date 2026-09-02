@@ -3,8 +3,8 @@ import { defineConfig } from 'electron-vite'
 // Renderer is intentionally NOT configured here (ADR-0001 / brief W1-01):
 // apps/web is a fully independent Vite app. In dev, apps/desktop/scripts/dev.mjs
 // starts the apps/web dev server separately and passes its URL to the main
-// process via DMCAD_WEB_DEV_SERVER_URL. In production, main serves
-// apps/web/dist through the dmcad://app custom protocol (see src/main/index.ts).
+// process via HALO_WEB_DEV_SERVER_URL. In production, main serves
+// apps/web/dist through the halocad://app custom protocol (see src/main/index.ts).
 //
 // `build.externalizeDeps` defaults to true for both main and preload, so
 // node_modules dependencies (electron, etc.) stay external instead of being

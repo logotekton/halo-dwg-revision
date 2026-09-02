@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# DMCAD local verification entry point. Fable runs this on every returned task.
+# Halo CAD local verification entry point. Fable runs this on every returned task.
 # Usage: tools/verify.sh [--e2e] [--no-install]
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

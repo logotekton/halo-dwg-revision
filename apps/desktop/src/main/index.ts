@@ -66,7 +66,7 @@ app
   })
   .catch((error: unknown) => {
     // Startup failure: no renderer window exists yet to show this in.
-    console.error('failed to start DMCAD', error)
+    console.error('failed to start Halo CAD', error)
     app.exit(1)
   })
 

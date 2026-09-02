@@ -1,14 +1,14 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
 // Minimal API surface per brief W1-01. Engine/sidecar connection
-// (window.dmcad.engine.getConnection()) is added by W2-01.
-const dmcadApi = {
+// (window.halocad.engine.getConnection()) is added by W2-01.
+const haloApi = {
   app: {
-    getVersion: (): Promise<string> => ipcRenderer.invoke('dmcad:app:getVersion') as Promise<string>,
+    getVersion: (): Promise<string> => ipcRenderer.invoke('halocad:app:getVersion') as Promise<string>,
     platform: process.platform,
   },
 }
 
-export type DmcadApi = typeof dmcadApi
+export type HaloApi = typeof haloApi
 
-contextBridge.exposeInMainWorld('dmcad', dmcadApi)
+contextBridge.exposeInMainWorld('halocad', haloApi)

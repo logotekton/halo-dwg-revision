@@ -5381,7 +5381,7 @@ ATTRIB
   5
 A0
 330
-17
+9E
 100
 AcDbEntity
   8
@@ -5473,7 +5473,7 @@ ATTRIB
   5
 A4
 330
-17
+A2
 100
 AcDbEntity
   8
@@ -5565,7 +5565,7 @@ ATTRIB
   5
 A8
 330
-17
+A6
 100
 AcDbEntity
   8
@@ -5657,7 +5657,7 @@ ATTRIB
   5
 AC
 330
-17
+AA
 100
 AcDbEntity
   8
@@ -5749,7 +5749,7 @@ ATTRIB
   5
 B0
 330
-17
+AE
 100
 AcDbEntity
   8
@@ -5841,7 +5841,7 @@ ATTRIB
   5
 B4
 330
-17
+B2
 100
 AcDbEntity
   8
@@ -5933,7 +5933,7 @@ ATTRIB
   5
 B8
 330
-17
+B6
 100
 AcDbEntity
   8
@@ -8523,7 +8523,7 @@ ATTRIB
   5
 102
 330
-17
+100
 100
 AcDbEntity
   8
@@ -8557,7 +8557,7 @@ ATTRIB
   5
 103
 330
-17
+100
 100
 AcDbEntity
   8
@@ -8591,7 +8591,7 @@ ATTRIB
   5
 104
 330
-17
+100
 100
 AcDbEntity
   8

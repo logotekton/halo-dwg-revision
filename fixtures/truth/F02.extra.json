@@ -324,8 +324,8 @@
     "dxf_version": "AC1032",
     "encoding": "cp1252",
     "file": "F02.dxf",
-    "sha256": "cf5c2d605dd5000f7fba34f19047818f8ce06f1acf7ea501db63629848bbabb5",
-    "size_bytes": 80100
+    "sha256": "ecd79606b09bc30f0aee447093140e95fece9dd952fb5b6db00780786de78e58",
+    "size_bytes": 80118
   },
   "variants": {
     "r2000_cp949": {
@@ -333,8 +333,8 @@
       "encoding": "cp949",
       "file": "F02_r2000_cp949.dxf",
       "omitted": [],
-      "sha256": "340c7485304ef34510e2ef050221910b8612dff60c2b70694a95ec5f74d910bb",
-      "size_bytes": 56689,
+      "sha256": "e472327224608b1509eb0c13c95a0d9a8901fd845e10e6d406273fb06f198fdc",
+      "size_bytes": 56707,
       "stats": {
         "buckets": [
           {
@@ -469,7 +469,7 @@
             "space": "MODEL"
           }
         ],
-        "file_sha256": "340c7485304ef34510e2ef050221910b8612dff60c2b70694a95ec5f74d910bb",
+        "file_sha256": "e472327224608b1509eb0c13c95a0d9a8901fd845e10e6d406273fb06f198fdc",
         "producer": {
           "name": "engine.ezdxf",
           "version": "fixtures-gen/0.1.0+ezdxf/1.4.4"

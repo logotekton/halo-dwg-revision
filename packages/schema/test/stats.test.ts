@@ -73,10 +73,17 @@ describe("layer statistics", () => {
     expect(observed).toEqual(stats.totals.count_by_type);
   });
 
-  it("rejects a bucket that counts an entity type outside the closed set", () => {
+  it("rejects a count_by_type key that is not a DXF record name", () => {
     const broken = clone(stats);
-    broken.buckets[0]!.aggregate.count_by_type = { ACAD_TABLE: 1 };
+    broken.buckets[0]!.aggregate.count_by_type = { line: 1 };
     expect(validateLayerStats(broken)).toBe(false);
+  });
+
+  it("accepts raw DXF record names such as MULTILEADER (stats contract)", () => {
+    const ok = clone(stats);
+    ok.buckets[0]!.aggregate.count_by_type = { MULTILEADER: 1 };
+    ok.buckets[0]!.aggregate.entity_count = 1;
+    expect(validateLayerStats(ok)).toBe(true);
   });
 
   it("rejects a text hash that is not the documented 16 hex characters", () => {

@@ -85,7 +85,23 @@ def ensure_layers(doc: Drawing, names: Iterable[str]) -> None:
         doc.layers.add(name=name, color=defn["color"], linetype=defn["linetype"])
 
 
+def _own_attribs_by_insert(doc: Drawing) -> None:
+    """Make every ATTRIB's owner (group 330) its INSERT, as AutoCAD writes it.
+
+    ezdxf links ATTRIBs to their INSERT by sequence but writes the *layout*
+    block record as their owner. Real AutoCAD drawings write the INSERT handle,
+    and parsers such as mlightcad attach ATTRIBs to the INSERT via that owner
+    handle (packages/cad-core/test/attrib.test.ts). Mimic AutoCAD so the
+    fixtures exercise the same code path as production drawings.
+    """
+    for layout in doc.layouts:
+        for insert in layout.query("INSERT"):
+            for attrib in insert.attribs:
+                attrib.dxf.owner = insert.dxf.handle
+
+
 def save(doc: Drawing, path: Path) -> None:
+    _own_attribs_by_insert(doc)
     path.parent.mkdir(parents=True, exist_ok=True)
     doc.saveas(str(path))
 

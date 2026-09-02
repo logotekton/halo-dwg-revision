@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  // Tests run under vitest, i.e. as ESM, and use `import.meta`. The package
+  // itself still emits CommonJS (see tsconfig.json); only the type check of
+  // the test sources needs the ESM module setting.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "noEmit": true
+  },
+  "include": ["src/**/*", "test/**/*"]
+}

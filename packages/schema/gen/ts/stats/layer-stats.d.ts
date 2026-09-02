@@ -78,7 +78,7 @@ export interface StatsAggregate {
   bbox?: BBox;
 }
 /**
- * Entity count per normalised entity type. Types with a zero count are omitted.
+ * Entity count per raw DXF record name (dxfTypeName, e.g. LINE, MULTILEADER, TRACE) as required by docs/contracts/stats-definition.md. Keys are not normalised to the NDJ entity_type enum. Types with a zero count are omitted.
  */
 export interface CountByType {
   [k: string]: number;

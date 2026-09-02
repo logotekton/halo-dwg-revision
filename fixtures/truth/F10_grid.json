@@ -56,7 +56,7 @@
       "space": "MODEL"
     }
   ],
-  "file_sha256": "b3c3caa2bd5ca2426bdd26300a6902b7f127637c31c91c8f26a5e1babe84998b",
+  "file_sha256": "9d0cb221a4020f823089228ffd409fb281bce5905b83857d6bff4b2e2c4806cb",
   "producer": {
     "name": "engine.ezdxf",
     "version": "fixtures-gen/0.1.0+ezdxf/1.4.4"

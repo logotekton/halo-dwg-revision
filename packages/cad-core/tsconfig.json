@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ES2022",
+    // Browser (apps/web) and Node (vitest, the desktop utility process) both
+    // consume this package, so both lib sets are on.
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    // CommonJS so `require('packages/cad-core/dist/index.js')` works in plain
+    // Node: @mlightcad/data-model's ESM entry uses extensionless directory
+    // imports that Node's ESM resolver rejects (spike C.11), while its
+    // `require` condition points at a working CJS bundle. Bundlers (Vite,
+    // electron-vite) handle the CJS output for the browser build.
+    "module": "commonjs",
+    "moduleResolution": "node10",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    // ADR-0006: three packaging defects in @mlightcad/{cad-simple-viewer,
+    // data-model,three-renderer} make `skipLibCheck: false` fail (spike D.1).
+    "skipLibCheck": true,
+    "declaration": true,
+    "noEmit": true,
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      // The schema package publishes `dist/`, which is not committed; pointing
+      // at its sources keeps `typecheck` and `test` working without a build
+      // step. Only `import type` crosses this boundary, so nothing from the
+      // schema package ends up in cad-core's emitted JavaScript.
+      "@halo-cad/schema": ["../schema/src/index.ts"],
+      "@halo-cad/schema/gen/ts/*": ["../schema/gen/ts/*"]
+    }
+  },
+  "include": ["src/**/*"]
+}

@@ -101,7 +101,7 @@
       "dxf_version": "AC1032",
       "encoding": "cp1252",
       "file": "F10_grid.dxf",
-      "sha256": "b3c3caa2bd5ca2426bdd26300a6902b7f127637c31c91c8f26a5e1babe84998b",
+      "sha256": "9d0cb221a4020f823089228ffd409fb281bce5905b83857d6bff4b2e2c4806cb",
       "size_bytes": 59291
     },
     "host": {
@@ -118,7 +118,7 @@
         "dxf_version": "AC1015",
         "encoding": "cp949",
         "file": "F10_grid_r2000_cp949.dxf",
-        "sha256": "481995cc2e7c8b0c5dc2e678546f56998ce4372a45d09ef3e90839a68522af8d",
+        "sha256": "b311001f22b2846cf452ee907496a3c7a2d68453c01c18d4239439b60ed7bd28",
         "size_bytes": 38370,
         "stats": {
           "buckets": [
@@ -178,7 +178,7 @@
               "space": "MODEL"
             }
           ],
-          "file_sha256": "481995cc2e7c8b0c5dc2e678546f56998ce4372a45d09ef3e90839a68522af8d",
+          "file_sha256": "b311001f22b2846cf452ee907496a3c7a2d68453c01c18d4239439b60ed7bd28",
           "producer": {
             "name": "engine.ezdxf",
             "version": "fixtures-gen/0.1.0+ezdxf/1.4.4"

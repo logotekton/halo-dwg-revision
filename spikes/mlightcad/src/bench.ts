@@ -60,6 +60,7 @@ declare global {
       ready: boolean;
       fetchFile: (url: string) => Promise<{ ok: boolean; bytes: number; error?: string }>;
       parse: () => Promise<ParseResult>;
+      recount: (waitMs?: number) => Promise<{ entityCount: number; byType: Record<string, number> }>;
       dxfOut: (sinkName: string, version?: string, precision?: number) => Promise<DxfOutResult>;
       render: (url: string, settleMs?: number) => Promise<RenderResult>;
       release: () => void;
@@ -170,6 +171,22 @@ window.__bench = {
       line('bad', `parse failed after ${ms.toFixed(0)} ms: ${errText(e)}`);
       return { ok: false, ms, bytes, fileType, error: errText(e) };
     }
+  },
+
+  /**
+   * Step 2b -- recount after a settle delay.
+   *
+   * data-model converts entities in asynchronous batches
+   * (`AcDbBatchProcessing`), so a count taken the instant `read()` resolves
+   * could in principle be an undercount. This distinguishes "still streaming"
+   * from "the parser really returned this many".
+   */
+  async recount(waitMs = 3000) {
+    await new Promise((r) => setTimeout(r, waitMs));
+    if (!db) return { entityCount: -1, byType: {} };
+    const c = countEntities(db);
+    line('warn', `recount after ${String(waitMs)} ms: ${String(c.entityCount)}`);
+    return c;
   },
 
   /** Step 3 -- ADR-0002 tier-2 writer: dxfOut(), shipped back to disk. */

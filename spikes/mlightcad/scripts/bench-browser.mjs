@@ -203,6 +203,9 @@ async function runFile(name, args, handle) {
       const tp0 = Date.now();
       row.parse = await page.evaluate(() => window.__bench.parse());
       row.parse.rss = sampler.peak(tp0, Date.now());
+      // Guard against an undercount caused by data-model's async batch
+      // conversion still running when read() resolved.
+      row.recount = await page.evaluate(() => window.__bench.recount(3000));
 
       if (args.dxfout && row.parse.ok) {
         // Keep the source extension in the name: F06.dwg and F06.dxf are two

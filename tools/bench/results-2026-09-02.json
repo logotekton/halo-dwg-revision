@@ -2762,6 +2762,108 @@
           "error": "driver produced no row"
         }
       ]
+    },
+    {
+      "tool": "tools/bench-open.mjs",
+      "date": "2026-09-02",
+      "label": "F12 browser (data-model DXF + dxfOut, output not shipped over CDP)",
+      "host": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "node": "v24.20.0"
+      },
+      "args": {
+        "paths": [
+          "browser"
+        ],
+        "files": [
+          "fixtures/generated/F12.dxf"
+        ],
+        "heaps": [
+          "default"
+        ],
+        "repeat": 3,
+        "repeatLarge": 1
+      },
+      "rows": [
+        {
+          "file": "F12.dxf",
+          "inputBytes": 209335665,
+          "path": "browser",
+          "mode": "parse + dxfOut",
+          "heap": "chromium default",
+          "runs": 1,
+          "ok": true,
+          "timeMsMedian": 6011.70000000298,
+          "peakRssBytesMedian": 4595695616,
+          "detail": {
+            "fetchMs": 197,
+            "parseMs": 3644,
+            "dxfOutMs": 2368,
+            "entityCount": 1000026,
+            "baselineRssBytes": null,
+            "parseRssBytes": 1904590848,
+            "largestProcRssBytes": 4388536320,
+            "outputBytes": 244582254
+          },
+          "engineReadMs": 76430,
+          "fidelity": {
+            "ok": false,
+            "checks": {
+              "entity_count": {
+                "got": 1082382,
+                "want": 1000026,
+                "ok": false
+              },
+              "count_by_type": {
+                "diff": {
+                  "SEQEND": {
+                    "got": 82356,
+                    "want": 0
+                  }
+                },
+                "ok": false
+              },
+              "length_sum_mm": {
+                "got": 3522441000,
+                "want": 3522441000,
+                "deltaPct": 0,
+                "ok": true
+              },
+              "hatch_area_sum_mm2": {
+                "got": -50824800000,
+                "want": 50824800000,
+                "deltaPct": -200,
+                "ok": false
+              },
+              "text_count": {
+                "got": 352950,
+                "want": 435308,
+                "ok": false
+              },
+              "text_hash": {
+                "got": "55af5bb8cf49681d",
+                "want": "65bb867cf809d527",
+                "ok": false
+              },
+              "insert_by_block": {
+                "diff": {},
+                "ok": true
+              },
+              "buckets": {
+                "ok": false,
+                "problems": [
+                  "MODEL|X-GRID: text_hash",
+                  "MODEL|X-TITLE: text_hash",
+                  "MODEL|0: extra"
+                ]
+              }
+            },
+            "summary": "count=FAIL type=FAIL len=ok hatch=FAIL text=FAIL hash=FAIL insert=ok buckets=FAIL"
+          },
+          "fidelitySource": "ezdxf on output DXF"
+        }
+      ]
     }
   ]
 }

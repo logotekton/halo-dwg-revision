@@ -195,28 +195,25 @@ async function runFile(name, args, handle) {
       row.render.window = [t0, Date.now()];
       row.render.rss = sampler.peak(t0, Date.now());
     } else {
-      const tf0 = Date.now();
-      row.fetch = await page.evaluate((u) => window.__bench.fetchFile(u), url);
-      row.fetch.ms = Date.now() - tf0;
-      row.fetch.rss = sampler.peak(tf0, Date.now());
-
-      const tp0 = Date.now();
-      row.parse = await page.evaluate(() => window.__bench.parse());
-      row.parse.rss = sampler.peak(tp0, Date.now());
-      // Guard against an undercount caused by data-model's async batch
-      // conversion still running when read() resolved.
-      row.recount = await page.evaluate(() => window.__bench.recount(3000));
-
-      if (args.dxfout && row.parse.ok) {
-        // Keep the source extension in the name: F06.dwg and F06.dxf are two
-        // different runs and must not overwrite each other's output.
-        const sink = `${name.replace(/\./g, '_')}.browser.dxf`;
-        const td0 = Date.now();
-        row.dxfOut = await page.evaluate((s) => window.__bench.dxfOut(s), sink);
-        row.dxfOut.rss = sampler.peak(td0, Date.now());
-        if (row.dxfOut.ok) row.dxfOut.file = resolve(OUT, sink);
+      // Keep the source extension in the name: F06.dwg and F06.dxf are two
+      // different runs and must not overwrite each other's output.
+      const sink = `${name.replace(/\./g, '_')}.browser.dxf`;
+      const all = await page.evaluate(
+        ([u, s]) => window.__bench.runAll(u, s, 2000),
+        [url, sink]
+      );
+      const m = all.marks;
+      row.fetch = all.fetch ? { ...all.fetch, ms: (m.fetched ?? 0) - m.start, rss: sampler.peak(m.start, m.fetched ?? Date.now()) } : undefined;
+      row.parse = all.parse
+        ? { ...all.parse, rss: sampler.peak(m.fetched ?? m.start, m.parsed ?? Date.now()) }
+        : { ok: false, error: all.error ?? 'parse did not run' };
+      row.recount = all.recount;
+      if (all.dxfOut) {
+        row.dxfOut = { ...all.dxfOut, rss: sampler.peak(m.recounted ?? m.start, m.wrote ?? Date.now()) };
+        if (all.dxfOut.ok) row.dxfOut.file = resolve(OUT, sink);
       }
-      row.ok = row.parse.ok === true;
+      row.ok = all.parse?.ok === true;
+      if (all.error) row.error = all.error;
     }
     if (args.render) row.ok = row.render.ok === true;
   } catch (e) {

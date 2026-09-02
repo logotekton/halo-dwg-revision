@@ -25,6 +25,12 @@ from halo_engine.ingest.dxf_loader import load_dxf
 from halo_engine.ingest.stats import compute_layer_stats
 from halo_engine.ingest.working_dxf import build_working_dxf
 from halo_engine.procutil import pid_alive
+from halo_engine.validate.crosscheck import (
+    DEFAULT_WHITELIST,
+    compare,
+    load_whitelist,
+    render_markdown,
+)
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
 
@@ -138,6 +144,88 @@ def stats(
         encoding="utf-8",
     )
     typer.echo(str(out))
+
+
+@app.command()
+def crosscheck(
+    ref: Annotated[Path, typer.Option("--ref", help="Reference LayerStatsDocument (JSON).")],
+    other: Annotated[
+        Path, typer.Option("--other", help="LayerStatsDocument to compare against the reference.")
+    ],
+    out: Annotated[
+        Path,
+        typer.Option(
+            "--out",
+            help="Output stem: writes <stem>.json (CrosscheckReport) and <stem>.md (table).",
+        ),
+    ],
+    whitelist: Annotated[
+        Path | None,
+        typer.Option(
+            "--whitelist",
+            help=(
+                "Known-parser-gap whitelist (YAML). Defaults to the shipped "
+                "halo_engine/validate/whitelist.yaml; pass --no-whitelist to compare raw."
+            ),
+        ),
+    ] = None,
+    no_whitelist: Annotated[
+        bool, typer.Option("--no-whitelist", help="Ignore the whitelist entirely.")
+    ] = False,
+    allow_sha_mismatch: Annotated[
+        bool,
+        typer.Option(
+            "--allow-sha-mismatch",
+            help=(
+                "Silence the stderr warning when the two documents were computed from "
+                "different bytes. The comparison runs either way."
+            ),
+        ),
+    ] = False,
+    fail_on_red: Annotated[
+        bool, typer.Option("--fail-on-red", help="Exit 1 when any layer is RED (CI use).")
+    ] = False,
+) -> None:
+    """Compare two LayerStatsDocuments layer by layer (ADR-0002 6, W2-04).
+
+    Writes ``<out>.json`` and ``<out>.md`` and prints both paths plus the
+    overall status. Exits 0 even for a RED report unless ``--fail-on-red`` is
+    given, so a shell can chain the report inspection with ``&&``.
+    """
+    reference_doc = json.loads(ref.read_text(encoding="utf-8"))
+    other_doc = json.loads(other.read_text(encoding="utf-8"))
+
+    whitelist_path = None if no_whitelist else (whitelist or DEFAULT_WHITELIST)
+    entries = load_whitelist(whitelist_path)
+
+    report = compare(
+        reference_doc,
+        other_doc,
+        whitelist=entries,
+        whitelist_path=None if whitelist_path is None else str(whitelist_path),
+    )
+
+    if report.file_sha256_mismatch and not allow_sha_mismatch:
+        for warning in report.warnings:
+            typer.echo(f"warning: {warning}", err=True)
+
+    stem = out.with_suffix("") if out.suffix in (".json", ".md") else out
+    stem.parent.mkdir(parents=True, exist_ok=True)
+    json_path = stem.with_name(stem.name + ".json")
+    md_path = stem.with_name(stem.name + ".md")
+    json_path.write_text(
+        json.dumps(report.model_dump(mode="json"), sort_keys=True, ensure_ascii=False, indent=2)
+        + "\n",
+        encoding="utf-8",
+    )
+    md_path.write_text(render_markdown(report), encoding="utf-8")
+
+    typer.echo(str(json_path))
+    typer.echo(str(md_path))
+    typer.echo(report.status.value)
+
+    if fail_on_red and report.status.value == "RED":
+        raise typer.Exit(code=1)
 
 
 @app.command()

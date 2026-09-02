@@ -244,30 +244,59 @@ function runEngine(file, args, work) {
 }
 
 /**
- * One driver process per file: a fresh Node + a fresh Chromium + a fresh Vite,
- * so one file's leftovers cannot inflate the next file's RSS baseline (and a
- * hung run cannot take the rest of the matrix down with it).
+ * One driver process for the whole browser matrix, files and repeats expanded
+ * into its `--files` list.
+ *
+ * The driver's Vite dev server pays a cold-start module-transform cost of about
+ * three minutes for the mlightcad + three.js graph, while a single measured run
+ * is well under a second, so paying that once is the only sane arrangement.
+ * Isolation still holds where it matters: every entry in the list gets its own
+ * Chromium process tree, so no run inherits the previous run's RSS.
  */
-function runBrowserFile(file, args, work) {
-  const name = basename(file);
-  const report = join(work, `${name.replace(/\./g, '_')}.browser.report.json`);
+function runBrowserAll(files, args, work) {
+  const expanded = files.flatMap((f) => {
+    const abs = resolve(ROOT, f);
+    const runs = existsSync(abs) && statSync(abs).size > args.largeBytes ? args.repeatLarge : args.repeat;
+    return Array.from({ length: runs }, () => basename(f));
+  });
+  const report = join(work, 'browser.report.json');
   const spike = join(ROOT, 'spikes', 'mlightcad');
   const argv = [
     'scripts/bench-browser.mjs',
     '--files',
-    name,
+    expanded.join(','),
     '--report',
     report,
     '--timeout',
     String(args.timeout),
+    args.browserRender ? '--render' : '--dxfout',
   ];
-  argv.push(args.browserRender ? '--render' : '--dxfout');
-  const r = runTimed(process.execPath, argv, { cwd: spike, timeout: args.timeout + 120 });
+  const r = runTimed(process.execPath, argv, { cwd: spike, timeout: args.timeout * expanded.length + 600 });
+  let rows = [];
   try {
-    return JSON.parse(readFileSync(report, 'utf8')).rows;
+    rows = JSON.parse(readFileSync(report, 'utf8')).rows;
   } catch {
-    return [{ file: name, ok: false, error: causeOf(r) }];
+    return files.map((f) => ({ file: basename(f), ok: false, error: causeOf(r) }));
   }
+  // Collapse the repeats of each file into one row carrying medians.
+  const out = [];
+  for (const f of files) {
+    const name = basename(f);
+    const attempts = rows.filter((x) => x.file === name);
+    if (attempts.length === 0) {
+      out.push({ file: name, ok: false, error: 'driver produced no row' });
+      continue;
+    }
+    out.push({
+      ...attempts[attempts.length - 1],
+      runs: attempts.length,
+      medianTotalMs: median(
+        attempts.map((a) => (a.render ? a.render.ms : (a.parse?.ms ?? 0) + (a.dxfOut?.ms ?? 0)))
+      ),
+      medianPeakRssBytes: median(attempts.map((a) => a.peakRssBytes)),
+    });
+  }
+  return out;
 }
 
 // --------------------------------------------------------------------------
@@ -378,25 +407,7 @@ for (const file of args.files) {
 }
 
 if (args.paths.includes('browser')) {
-  const browserRows = [];
-  for (const f of args.files) {
-    const runs = existsSync(resolve(ROOT, f)) && statSync(resolve(ROOT, f)).size > args.largeBytes ? args.repeatLarge : args.repeat;
-    const attempts = [];
-    for (let i = 0; i < runs; i++) {
-      const got = runBrowserFile(f, args, args.work);
-      attempts.push(got[0]);
-      if (got[0]?.ok !== true) break; // do not repeat a failure
-    }
-    const last = attempts[attempts.length - 1];
-    browserRows.push({
-      ...last,
-      runs: attempts.length,
-      medianTotalMs: median(
-        attempts.map((a) => (a.render ? a.render.ms : (a.parse?.ms ?? 0) + (a.dxfOut?.ms ?? 0)))
-      ),
-      medianPeakRssBytes: median(attempts.map((a) => a.peakRssBytes)),
-    });
-  }
+  const browserRows = runBrowserAll(args.files, args, args.work);
   for (const br of browserRows) {
     const src = args.files.find((f) => basename(f) === br.file) ?? br.file;
     const row = {
@@ -405,14 +416,16 @@ if (args.paths.includes('browser')) {
       path: 'browser',
       mode: args.browserRender ? 'viewer render' : 'parse + dxfOut',
       heap: 'chromium default',
-      runs: 1,
+      runs: br.runs ?? 1,
       ok: br.ok === true,
-      timeMsMedian: br.render
-        ? Math.round(br.render.ms)
-        : br.parse
-          ? Math.round((br.parse.ms ?? 0) + (br.dxfOut?.ms ?? 0))
-          : null,
-      peakRssBytesMedian: br.peakRssBytes ?? null,
+      timeMsMedian:
+        br.medianTotalMs ??
+        (br.render
+          ? Math.round(br.render.ms)
+          : br.parse
+            ? Math.round((br.parse.ms ?? 0) + (br.dxfOut?.ms ?? 0))
+            : null),
+      peakRssBytesMedian: br.medianPeakRssBytes ?? br.peakRssBytes ?? null,
       detail: {
         fetchMs: br.fetch?.ms,
         parseMs: br.parse ? Math.round(br.parse.ms) : undefined,

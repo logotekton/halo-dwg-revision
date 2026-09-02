@@ -48,21 +48,31 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // --------------------------------------------------------------------------
 // process-tree RSS sampling (macOS `ps`)
 // --------------------------------------------------------------------------
-/** All descendants of `root`, inclusive, from one `ps` snapshot. */
+/** Chromium's own executable name, so the Node/Vite side is never counted. */
+const CHROMIUM = /chrome|chromium/i;
+
+/**
+ * RSS of every Chromium process descended from `root`, from one `ps` snapshot.
+ * `root` is this driver process: Playwright's browser processes are its
+ * grandchildren, and filtering by executable name keeps Node and the in-process
+ * Vite server out of the total.
+ */
 function treeRss(root) {
   let text;
   try {
-    text = execFileSync('/bin/ps', ['-axo', 'pid=,ppid=,rss='], { encoding: 'utf8' });
+    text = execFileSync('/bin/ps', ['-axo', 'pid=,ppid=,rss=,comm='], { encoding: 'utf8' });
   } catch {
     return null;
   }
   const kids = new Map();
   const rss = new Map();
+  const comm = new Map();
   for (const l of text.split('\n')) {
-    const m = /^\s*(\d+)\s+(\d+)\s+(\d+)\s*$/.exec(l);
+    const m = /^\s*(\d+)\s+(\d+)\s+(\d+)\s+(.*)$/.exec(l);
     if (!m) continue;
     const [pid, ppid, kb] = [Number(m[1]), Number(m[2]), Number(m[3])];
     rss.set(pid, kb * 1024);
+    comm.set(pid, m[4]);
     if (!kids.has(ppid)) kids.set(ppid, []);
     kids.get(ppid).push(pid);
   }
@@ -73,10 +83,12 @@ function treeRss(root) {
   const stack = [root];
   while (stack.length) {
     const pid = stack.pop();
-    const v = rss.get(pid) ?? 0;
-    total += v;
-    procs++;
-    if (v > largest) largest = v;
+    if (CHROMIUM.test(comm.get(pid) ?? '')) {
+      const v = rss.get(pid) ?? 0;
+      total += v;
+      procs++;
+      if (v > largest) largest = v;
+    }
     for (const c of kids.get(pid) ?? []) stack.push(c);
   }
   return { total, largest, procs };
@@ -87,7 +99,7 @@ class RssSampler {
     this.samples = [];
     this.timer = setInterval(() => {
       const s = treeRss(pid);
-      if (s) this.samples.push({ t: Date.now(), ...s });
+      if (s && s.procs > 0) this.samples.push({ t: Date.now(), ...s });
     }, intervalMs);
   }
   stop() {
@@ -153,15 +165,15 @@ async function runFile(name, args, handle) {
     ok: false,
   };
 
-  // launchServer (not launch): only BrowserServer exposes the browser process,
-  // and its pid is the root of the tree we sample.
-  const server = await chromium.launchServer({
+  const t0run = Date.now();
+  const browser = await chromium.launch({
     args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
   });
-  const browser = await chromium.connect(server.wsEndpoint());
-  handle.browser = { close: async () => server.close() };
-  const pid = server.process().pid;
-  const sampler = new RssSampler(pid);
+  handle.browser = browser;
+  // Sample from this driver process down: Playwright's browser processes are
+  // descendants of it, and treeRss() keeps only the Chromium ones.
+  const sampler = new RssSampler(process.pid);
+  row.launchMs = Date.now() - t0run;
   const consoleLines = [];
   try {
     const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
@@ -211,8 +223,8 @@ async function runFile(name, args, handle) {
     row.peakRssBytes = sampler.peak(0, Date.now())?.totalRssBytes ?? null;
     row.peakLargestProcRssBytes = sampler.peak(0, Date.now())?.largestProcRssBytes ?? null;
     row.console = consoleLines.slice(-25);
+    row.totalMs = Date.now() - t0run;
     await browser.close().catch(() => {});
-    await server.close().catch(() => {});
   }
   return row;
 }
@@ -240,9 +252,13 @@ try {
     rows.push(await Promise.race([runFile(f, args, handle), deadline]));
   }
 } finally {
-  await vite.close();
+  // Vite's close() waits on HMR websockets that the closed Chromium instances
+  // never hung up, so give it a short grace period and move on.
+  await Promise.race([vite.close(), sleep(5000)]);
 }
 
 const json = JSON.stringify({ tool: 'bench-browser.mjs', rows }, null, 2);
 if (args.report) writeFileSync(args.report, json);
 process.stdout.write(json + '\n');
+// Same reason: do not let a lingering server handle keep the process alive.
+process.exit(rows.every((r) => r.ok) ? 0 : 1);

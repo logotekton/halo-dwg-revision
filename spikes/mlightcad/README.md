@@ -28,6 +28,30 @@ npm run dev &          # 5178 포트가 떠 있어야 한다
 npm run shots          # out/browser-facts.json + docs/spikes/img/*.png
 ```
 
+### W2-06 대용량 벤치 계측 (`docs/spikes/large-file.md`)
+
+이 스파이크는 W2-06의 (a) 브라우저 경로와 (c) Node `dxfOut()` 경로 하네스를 함께 담는다.
+보통은 저장소 루트의 `node tools/bench-open.mjs`가 이 둘을 호출한다. 직접 실행하려면:
+
+```bash
+# (c) Node CJS data-model -> dxfOut()  (DWG 입력은 Worker 전역이 없어 실패하는 것이 정상)
+node scripts/bench-dxfout.cjs --in ../../fixtures/generated/F06.dxf \
+     --out out/bench/F06.dxfout.dxf --report out/bench/F06.report.json --handles
+
+# (a) headless Chromium + libredwg 워커. Vite 개발 서버를 스크립트가 직접 띄운다(임의 포트).
+node scripts/bench-browser.mjs --files F06.dwg,F11.dxf --dxfout --report out/bench/browser.json
+node scripts/bench-browser.mjs --files F06.dwg --render     # 뷰어(WebGL)까지 포함한 미리보기 경로
+```
+
+| 파일 | 내용 |
+|---|---|
+| `bench.html` + `src/bench.ts` | 단계별(`fetchFile`/`parse`/`dxfOut`/`render`) 벤치 하네스. 드라이버가 각 단계를 await하며 그 구간의 프로세스 RSS를 샘플링한다. |
+| `scripts/bench-browser.mjs` | Playwright 드라이버. `chromium.launchServer()`의 브라우저 pid를 뿌리로 `ps`로 프로세스 트리 RSS를 150 ms마다 샘플링한다. Vite는 `createServer()`로 이 프로세스 안에서 띄운다(포트 0). |
+| `scripts/bench-dxfout.cjs` | Node CJS `data-model` 읽기 + `dxfOut()` 쓰기. `/usr/bin/time -l` 아래에서 실행하면 피크 RSS를 얻는다. |
+| `vite.config.ts`의 `benchRoutes()` | `GET /gen/<name>`(저장소 `fixtures/generated/` 스트리밍) + `POST /__sink/<name>`(페이지가 만든 DXF를 `out/bench/`에 기록). 개발 서버 전용. |
+
+`out/`은 커밋하지 않는다.
+
 ### 타입 선언 조회 도우미
 
 ```bash

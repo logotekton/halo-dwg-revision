@@ -1288,6 +1288,376 @@
           "fidelitySource": "ezdxf on output DXF"
         }
       ]
+    },
+    {
+      "tool": "tools/bench-open.mjs",
+      "date": "2026-09-02",
+      "label": "browser (libredwg worker / data-model DXF + dxfOut), small fixtures, median of 3",
+      "host": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "node": "v24.20.0"
+      },
+      "args": {
+        "paths": [
+          "browser"
+        ],
+        "files": [
+          "fixtures/generated/F06.dwg",
+          "fixtures/generated/F03.dwg",
+          "fixtures/generated/F10_grid.dwg",
+          "fixtures/generated/F06.dxf",
+          "fixtures/generated/F03.dxf"
+        ],
+        "heaps": [
+          "default"
+        ],
+        "repeat": 3,
+        "repeatLarge": 1
+      },
+      "rows": [
+        {
+          "file": "F06.dwg",
+          "inputBytes": 15467,
+          "path": "browser",
+          "mode": "parse + dxfOut",
+          "heap": "chromium default",
+          "runs": 3,
+          "ok": true,
+          "timeMsMedian": 398.4000000022352,
+          "peakRssBytesMedian": 473808896,
+          "detail": {
+            "fetchMs": 2,
+            "parseMs": 378,
+            "dxfOutMs": 4,
+            "entityCount": 85,
+            "baselineRssBytes": null,
+            "parseRssBytes": 473808896,
+            "largestProcRssBytes": 264847360,
+            "outputBytes": 40702
+          },
+          "engineReadMs": 390,
+          "fidelity": {
+            "ok": false,
+            "checks": {
+              "entity_count": {
+                "got": 92,
+                "want": 86,
+                "ok": false
+              },
+              "count_by_type": {
+                "diff": {
+                  "INSERT": {
+                    "got": 7,
+                    "want": 8
+                  },
+                  "SEQEND": {
+                    "got": 7,
+                    "want": 0
+                  }
+                },
+                "ok": false
+              },
+              "length_sum_mm": {
+                "got": 299400,
+                "want": 299400,
+                "deltaPct": 0,
+                "ok": true
+              },
+              "hatch_area_sum_mm2": {
+                "got": -4320000,
+                "want": 4320000,
+                "deltaPct": -200,
+                "ok": false
+              },
+              "text_count": {
+                "got": 30,
+                "want": 40,
+                "ok": false
+              },
+              "text_hash": {
+                "got": "d67c6181fd2e202a",
+                "want": "125bac30a2dbb6b8",
+                "ok": false
+              },
+              "insert_by_block": {
+                "diff": {
+                  "X-TITLE": {
+                    "got": 0,
+                    "want": 1
+                  }
+                },
+                "ok": false
+              },
+              "buckets": {
+                "ok": false,
+                "problems": [
+                  "MODEL|X-GRID: text_hash",
+                  "MODEL|X-TITLE: missing",
+                  "MODEL|0: extra"
+                ]
+              }
+            },
+            "summary": "count=FAIL type=FAIL len=ok hatch=FAIL text=FAIL hash=FAIL insert=FAIL buckets=FAIL"
+          },
+          "fidelitySource": "ezdxf on output DXF"
+        },
+        {
+          "file": "F03.dwg",
+          "inputBytes": 14378,
+          "path": "browser",
+          "mode": "parse + dxfOut",
+          "heap": "chromium default",
+          "runs": 3,
+          "ok": true,
+          "timeMsMedian": 282.30000000447035,
+          "peakRssBytesMedian": 467828736,
+          "detail": {
+            "fetchMs": 2,
+            "parseMs": 279,
+            "dxfOutMs": 4,
+            "entityCount": 30,
+            "baselineRssBytes": null,
+            "parseRssBytes": 465715200,
+            "largestProcRssBytes": 256819200,
+            "outputBytes": 25145
+          },
+          "engineReadMs": 510,
+          "fidelity": {
+            "error": "ZeroDivisionError: float division"
+          },
+          "fidelitySource": "ezdxf on output DXF"
+        },
+        {
+          "file": "F10_grid.dwg",
+          "inputBytes": 13610,
+          "path": "browser",
+          "mode": "parse + dxfOut",
+          "heap": "chromium default",
+          "runs": 3,
+          "ok": true,
+          "timeMsMedian": 247.30000000074506,
+          "peakRssBytesMedian": 466632704,
+          "detail": {
+            "fetchMs": 1,
+            "parseMs": 244,
+            "dxfOutMs": 3,
+            "entityCount": 10,
+            "baselineRssBytes": null,
+            "parseRssBytes": 466632704,
+            "largestProcRssBytes": 257196032,
+            "outputBytes": 22906
+          },
+          "engineReadMs": 260,
+          "fidelity": {
+            "ok": false,
+            "checks": {
+              "entity_count": {
+                "got": 15,
+                "want": 11,
+                "ok": false
+              },
+              "count_by_type": {
+                "diff": {
+                  "INSERT": {
+                    "got": 5,
+                    "want": 6
+                  },
+                  "SEQEND": {
+                    "got": 5,
+                    "want": 0
+                  }
+                },
+                "ok": false
+              },
+              "length_sum_mm": {
+                "got": 47000,
+                "want": 47000,
+                "deltaPct": 0,
+                "ok": true
+              },
+              "hatch_area_sum_mm2": {
+                "got": 0,
+                "want": 0,
+                "deltaPct": null,
+                "ok": true
+              },
+              "text_count": {
+                "got": 0,
+                "want": 7,
+                "ok": false
+              },
+              "text_hash": {
+                "got": "da39a3ee5e6b4b0d",
+                "want": "71424455db060745",
+                "ok": false
+              },
+              "insert_by_block": {
+                "diff": {
+                  "X-TITLE": {
+                    "got": 0,
+                    "want": 1
+                  }
+                },
+                "ok": false
+              },
+              "buckets": {
+                "ok": false,
+                "problems": [
+                  "MODEL|X-GRID: text_hash",
+                  "MODEL|X-TITLE: missing",
+                  "MODEL|0: extra"
+                ]
+              }
+            },
+            "summary": "count=FAIL type=FAIL len=ok hatch=ok text=FAIL hash=FAIL insert=FAIL buckets=FAIL"
+          },
+          "fidelitySource": "ezdxf on output DXF"
+        },
+        {
+          "file": "F06.dxf",
+          "inputBytes": 73953,
+          "path": "browser",
+          "mode": "parse + dxfOut",
+          "heap": "chromium default",
+          "runs": 3,
+          "ok": true,
+          "timeMsMedian": 47,
+          "peakRssBytesMedian": 370950144,
+          "detail": {
+            "fetchMs": 2,
+            "parseMs": 44,
+            "dxfOutMs": 3,
+            "entityCount": 86,
+            "baselineRssBytes": null,
+            "largestProcRssBytes": 163201024,
+            "outputBytes": 41457
+          },
+          "engineReadMs": 300,
+          "fidelity": {
+            "ok": false,
+            "checks": {
+              "entity_count": {
+                "got": 94,
+                "want": 86,
+                "ok": false
+              },
+              "count_by_type": {
+                "diff": {
+                  "SEQEND": {
+                    "got": 8,
+                    "want": 0
+                  }
+                },
+                "ok": false
+              },
+              "length_sum_mm": {
+                "got": 299400,
+                "want": 299400,
+                "deltaPct": 0,
+                "ok": true
+              },
+              "hatch_area_sum_mm2": {
+                "got": -4320000,
+                "want": 4320000,
+                "deltaPct": -200,
+                "ok": false
+              },
+              "text_count": {
+                "got": 30,
+                "want": 40,
+                "ok": false
+              },
+              "text_hash": {
+                "got": "d67c6181fd2e202a",
+                "want": "125bac30a2dbb6b8",
+                "ok": false
+              },
+              "insert_by_block": {
+                "diff": {},
+                "ok": true
+              },
+              "buckets": {
+                "ok": false,
+                "problems": [
+                  "MODEL|X-GRID: text_hash",
+                  "MODEL|X-TITLE: text_hash",
+                  "MODEL|0: extra"
+                ]
+              }
+            },
+            "summary": "count=FAIL type=FAIL len=ok hatch=FAIL text=FAIL hash=FAIL insert=ok buckets=FAIL"
+          },
+          "fidelitySource": "ezdxf on output DXF"
+        },
+        {
+          "file": "F03.dxf",
+          "inputBytes": 60372,
+          "path": "browser",
+          "mode": "parse + dxfOut",
+          "heap": "chromium default",
+          "runs": 3,
+          "ok": true,
+          "timeMsMedian": 45.00000000372529,
+          "peakRssBytesMedian": 371900416,
+          "detail": {
+            "fetchMs": 2,
+            "parseMs": 43,
+            "dxfOutMs": 2,
+            "entityCount": 30,
+            "baselineRssBytes": null,
+            "largestProcRssBytes": 162480128,
+            "outputBytes": 25648
+          },
+          "engineReadMs": 370,
+          "fidelity": {
+            "ok": true,
+            "checks": {
+              "entity_count": {
+                "got": 30,
+                "want": 30,
+                "ok": true
+              },
+              "count_by_type": {
+                "diff": {},
+                "ok": true
+              },
+              "length_sum_mm": {
+                "got": 0,
+                "want": 0,
+                "deltaPct": null,
+                "ok": true
+              },
+              "hatch_area_sum_mm2": {
+                "got": 0,
+                "want": 0,
+                "deltaPct": null,
+                "ok": true
+              },
+              "text_count": {
+                "got": 30,
+                "want": 30,
+                "ok": true
+              },
+              "text_hash": {
+                "got": "6de09c7ab2524f44",
+                "want": "6de09c7ab2524f44",
+                "ok": true
+              },
+              "insert_by_block": {
+                "diff": {},
+                "ok": true
+              },
+              "buckets": {
+                "ok": true,
+                "problems": []
+              }
+            },
+            "summary": "count=ok type=ok len=ok hatch=ok text=ok hash=ok insert=ok buckets=ok"
+          },
+          "fidelitySource": "ezdxf on output DXF"
+        }
+      ]
     }
   ]
 }

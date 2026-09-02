@@ -1,0 +1,13 @@
+{
+  "protocol_version": "0.1",
+  "type": "colorize",
+  "payload": {
+    "map": {
+      "MEMBER:COL:3F:X1-Y1": "#2E7D32",
+      "MEMBER:COL:3F:X2-Y1": "#F9A825",
+      "MEMBER:BEAM:3F:G1-01": "#C62828"
+    },
+    "opacity": 0.85,
+    "reset": true
+  }
+}

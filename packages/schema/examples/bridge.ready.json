@@ -1,0 +1,9 @@
+{
+  "protocol_version": "0.1",
+  "type": "ready",
+  "payload": {
+    "viewer_version": "0.0.1",
+    "three_version": "0.182.0",
+    "capabilities": ["glb", "ifc", "section", "colorize"]
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.halo-cad.internal/v0/ndj/document.schema.json",
+  "title": "NdjDocument",
+  "description": "Normalised drawing document produced from one working DXF (ADR-0002). The header records what the parser saw before normalisation so the viewer and the engine can be compared field by field; `entities` holds the normalised entities. Serialised either as this single JSON object or as NDJSON where the first line is the header and each following line is one entity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "header", "entities"],
+  "properties": {
+    "schema_version": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/schema_version" },
+    "header": { "$ref": "https://schema.halo-cad.internal/v0/ndj/document.schema.json#/$defs/header" },
+    "entities": {
+      "type": "array",
+      "items": { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json" }
+    }
+  },
+  "$defs": {
+    "header": {
+      "title": "NdjHeader",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_sha256",
+        "dwg_version",
+        "codepage_declared",
+        "codepage_effective",
+        "insunits",
+        "layers",
+        "blocks",
+        "layouts"
+      ],
+      "properties": {
+        "file_id": {
+          "description": "ULID of the `drawing_file` row, when the document was produced inside a project bundle.",
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+        },
+        "file_sha256": {
+          "description": "sha256 of the working-DXF bytes both parsers read.",
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/sha256"
+        },
+        "original_sha256": {
+          "description": "sha256 of the immutable original the working DXF was derived from (CLAUDE.md rule 1).",
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/sha256"
+        },
+        "dwg_version": {
+          "description": "`$ACADVER` of the source drawing. AC1009 and older are rejected at import (docs/PLAN.md 5), so they are not part of the enum.",
+          "type": "string",
+          "enum": ["AC1014", "AC1015", "AC1018", "AC1021", "AC1024", "AC1027", "AC1032"]
+        },
+        "codepage_declared": {
+          "description": "`$DWGCODEPAGE` as written in the file, or null for R2007+ which is always UTF-8.",
+          "type": ["string", "null"]
+        },
+        "codepage_effective": {
+          "description": "Codepage actually used for decoding after the mojibake score retry (docs/PLAN.md 5). `UTF-8` for R2007+.",
+          "type": "string",
+          "minLength": 1
+        },
+        "codepage_override_by_user": { "type": "boolean", "default": false },
+        "insunits": {
+          "description": "`$INSUNITS` code. 0 unitless, 4 mm, 5 cm, 6 m. The unit finally used is decided by the three-way vote of docs/PLAN.md 5 and stored in `unit_scale_to_mm`.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "unit_scale_to_mm": {
+          "description": "Factor applied to raw drawing coordinates to obtain the millimetres used everywhere in this document.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 1
+        },
+        "extents": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/bbox" },
+        "producer": { "$ref": "https://schema.halo-cad.internal/v0/ndj/document.schema.json#/$defs/producer" },
+        "layers": { "type": "array", "items": { "$ref": "https://schema.halo-cad.internal/v0/ndj/document.schema.json#/$defs/layer" } },
+        "blocks": { "type": "array", "items": { "$ref": "https://schema.halo-cad.internal/v0/ndj/document.schema.json#/$defs/block" } },
+        "layouts": { "type": "array", "items": { "$ref": "https://schema.halo-cad.internal/v0/ndj/document.schema.json#/$defs/layout" } }
+      }
+    },
+    "producer": {
+      "title": "Producer",
+      "description": "Which parser emitted the document. Used by the crosscheck to label the two sides.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "enum": ["viewer.mlightcad", "engine.ezdxf", "acad-ts", "libredwg-web"]
+        },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "layer": {
+      "title": "LayerDef",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "color": {
+          "oneOf": [
+            { "type": "integer", "minimum": -256, "maximum": 256 },
+            { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" }
+          ]
+        },
+        "linetype": { "type": "string" },
+        "lineweight_mm": { "type": "number", "minimum": -3 },
+        "is_off": { "type": "boolean", "default": false },
+        "is_frozen": { "type": "boolean", "default": false },
+        "is_locked": { "type": "boolean", "default": false },
+        "is_plottable": { "type": "boolean", "default": true }
+      }
+    },
+    "block": {
+      "title": "BlockDef",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "is_xref"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "is_xref": { "type": "boolean" },
+        "xref_path": {
+          "description": "Path stored in the drawing for an external reference, before resolution (docs/PLAN.md 5 XREF order).",
+          "type": "string"
+        },
+        "xref_resolved": {
+          "type": "string",
+          "enum": ["ABSOLUTE", "SAME_FOLDER", "RELATIVE", "SEARCH_PATH", "BASENAME", "UNRESOLVED"]
+        },
+        "base_point": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/point" },
+        "entity_count": { "type": "integer", "minimum": 0 },
+        "is_anonymous": { "type": "boolean", "default": false }
+      }
+    },
+    "layout": {
+      "title": "LayoutDef",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "is_model"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "is_model": { "type": "boolean" },
+        "tab_order": { "type": "integer", "minimum": 0 },
+        "extents": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/bbox" }
+      }
+    }
+  }
+}

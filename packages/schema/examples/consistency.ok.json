@@ -1,0 +1,64 @@
+{
+  "schema_version": "0.1",
+  "checks": [
+    {
+      "id": "SL_ELEVATION_VS_SECTION",
+      "left_kind": "SL",
+      "right_kind": "SL",
+      "operator": "EQ",
+      "tolerance_mm": 5,
+      "left_source": "ELEVATION",
+      "right_source": "SECTION",
+      "severity": "ERROR",
+      "message_key": "levels.check.sl_elevation_vs_section",
+      "description": "Same basis, so equality is allowed (ADR-0003). 5mm tolerance."
+    },
+    {
+      "id": "SL_ELEVATION_VS_STRUCT_PLAN",
+      "left_kind": "SL",
+      "right_kind": "SL",
+      "operator": "EQ",
+      "tolerance_mm": 5,
+      "left_source": "ELEVATION",
+      "right_source": "STRUCT_PLAN",
+      "severity": "ERROR",
+      "message_key": "levels.check.sl_elevation_vs_struct_plan"
+    },
+    {
+      "id": "FL_PLAN_VS_SECTION",
+      "left_kind": "FL",
+      "right_kind": "FL",
+      "operator": "EQ",
+      "tolerance_mm": 5,
+      "left_source": "SECTION",
+      "right_source": "STRUCT_PLAN",
+      "severity": "WARN",
+      "message_key": "levels.check.fl_plan_vs_section"
+    },
+    {
+      "id": "CH_FITS_UNDER_STOREY",
+      "left_kind": "CH",
+      "right_kind": "FLOOR_HEIGHT",
+      "operator": "LT",
+      "tolerance_mm": 0,
+      "left_offset_mm": 250,
+      "left_source": "LEVEL_TABLE",
+      "right_source": "ELEVATION",
+      "severity": "ERROR",
+      "message_key": "levels.check.ch_fits_under_storey",
+      "description": "ADR-0003 cross-basis rule: CH + slab 200mm + floor finish 50mm must stay below the storey height. Inequality only, never EQ."
+    },
+    {
+      "id": "CH_TABLE_NOT_ABOVE_CEILING_PLAN",
+      "left_kind": "CH",
+      "right_kind": "CH",
+      "operator": "LE",
+      "tolerance_mm": 25,
+      "left_source": "LEVEL_TABLE",
+      "right_source": "FINISH_SCHEDULE",
+      "severity": "WARN",
+      "message_key": "levels.check.ch_table_vs_finish_schedule",
+      "description": "Two ceiling-height readings are compared with an inequality band, not with EQ: the schema rejects EQ whenever CH is on either side."
+    }
+  ]
+}

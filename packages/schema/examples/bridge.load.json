@@ -1,0 +1,13 @@
+{
+  "protocol_version": "0.1",
+  "type": "load",
+  "request_id": "load-3f-001",
+  "payload": {
+    "model_id": "65Y4RAP776D1GB791QTCJQZT6A",
+    "url": "halocad://bundle/cache/mesh/run-0007/3F.glb",
+    "format": "GLB",
+    "up_axis": "Z",
+    "unit_scale_to_mm": 1,
+    "replace": true
+  }
+}

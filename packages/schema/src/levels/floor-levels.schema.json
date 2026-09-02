@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.halo-cad.internal/v0/levels/floor-levels.schema.json",
+  "title": "FloorLevelsDocument",
+  "description": "Per-floor resolved heights plus the observations they were resolved from. The four ADR-0003 fields stay separate on every floor and each carries its own source observation and derivation method, so a later reviewer can see whether a value was read from a drawing, derived from adjacent structural levels, or typed by a user. Referential integrity of `*_source_observation_id` against `observations[].id` is checked by the loader, not by JSON Schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "floors", "observations"],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/schema_version"
+    },
+    "project_id": {
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+    },
+    "generated_at": {
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/timestamp"
+    },
+    "floors": {
+      "description": "Ordered from the lowest basement to the highest floor.",
+      "type": "array",
+      "items": {
+        "$ref": "https://schema.halo-cad.internal/v0/levels/floor-levels.schema.json#/$defs/floor"
+      }
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "$ref": "https://schema.halo-cad.internal/v0/levels/level-observation.schema.json"
+      }
+    }
+  },
+  "$defs": {
+    "method": {
+      "title": "LevelMethod",
+      "description": "`READ` taken straight from a drawing or table, `DERIVED_SL_DIFF` computed from the structural levels of this floor and the one above, `USER` entered by hand.",
+      "type": "string",
+      "enum": ["READ", "DERIVED_SL_DIFF", "USER"]
+    },
+    "conflict": {
+      "title": "LevelConflict",
+      "description": "Two or more observations of the same `kind` that disagree beyond tolerance. Conflicts are never silently resolved; they surface in the levels review UI.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "observation_ids", "values_mm", "max_delta_mm", "severity"],
+      "properties": {
+        "kind": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/level_kind"
+        },
+        "observation_ids": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+          }
+        },
+        "values_mm": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "type": "number" }
+        },
+        "max_delta_mm": { "type": "number", "minimum": 0 },
+        "severity": { "type": "string", "enum": ["INFO", "WARN", "ERROR"] },
+        "resolution": {
+          "type": "string",
+          "enum": ["PENDING", "PICKED", "USER_OVERRIDE"],
+          "default": "PENDING"
+        },
+        "message": { "type": "string", "maxLength": 512 }
+      }
+    },
+    "floor": {
+      "title": "FloorLevels",
+      "description": "Resolved heights of one floor.",
+      "allOf": [
+        {
+          "$ref": "https://schema.halo-cad.internal/v0/levels/floor-levels.schema.json#/$defs/floor_fields"
+        },
+        {
+          "$ref": "https://schema.halo-cad.internal/v0/levels/floor-levels.schema.json#/$defs/floor_rules"
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "floor_fields": {
+      "title": "FloorLevelsFields",
+      "type": "object",
+      "required": ["floor_label", "conflicts"],
+      "properties": {
+        "floor_label": {
+          "description": "Label as printed in the drawings, e.g. `B1`, `1F`, `PH`.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "floor_index": {
+          "description": "Sort key. Ground floor is 0, basements are negative.",
+          "type": "integer"
+        },
+        "sl_mm": {
+          "description": "Structural level, top of the structural slab, relative to the project datum. Basis for structural solids and exterior wall faces (ADR-0003).",
+          "type": "number"
+        },
+        "sl_source_observation_id": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+        },
+        "sl_method": {
+          "$ref": "https://schema.halo-cad.internal/v0/levels/floor-levels.schema.json#/$defs/method"
+        },
+        "fl_mm": {
+          "description": "Finished floor level relative to the project datum. The difference from `sl_mm` is the floor finish thickness.",
+          "type": "number"
+        },
+        "fl_source_observation_id": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+        },
+        "fl_method": {
+          "$ref": "https://schema.halo-cad.internal/v0/levels/floor-levels.schema.json#/$defs/method"
+        },
+        "floor_height_mm": {
+          "description": "Storey height, the difference between this floor's `sl_mm` and the next floor's `sl_mm`.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "floor_height_source_observation_id": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+        },
+        "floor_height_method": {
+          "$ref": "https://schema.halo-cad.internal/v0/levels/floor-levels.schema.json#/$defs/method"
+        },
+        "ch_mm": {
+          "description": "Ceiling height, finished floor to finished ceiling, read from the level table or the finish schedule. Basis for interior wall finish heights only. Never equality-compared against `sl_mm`, `fl_mm` or `floor_height_mm`; the only permitted cross-basis relation is the inequality `ch_mm + slab thickness + floor finish thickness < floor_height_mm` (ADR-0003).",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "ch_source_observation_id": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+        },
+        "ch_method": {
+          "$ref": "https://schema.halo-cad.internal/v0/levels/floor-levels.schema.json#/$defs/method"
+        },
+        "ch_is_fallback": {
+          "description": "True when `ch_mm` was not read anywhere but substituted from the storey height minus slab and plenum. Such a floor is always classified low confidence (ADR-0003).",
+          "type": "boolean",
+          "default": false
+        },
+        "confidence": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/confidence"
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.halo-cad.internal/v0/levels/floor-levels.schema.json#/$defs/conflict"
+          }
+        }
+      },
+      "dependentRequired": {
+        "sl_mm": ["sl_method"],
+        "fl_mm": ["fl_method"],
+        "floor_height_mm": ["floor_height_method"],
+        "ch_mm": ["ch_method"],
+        "sl_source_observation_id": ["sl_mm"],
+        "fl_source_observation_id": ["fl_mm"],
+        "floor_height_source_observation_id": ["floor_height_mm"],
+        "ch_source_observation_id": ["ch_mm"]
+      }
+    },
+    "floor_rules": {
+      "title": "FloorLevelsRules",
+      "description": "Evidence and ADR-0003 derivation constraints. Carries no fields of its own.",
+      "tsType": "unknown",
+      "allOf": [
+        {
+          "$comment": "A value declared as read from a drawing must name the observation it was read from (CLAUDE.md rule 6).",
+          "if": {
+            "required": ["sl_method"],
+            "properties": { "sl_method": { "const": "READ" } }
+          },
+          "then": { "required": ["sl_source_observation_id"] }
+        },
+        {
+          "if": {
+            "required": ["fl_method"],
+            "properties": { "fl_method": { "const": "READ" } }
+          },
+          "then": { "required": ["fl_source_observation_id"] }
+        },
+        {
+          "if": {
+            "required": ["floor_height_method"],
+            "properties": { "floor_height_method": { "const": "READ" } }
+          },
+          "then": { "required": ["floor_height_source_observation_id"] }
+        },
+        {
+          "if": {
+            "required": ["ch_method"],
+            "properties": { "ch_method": { "const": "READ" } }
+          },
+          "then": { "required": ["ch_source_observation_id"] }
+        },
+        {
+          "$comment": "ADR-0003: the ceiling height is never derived from a structural level difference. Falling back to the storey height is expressed with ch_is_fallback, which forces low confidence.",
+          "if": {
+            "required": ["ch_method"],
+            "properties": { "ch_method": { "const": "DERIVED_SL_DIFF" } }
+          },
+          "then": false
+        }
+      ]
+    }
+  }
+}

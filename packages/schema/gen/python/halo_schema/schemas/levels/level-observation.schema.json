@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.halo-cad.internal/v0/levels/level-observation.schema.json",
+  "title": "LevelObservation",
+  "description": "One height value read from one place in the drawings, tagged with which of the four ADR-0003 height fields it is. Observations are never merged across `kind`: an `SL` read from an elevation and a `CH` read from a level table describe different things and must not be compared for equality. Reconciliation into per-floor values happens in floor-levels.schema.json.",
+  "allOf": [
+    {
+      "$ref": "https://schema.halo-cad.internal/v0/levels/level-observation.schema.json#/$defs/fields"
+    },
+    {
+      "$ref": "https://schema.halo-cad.internal/v0/levels/level-observation.schema.json#/$defs/evidence_rule"
+    }
+  ],
+  "unevaluatedProperties": false,
+  "$defs": {
+    "fields": {
+      "title": "LevelObservationFields",
+      "type": "object",
+      "required": ["id", "kind", "value_mm", "source", "evidence", "confidence", "raw_text"],
+      "properties": {
+        "id": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+        },
+        "kind": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/level_kind"
+        },
+        "value_mm": {
+          "description": "Millimetres. `SL` and `FL` are elevations relative to the project datum and may be negative; `FLOOR_HEIGHT` and `CH` are distances and are positive.",
+          "type": "number"
+        },
+        "source": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/level_source"
+        },
+        "evidence": {
+          "description": "Entities the value was read from. Required to be non-empty unless `source` is `USER` (CLAUDE.md rule 6).",
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.halo-cad.internal/v0/common/entity-ref.schema.json"
+          }
+        },
+        "confidence": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/confidence"
+        },
+        "raw_text": {
+          "description": "Text exactly as it appears in the drawing, before parsing, NFC normalised. Empty string when the source is `USER`.",
+          "type": "string",
+          "maxLength": 512
+        },
+        "floor_label": {
+          "description": "Floor label the observation was attached to, as printed in the drawing, e.g. `3F`, `B1`, `PH`.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "sheet_id": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+        },
+        "notes": { "type": "string", "maxLength": 1024 }
+      }
+    },
+    "evidence_rule": {
+      "title": "LevelObservationEvidenceRule",
+      "description": "CLAUDE.md rule 6: everything but a hand-entered value must point at the entities it came from. Carries no fields of its own.",
+      "tsType": "unknown",
+      "if": {
+        "required": ["source"],
+        "properties": { "source": { "not": { "const": "USER" } } }
+      },
+      "then": { "properties": { "evidence": { "minItems": 1 } } }
+    }
+  }
+}

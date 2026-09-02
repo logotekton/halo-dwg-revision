@@ -1,0 +1,9 @@
+{
+  "protocol_version": "0.1",
+  "type": "selected",
+  "request_id": "sel-0042",
+  "payload": {
+    "ids": ["MEMBER:BEAM:3F:G1-01"],
+    "model_id": "65Y4RAP776D1GB791QTCJQZT6A"
+  }
+}

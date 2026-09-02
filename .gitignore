@@ -32,7 +32,7 @@ fixtures/**/F12*.dwg
 
 # Real drawings and project bundles never enter the repo
 samples/
-*.dmqto/
+*.halo/
 *.dwg.bak
 *.sv$
 

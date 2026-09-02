@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.halo-cad.internal/v0/common/primitives.schema.json",
+  "title": "Primitives",
+  "description": "Shared scalar and geometry definitions reused by every Halo CAD contract schema. All lengths are millimetres (float64) as required by docs/PLAN.md 5.",
+  "$defs": {
+    "schema_version": {
+      "title": "SchemaVersion",
+      "description": "Contract version of the document, `<major>.<minor>`. A consumer accepts a document only when the major component equals the major component it was built against; minor bumps are additive-only. See packages/schema/README.md.",
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+    },
+    "ulid": {
+      "title": "Ulid",
+      "description": "Crockford base32 ULID (26 characters, uppercase). Used for every identifier Halo CAD generates.",
+      "type": "string",
+      "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+    },
+    "sha256": {
+      "title": "Sha256",
+      "description": "Lowercase hex sha256 digest of a file's bytes.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "handle": {
+      "title": "DxfHandle",
+      "description": "DXF entity handle as written in the working DXF: uppercase hexadecimal, no leading `0x`, 1-16 digits. `(file, handle)` is the cross-parser key defined by ADR-0002.",
+      "type": "string",
+      "pattern": "^[0-9A-F]{1,16}$"
+    },
+    "space": {
+      "title": "Space",
+      "description": "`MODEL` for model space, or `PAPER:<layout name>` for a paper-space layout.",
+      "type": "string",
+      "pattern": "^(MODEL|PAPER:.+)$"
+    },
+    "text_hash": {
+      "title": "TextHash",
+      "description": "First 16 hex characters of `sha1(NFC(text))`, where `text` is the NFC-normalised string (for aggregates: the member strings sorted ascending by code point and joined with `\\n`). Defined identically in stats.ts and stats.py so both parsers can be compared (ADR-0002 6).",
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "confidence": {
+      "title": "Confidence",
+      "description": "Confidence in [0, 1]. 1.0 means read directly and unambiguously from the drawing.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "timestamp": {
+      "title": "Timestamp",
+      "description": "RFC 3339 date-time with an explicit offset.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "author": {
+      "title": "Author",
+      "description": "Account name of the person who created the record.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "point": {
+      "title": "Point",
+      "description": "`[x, y]` or `[x, y, z]` in millimetres, working-DXF world coordinates.",
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 2,
+      "maxItems": 3
+    },
+    "points": {
+      "title": "Points",
+      "description": "Ordered list of points in millimetres.",
+      "type": "array",
+      "items": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/point" }
+    },
+    "bbox": {
+      "title": "BBox",
+      "description": "Axis-aligned bounding box in millimetres. `min` and `max` must have the same arity.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "max"],
+      "properties": {
+        "min": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/point" },
+        "max": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/point" }
+      }
+    },
+    "transform": {
+      "title": "Transform",
+      "description": "Block reference placement. `matrix` is the optional row-major 4x4 equivalent; when both are present they must agree.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["insert"],
+      "properties": {
+        "insert": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/point" },
+        "scale": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3,
+          "default": [1, 1, 1]
+        },
+        "rotation_deg": { "type": "number", "default": 0 },
+        "normal": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/point" },
+        "matrix": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 16,
+          "maxItems": 16
+        }
+      }
+    },
+    "level_kind": {
+      "title": "LevelKind",
+      "description": "The four height fields kept separate by ADR-0003. `SL` structural level, `FL` finished floor level, `FLOOR_HEIGHT` storey height (SL to SL), `CH` ceiling height (level/finish table). Never equality-compare `CH` against the other three.",
+      "type": "string",
+      "enum": ["SL", "FL", "FLOOR_HEIGHT", "CH"]
+    },
+    "level_source": {
+      "title": "LevelSource",
+      "description": "Which drawing or table a height value was read from. `LEVEL_TABLE` and `FINISH_SCHEDULE` are the sources that yield `CH`; `ELEVATION`, `SECTION` and `STRUCT_PLAN` yield `SL` and `FL` (ADR-0003).",
+      "type": "string",
+      "enum": ["ELEVATION", "SECTION", "STRUCT_PLAN", "LEVEL_TABLE", "FINISH_SCHEDULE", "USER"]
+    },
+    "classification_source": {
+      "title": "ClassificationSource",
+      "description": "How a classification was produced (docs/PLAN.md 4).",
+      "type": "string",
+      "enum": ["AUTO_RULE", "AUTO_ML", "USER"]
+    },
+    "stable_key": {
+      "title": "StableKey",
+      "description": "Deterministic re-import key for a derived object: `<etype>:<layer>:<sha1 of the 1mm-grid geometry fingerprint>`. Survives handle renumbering across revisions (docs/PLAN.md 4).",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    }
+  }
+}

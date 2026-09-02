@@ -1,0 +1,11 @@
+{
+  "protocol_version": "0.1",
+  "type": "camera",
+  "payload": {
+    "op": "SECTION",
+    "section_plane": {
+      "origin": [3600, 3000, 10500],
+      "normal": [0, 0, 1]
+    }
+  }
+}

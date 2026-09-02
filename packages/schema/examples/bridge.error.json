@@ -1,0 +1,10 @@
+{
+  "protocol_version": "0.1",
+  "type": "error",
+  "request_id": "load-3f-001",
+  "payload": {
+    "code": "LOAD_FAILED",
+    "message": "GLB parse failed at chunk 2",
+    "detail": "RangeError: Offset is outside the bounds of the DataView"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.halo-cad.internal/v0/common/provenance.schema.json",
+  "title": "Provenance",
+  "description": "Where a record came from in the working DXF. Mandatory on every NDJ entity and on every piece of evidence (CLAUDE.md rule 6). `(file, handle)` is the same key in the viewer and in the engine because both parse the same working-DXF bytes (ADR-0002).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["file", "handle", "path", "space"],
+  "properties": {
+    "file": {
+      "description": "Identifier of the working DXF: either the ULID of the `drawing_file` row or the lowercase sha256 of the original file bytes.",
+      "oneOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid" },
+        { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/sha256" }
+      ]
+    },
+    "handle": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/handle" },
+    "path": {
+      "description": "INSERT chain from the top-level owner down to (but not including) `handle`. Empty for an entity that sits directly in model or paper space.",
+      "type": "array",
+      "items": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/handle" },
+      "maxItems": 32
+    },
+    "space": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/space" },
+    "role": {
+      "description": "Optional role this record plays for the consumer, e.g. `centerline`, `tag_text`, `boundary`.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    }
+  }
+}

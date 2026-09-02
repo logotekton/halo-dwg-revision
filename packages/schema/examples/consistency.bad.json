@@ -1,0 +1,16 @@
+{
+  "schema_version": "0.1",
+  "checks": [
+    {
+      "id": "FL_EQ_SL",
+      "left_kind": "FL",
+      "right_kind": "SL",
+      "operator": "EQ",
+      "tolerance_mm": 5,
+      "left_source": "SECTION",
+      "right_source": "ELEVATION",
+      "severity": "ERROR",
+      "description": "Cross-basis equality without CH: the finished floor level sits a finish thickness above the structural level, so EQ is still meaningless."
+    }
+  ]
+}

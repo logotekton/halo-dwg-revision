@@ -1,0 +1,7 @@
+{
+  "protocol_version": "0.1",
+  "type": "explode",
+  "payload": {
+    "ids": ["MEMBER:COL:3F:X1-Y1"]
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.halo-cad.internal/v0/levels/consistency-check.schema.json",
+  "title": "ConsistencyCheckSet",
+  "description": "Declarative definitions of the level cross-checks the engine runs. ADR-0003 is enforced here, in the schema itself, so a forbidden check cannot be written down at all: equality is only legal between two observations of the same structural basis (`SL` to `SL`, `FL` to `FL`, `FLOOR_HEIGHT` to `FLOOR_HEIGHT`), and any check that touches the ceiling height `CH` must be an inequality. A definition such as `{left_kind: CH, right_kind: SL, operator: EQ}` fails validation, which is what makes the rule impossible to reintroduce by hand, by a rule author, or by code generation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "checks"],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/schema_version"
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "$ref": "https://schema.halo-cad.internal/v0/levels/consistency-check.schema.json#/$defs/check"
+      }
+    }
+  },
+  "$defs": {
+    "operator": {
+      "title": "ConsistencyOperator",
+      "description": "`EQ` holds when `|left + left_offset_mm - right| <= tolerance_mm`. The inequalities compare `left + left_offset_mm` against `right` and treat `tolerance_mm` as slack in the permissive direction.",
+      "type": "string",
+      "enum": ["EQ", "LT", "LE", "GT", "GE"]
+    },
+    "check": {
+      "title": "ConsistencyCheck",
+      "description": "One check definition, constrained by the two ADR-0003 height rules.",
+      "allOf": [
+        {
+          "$ref": "https://schema.halo-cad.internal/v0/levels/consistency-check.schema.json#/$defs/check_fields"
+        },
+        {
+          "$ref": "https://schema.halo-cad.internal/v0/levels/consistency-check.schema.json#/$defs/height_rules"
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "check_fields": {
+      "title": "ConsistencyCheckFields",
+      "type": "object",
+      "required": ["id", "left_kind", "right_kind", "operator", "tolerance_mm"],
+      "properties": {
+        "id": {
+          "description": "Stable identifier of the check, referenced by findings and by the review UI.",
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]{2,63}$"
+        },
+        "left_kind": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/level_kind"
+        },
+        "right_kind": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/level_kind"
+        },
+        "operator": {
+          "$ref": "https://schema.halo-cad.internal/v0/levels/consistency-check.schema.json#/$defs/operator"
+        },
+        "tolerance_mm": {
+          "description": "Allowed slack in millimetres. ADR-0003 uses 5mm for structural level equality.",
+          "type": "number",
+          "minimum": 0
+        },
+        "left_offset_mm": {
+          "description": "Constant added to the left value before comparing, so ADR-0003's `CH + slab thickness + floor finish thickness < FLOOR_HEIGHT` can be written as a single check.",
+          "type": "number",
+          "default": 0
+        },
+        "left_source": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/level_source"
+        },
+        "right_source": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/level_source"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["INFO", "WARN", "ERROR"],
+          "default": "WARN"
+        },
+        "message_key": {
+          "description": "i18n key for the finding text (CLAUDE.md rule 8). UI strings never appear here.",
+          "type": "string",
+          "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$"
+        },
+        "description": { "type": "string", "maxLength": 512 }
+      }
+    },
+    "height_rules": {
+      "title": "HeightComparisonRules",
+      "description": "The two ADR-0003 constraints, expressed with `if` / `then` / `not`. Carries no fields of its own.",
+      "tsType": "unknown",
+      "allOf": [
+        {
+          "$comment": "ADR-0003 rule 1. Equality is only meaningful between two readings of the same basis, so EQ forces left_kind and right_kind to be the same member of {SL, FL, FLOOR_HEIGHT}. CH is deliberately absent: a ceiling height read from a level table and one read from a finish schedule are compared with an inequality band, never with EQ.",
+          "if": {
+            "required": ["operator"],
+            "properties": { "operator": { "const": "EQ" } }
+          },
+          "then": {
+            "oneOf": [
+              {
+                "required": ["left_kind", "right_kind"],
+                "properties": {
+                  "left_kind": { "const": "SL" },
+                  "right_kind": { "const": "SL" }
+                }
+              },
+              {
+                "required": ["left_kind", "right_kind"],
+                "properties": {
+                  "left_kind": { "const": "FL" },
+                  "right_kind": { "const": "FL" }
+                }
+              },
+              {
+                "required": ["left_kind", "right_kind"],
+                "properties": {
+                  "left_kind": { "const": "FLOOR_HEIGHT" },
+                  "right_kind": { "const": "FLOOR_HEIGHT" }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "$comment": "ADR-0003 rule 2, stated from the other direction so the intent survives any future widening of the operator enum: a check with CH on either side must not be an equality.",
+          "if": {
+            "anyOf": [
+              {
+                "required": ["left_kind"],
+                "properties": { "left_kind": { "const": "CH" } }
+              },
+              {
+                "required": ["right_kind"],
+                "properties": { "right_kind": { "const": "CH" } }
+              }
+            ]
+          },
+          "then": {
+            "not": {
+              "required": ["operator"],
+              "properties": { "operator": { "const": "EQ" } }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

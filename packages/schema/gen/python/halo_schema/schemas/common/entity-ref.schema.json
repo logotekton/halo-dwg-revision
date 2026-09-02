@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.halo-cad.internal/v0/common/entity-ref.schema.json",
+  "title": "EntityRef",
+  "description": "The unit of evidence (docs/PLAN.md 4): `{file, handle, path[], space, role}`. Structurally identical to Provenance; `role` says what the referenced entity contributed, e.g. `dimension_text` for a level observation read from an elevation.",
+  "$ref": "https://schema.halo-cad.internal/v0/common/provenance.schema.json"
+}

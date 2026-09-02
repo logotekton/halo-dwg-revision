@@ -1,0 +1,170 @@
+{
+  "schema_version": "0.1",
+  "project_id": "0J8JJ858S38QS4Q1J1W8FZ0JD8",
+  "generated_at": "2026-09-02T09:15:00+09:00",
+  "floors": [
+    {
+      "floor_label": "3F",
+      "floor_index": 3,
+      "sl_mm": 9000,
+      "sl_source_observation_id": "3QDKA01V7Z92XDAFB342P3RS7T",
+      "sl_method": "READ",
+      "fl_mm": 9050,
+      "fl_source_observation_id": "727ZHXHBATWD06K63308RV47NF",
+      "fl_method": "READ",
+      "floor_height_mm": 3300,
+      "floor_height_method": "DERIVED_SL_DIFF",
+      "ch_mm": 2700,
+      "ch_source_observation_id": "5GG74KKK48HARNF5SV1XP1W4A1",
+      "ch_method": "READ",
+      "ch_is_fallback": false,
+      "confidence": 0.82,
+      "conflicts": [
+        {
+          "kind": "SL",
+          "observation_ids": ["3QDKA01V7Z92XDAFB342P3RS7T", "01CJY3WBCQ7ZTCB286269GFHRM"],
+          "values_mm": [9000, 9008],
+          "max_delta_mm": 8,
+          "severity": "WARN",
+          "resolution": "PENDING",
+          "message": "Elevation and section disagree on 3F SL by 8mm, above the 5mm tolerance."
+        }
+      ]
+    },
+    {
+      "floor_label": "4F",
+      "floor_index": 4,
+      "sl_mm": 12300,
+      "sl_source_observation_id": "2R0R6TT158757ESCF662WT09RX",
+      "sl_method": "READ",
+      "ch_mm": 2700,
+      "ch_source_observation_id": "5E8VYJNFD1PWVNRH2BB3JJ87ET",
+      "ch_method": "READ",
+      "ch_is_fallback": false,
+      "confidence": 0.9,
+      "conflicts": []
+    }
+  ],
+  "observations": [
+    {
+      "id": "3QDKA01V7Z92XDAFB342P3RS7T",
+      "kind": "SL",
+      "value_mm": 9000,
+      "source": "ELEVATION",
+      "evidence": [
+        {
+          "file": "3J6GXHZVPT36VKC0RQBR1VV8MY",
+          "handle": "1C4",
+          "path": [],
+          "space": "MODEL",
+          "role": "level_label"
+        }
+      ],
+      "confidence": 0.9,
+      "raw_text": "+9,000",
+      "floor_label": "3F"
+    },
+    {
+      "id": "01CJY3WBCQ7ZTCB286269GFHRM",
+      "kind": "SL",
+      "value_mm": 9008,
+      "source": "SECTION",
+      "evidence": [
+        {
+          "file": "4YA0MQFTZCQKW0M51KS0EMHHJB",
+          "handle": "2F1",
+          "path": [],
+          "space": "MODEL",
+          "role": "dimension_text"
+        }
+      ],
+      "confidence": 0.7,
+      "raw_text": "9008",
+      "floor_label": "3F"
+    },
+    {
+      "id": "727ZHXHBATWD06K63308RV47NF",
+      "kind": "FL",
+      "value_mm": 9050,
+      "source": "SECTION",
+      "evidence": [
+        {
+          "file": "4YA0MQFTZCQKW0M51KS0EMHHJB",
+          "handle": "2F7",
+          "path": [],
+          "space": "MODEL",
+          "role": "level_label"
+        }
+      ],
+      "confidence": 0.75,
+      "raw_text": "FL +9,050",
+      "floor_label": "3F"
+    },
+    {
+      "id": "5GG74KKK48HARNF5SV1XP1W4A1",
+      "kind": "CH",
+      "value_mm": 2700,
+      "source": "LEVEL_TABLE",
+      "evidence": [
+        {
+          "file": "34D8D5S1XSNREJZNR700VEYN8P",
+          "handle": "A31",
+          "path": ["A10"],
+          "space": "PAPER:A1-A01",
+          "role": "table_cell"
+        }
+      ],
+      "confidence": 0.85,
+      "raw_text": "2,700",
+      "floor_label": "3F",
+      "notes": "Level table column header reads 천장고, mapped to CH per ADR-0003."
+    },
+    {
+      "id": "2R0R6TT158757ESCF662WT09RX",
+      "kind": "SL",
+      "value_mm": 12300,
+      "source": "ELEVATION",
+      "evidence": [
+        {
+          "file": "3J6GXHZVPT36VKC0RQBR1VV8MY",
+          "handle": "1C5",
+          "path": [],
+          "space": "MODEL",
+          "role": "level_label"
+        }
+      ],
+      "confidence": 0.9,
+      "raw_text": "+12,300",
+      "floor_label": "4F"
+    },
+    {
+      "id": "5E8VYJNFD1PWVNRH2BB3JJ87ET",
+      "kind": "CH",
+      "value_mm": 2700,
+      "source": "LEVEL_TABLE",
+      "evidence": [
+        {
+          "file": "34D8D5S1XSNREJZNR700VEYN8P",
+          "handle": "A32",
+          "path": ["A10"],
+          "space": "PAPER:A1-A01",
+          "role": "table_cell"
+        }
+      ],
+      "confidence": 0.85,
+      "raw_text": "2,700",
+      "floor_label": "4F"
+    },
+    {
+      "id": "46NVA0XFT2WHXSPM1N42H2ST6Q",
+      "kind": "FLOOR_HEIGHT",
+      "value_mm": 3300,
+      "source": "USER",
+      "evidence": [],
+      "confidence": 1,
+      "raw_text": "",
+      "floor_label": "3F",
+      "notes": "Confirmed by the reviewer against the derived 12300 - 9000 difference."
+    }
+  ]
+}

@@ -14,18 +14,18 @@
  * `--files` names files inside the repo's fixtures/generated/ (served by the
  * dev server at /gen/<name>, streamed -- see vite.config.ts).
  */
-import { spawn, execFileSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { createServer } from 'vite';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..');
 const OUT = resolve(ROOT, 'out', 'bench');
 const GENERATED = resolve(ROOT, '..', '..', 'fixtures', 'generated');
-const PORT = 5178;
-const BASE = `http://localhost:${PORT}`;
+let BASE = '';
 
 function parseArgs(argv) {
   const a = { files: [], render: false, dxfout: false, timeout: 900, settle: 4000 };
@@ -109,24 +109,36 @@ class RssSampler {
 // --------------------------------------------------------------------------
 // dev server lifecycle
 // --------------------------------------------------------------------------
+/**
+ * In-process Vite dev server on an OS-assigned port.
+ *
+ * Not `spawn('vite')`: the spike's vite.config.ts pins port 5178 with
+ * `strictPort`, so back-to-back driver runs fight over a port that is still in
+ * TIME_WAIT and the second one stalls. Running in-process also keeps the
+ * server's memory inside *this* Node process, well away from the Chromium tree
+ * whose RSS we are sampling.
+ */
 async function startVite() {
-  const child = spawn(process.execPath, [resolve(ROOT, 'node_modules', 'vite', 'bin', 'vite.js')], {
-    cwd: ROOT,
-    stdio: ['ignore', 'pipe', 'pipe'],
+  const server = await createServer({
+    root: ROOT,
+    logLevel: 'warn',
+    server: { port: 0, strictPort: false },
   });
-  child.stdout.on('data', () => {});
-  child.stderr.on('data', (d) => process.stderr.write(`[vite] ${d}`));
-  for (let i = 0; i < 200; i++) {
+  await server.listen();
+  const addr = server.httpServer?.address();
+  if (!addr || typeof addr === 'string') throw new Error('vite did not report a port');
+  BASE = `http://localhost:${addr.port}`;
+  for (let i = 0; i < 120; i++) {
     try {
       const r = await fetch(`${BASE}/bench.html`);
-      if (r.ok) return child;
+      if (r.ok) return server;
     } catch {
       /* not up yet */
     }
     await sleep(250);
   }
-  child.kill('SIGKILL');
-  throw new Error('vite dev server did not come up on ' + BASE);
+  await server.close();
+  throw new Error(`vite dev server did not answer on ${BASE}`);
 }
 
 // --------------------------------------------------------------------------
@@ -228,7 +240,7 @@ try {
     rows.push(await Promise.race([runFile(f, args, handle), deadline]));
   }
 } finally {
-  vite.kill('SIGKILL');
+  await vite.close();
 }
 
 const json = JSON.stringify({ tool: 'bench-browser.mjs', rows }, null, 2);

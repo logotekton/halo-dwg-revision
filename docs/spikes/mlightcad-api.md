@@ -13,7 +13,15 @@
 측정 환경: macOS 15 (darwin 25.5.0, arm64), Node v24.20.0, Chromium 151 headless (SwiftShader), Vite 7.3.6.
 설치 버전(런타임에서 읽음): `cad-simple-viewer 1.6.3`, `data-model 1.14.3`, `three-renderer 1.6.3`, `mtext-renderer 0.12.4`, `libredwg-converter 3.14.3`, `libredwg-web 0.7.10`, `three 0.172.0`.
 
-## 0.1 픽스처
+## 0.1 스크린샷
+
+| 파일 | 내용 |
+|---|---|
+| `docs/spikes/img/fixture-korean-default-fonts.png` | 픽스처 DXF, **기본 폰트 체인**. TEXT/ATTRIB(빅폰트 `whgtxt.shx`)는 한글이 나오지만 MTEXT(스타일 `Standard`)는 `?`로 나온다 |
+| `docs/spikes/img/fixture-korean-mtext.png` | 같은 픽스처, **한글 폴백 체인 적용 후**. MTEXT `\P` 줄바꿈과 `{\C1; …}` 색상까지 정확 |
+| `docs/spikes/img/sample-dwg-canteen.png` | `canteen.dwg`(AC1014, 25 122 엔티티)를 libredwg 워커로 열어 렌더한 결과 |
+
+## 0.2 픽스처
 
 손으로 작성한 DXF(그룹 코드 단위, `spikes/mlightcad/scripts/make-fixtures.mjs`).
 
@@ -441,7 +449,7 @@ await docManager.openDocument(name, buf, options, view?) // view로 대상 캔�
 | `mtext-renderer-worker.js` | 1 182 527 B |
 | canteen.dwg(2.6 MB, AC1014) 파싱 | 2 230 ms |
 | 렌더 idle까지 | 2 825 ms |
-| 모델공간 엔티티 | 25 122 |
+| 모델공간 엔티티 | 25 122 (렌더 결과: `docs/spikes/img/sample-dwg-canteen.png`) |
 | 워커 옵션 | `AcDbDatabaseConverterConfig { parserWorkerUrl?, timeout?, useWorker?, convertByEntityType?, progress? }` |
 | 읽기 옵션 | `AcDbDatabaseConverterReadOptions { minimumChunkSize?, progress?, timeout?, sysVars? }` |
 

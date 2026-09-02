@@ -1,10 +1,10 @@
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
 import { defineConfig } from '@playwright/test'
 
 // packages/testing/playwright.config.ts -> repo root is two levels up.
-const HERE = dirname(fileURLToPath(import.meta.url))
-const REPO_ROOT = resolve(HERE, '../..')
+// __dirname (not import.meta.url): this package builds as CommonJS, same
+// as src/electron.ts.
+const REPO_ROOT = resolve(__dirname, '../..')
 
 /**
  * Playwright config for the Electron e2e harness (docs/briefs/W2-07.md).

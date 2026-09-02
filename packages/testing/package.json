@@ -4,7 +4,6 @@
   "private": true,
   "description": "Playwright Electron e2e harness for the built Halo CAD desktop app (tests live in tests/e2e/**)",
   "license": "GPL-3.0-only",
-  "type": "module",
   "scripts": {
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",

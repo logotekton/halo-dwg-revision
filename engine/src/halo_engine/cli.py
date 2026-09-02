@@ -20,6 +20,7 @@ from uvicorn.supervisors import ChangeReload
 from halo_engine import __version__
 from halo_engine.api.main import create_app
 from halo_engine.config import Settings
+from halo_engine.procutil import pid_alive
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
 
@@ -77,14 +78,8 @@ def _resolve_token(token_option: str | None, *, dev: bool) -> str:
 
 
 def _pid_alive(pid: int) -> bool:
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        # Process exists but is owned by someone else — treat as alive.
-        return True
-    return True
+    # Never use os.kill(pid, 0) here: on Windows it terminates the target process.
+    return pid_alive(pid)
 
 
 async def _watch_parent_async(parent_pid: int) -> None:

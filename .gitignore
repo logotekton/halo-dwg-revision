@@ -1,0 +1,49 @@
+# Node
+node_modules/
+dist/
+out/
+.turbo/
+*.tsbuildinfo
+.pnpm-store/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+engine/build/
+engine/dist/
+
+# Electron / packaging
+apps/desktop/release/
+apps/desktop/resources/engine/
+*.dmg
+*.exe
+*.msi
+
+# Fixtures: large generated files are not committed
+fixtures/generated/large/
+fixtures/**/F11*.dxf
+fixtures/**/F12*.dxf
+fixtures/**/F11*.dwg
+fixtures/**/F12*.dwg
+
+# Real drawings and project bundles never enter the repo
+samples/
+*.dmqto/
+*.dwg.bak
+*.sv$
+
+# Local
+.env
+.env.*
+*.log
+.DS_Store
+coverage/
+playwright-report/
+test-results/
+
+# Claude Code local session settings
+.claude/settings.local.json

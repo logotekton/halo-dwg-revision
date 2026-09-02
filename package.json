@@ -1,0 +1,19 @@
+{
+  "name": "dmcad",
+  "private": true,
+  "version": "0.0.1",
+  "description": "대명건설 무료 CAD + 도면관리 + 적산 워크스테이션 (사내 전용)",
+  "license": "GPL-3.0-only",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @dmcad/desktop dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "verify": "tools/verify.sh"
+  },
+  "packageManager": "pnpm@10.34.5"
+}

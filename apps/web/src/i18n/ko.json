@@ -6,6 +6,63 @@
     "areaLabel": "도면 캔버스",
     "placeholder": "열린 도면이 없습니다"
   },
+  "menu": {
+    "barLabel": "메뉴",
+    "file": {
+      "label": "파일",
+      "open": "열기",
+      "closeTab": "탭 닫기"
+    },
+    "edit": {
+      "label": "편집",
+      "undo": "실행 취소",
+      "redo": "다시 실행"
+    },
+    "view": {
+      "label": "보기",
+      "toggleLeftDock": "왼쪽 도크 표시/숨김",
+      "toggleRightDock": "오른쪽 도크 표시/숨김"
+    },
+    "help": {
+      "label": "도움말",
+      "about": "정보"
+    }
+  },
+  "files": {
+    "open": "열기",
+    "openTooltip": "DWG/DXF 도면 열기",
+    "recent": "최근 파일",
+    "recentEmpty": "최근 파일 없음"
+  },
+  "tabs": {
+    "areaLabel": "열린 문서 탭",
+    "closeTab": "{{name}} 탭 닫기",
+    "empty": "열린 문서가 없습니다"
+  },
+  "viewer": {
+    "areaLabel": "도면 캔버스",
+    "placeholder": "열린 도면이 없습니다"
+  },
+  "docks": {
+    "layersTitle": "레이어",
+    "layersPlaceholder": "레이어 패널은 아직 준비되지 않았습니다",
+    "sheetsTitle": "시트",
+    "sheetsPlaceholder": "시트 목록은 아직 준비되지 않았습니다",
+    "propertiesTitle": "속성",
+    "propertiesPlaceholder": "속성 패널은 아직 준비되지 않았습니다",
+    "collapseLeft": "왼쪽 도크 접기",
+    "expandLeft": "왼쪽 도크 펼치기",
+    "collapseRight": "오른쪽 도크 접기",
+    "expandRight": "오른쪽 도크 펼치기"
+  },
+  "crosscheck": {
+    "title": "교차검증",
+    "placeholder": "교차검증 패널은 아직 준비되지 않았습니다"
+  },
+  "commandLine": {
+    "label": "명령줄",
+    "placeholder": "명령 입력..."
+  },
   "status": {
     "engineDisconnected": "엔진: 연결 안 됨",
     "engine": {
@@ -14,6 +71,8 @@
       "ready": "엔진: 연결됨 v{{version}}",
       "restarting": "엔진: 재연결 중",
       "failed": "엔진 시작 실패: {{message}}"
-    }
+    },
+    "coordinates": "좌표: -",
+    "units": "단위: mm"
   }
 }

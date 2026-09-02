@@ -10,7 +10,8 @@
     "start": "electron .",
     "lint": "cd ../.. && eslint apps/desktop/src apps/desktop/electron.vite.config.ts apps/desktop/scripts apps/desktop/vitest.config.ts --config eslint.config.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "devDependencies": {
     "@types/node": "24.9.1",

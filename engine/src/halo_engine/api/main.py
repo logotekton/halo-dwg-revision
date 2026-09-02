@@ -6,6 +6,7 @@ here, feature routers under ``api/routers/``.
 
 from __future__ import annotations
 
+import secrets
 from collections.abc import Awaitable, Callable
 
 from fastapi import FastAPI, Request, Response
@@ -43,7 +44,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         token = request.app.state.settings.token
         if token is None or request.url.path in _PUBLIC_PATHS:
             return await call_next(request)
-        if request.headers.get("authorization") != f"Bearer {token}":
+        # Constant-time comparison: a naive `!=` short-circuits on the first
+        # mismatched character, which leaks the token's length and correct
+        # prefix through response-time differences (timing attack).
+        provided = request.headers.get("authorization")
+        if provided is None or not secrets.compare_digest(provided, f"Bearer {token}"):
             return JSONResponse({"detail": "unauthorized"}, status_code=401)
         return await call_next(request)
 

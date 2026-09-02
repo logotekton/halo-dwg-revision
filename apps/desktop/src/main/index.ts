@@ -7,6 +7,9 @@ import { registerIpcHandlers } from './ipc'
 import { getMimeType, resolveAssetPath, resolveWebDistDir } from './protocol'
 import { APP_SCHEME, createMainWindow } from './window'
 
+// Invariant to how Electron was launched (`electron .` vs a file path): out/main -> apps/desktop.
+const PACKAGE_ROOT = join(__dirname, '..', '..')
+
 const ENGINE_STATUS_CHANNEL = 'halocad:engine:status'
 
 // Custom scheme must be registered as privileged before app 'ready' (Electron
@@ -28,7 +31,7 @@ protocol.registerSchemesAsPrivileged([
 function webDistDir(): string {
   return resolveWebDistDir({
     isPackaged: app.isPackaged,
-    appPath: app.getAppPath(),
+    appPath: PACKAGE_ROOT,
     resourcesPath: process.resourcesPath,
   })
 }
@@ -36,7 +39,7 @@ function webDistDir(): string {
 function engineDevDir(): string {
   // apps/desktop/{package.json,out/} next to the repo-root engine/ dir
   // (docs/contracts/wave-2.md "사이드카": dev spawn cwd is `engine/`).
-  return join(app.getAppPath(), '..', '..', 'engine')
+  return join(PACKAGE_ROOT, '..', '..', 'engine')
 }
 
 function registerAppProtocol(): void {

@@ -35,3 +35,8 @@ P1 첫 묶음(W3-01 셸, W3-02 CadHost·뷰 통합, W3-03 프로젝트·임포�
 
 ## 테스트 훅
 - `window.__haloTest.openFiles(paths: string[])`(HALO_E2E=1) → 임포트 흐름 실행. `getStatus()`, `getDocuments(): {fileId, name, layers: number}[]`, `getCrosscheck(fileId)`.
+
+## 사용자 판정 반영 (2026-09-03)
+- **W3-05 폰트:** SHX 동봉 없음. 기본 Noto Sans KR(OFL). **사용자가 폰트 파일(SHX/TTF/WOFF)을 추가하는 UI**를 넣는다: 설정 → 폰트 → 파일 추가 → `<userData>/fonts/`에 복사 + `fonts.json` 갱신 + 워커 폰트 풀 동기화 + SHX 이름 매핑 표 편집. 누락 폰트 패널에서 "이 폰트 추가"로 바로 진입.
+- **실제 DWG 세트**가 `samples/2026-09-02-실시도서/`에 있다(gitignore). 모든 P1 태스크는 픽스처 외에 이 세트로도 검증하고 결과를 보고서에 적는다.
+- **W3-08 스키마 항목 추가:** `level_source`에 `CEILING_PLAN`, CH↔CH EQ 조건부 허용(ADR-0003 보충).

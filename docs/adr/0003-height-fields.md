@@ -21,3 +21,6 @@
 - **`CH`를 `SL`/`FL`/`FLOOR_HEIGHT`와 등호 비교하는 코드는 금지.** 스키마 검증기와 단위 테스트가 이를 거부한다.
 - 층고표에 층고와 천장고가 나란히 있으면 열 이름과 값 크기 관계(천장고 < 층고)로 매핑을 검증한다.
 - 천장고가 없으면 층고에서 슬래브·천장 속 공간을 빼는 대체 규칙을 쓰되 결과는 항상 저신뢰로 분류한다.
+
+## 보충 2026-09-03 — 천장고끼리의 등호 검사
+사용자 판정: **천장평면도에 CH가 표기된 경우에만** 층고표 CH와 천장평면도 CH를 등호(허용오차)로 검사한다. 천장평면도에 CH 표기가 없으면 검사를 생략한다(경보 아님). 스키마 규칙: `consistency-check`에서 `CH↔CH`의 `EQ`는 `left_source`/`right_source` 중 하나가 `CEILING_PLAN`일 때만 허용하고, 실행 시 해당 관측(`level_observation.kind=CH, source=CEILING_PLAN`)이 없으면 결과를 `SKIPPED`로 낸다. `level_source` enum에 `CEILING_PLAN`을 추가한다(W3-08 스키마 항목).

@@ -11,3 +11,4 @@
 | 5 | `@mlightcad/libredwg-converter`의 라이선스 표기 불일치(package.json GPL-3.0 vs LICENSE 파일 MIT)를 상류에 이슈로 올릴지 | W1-04 | 엄격한 쪽(GPL)으로 취급, 격리 유지 | |
 | 6 | 천장고(CH)끼리의 등호 검사(층고표 CH vs 천장평면도 CH)를 허용할지 | W1-05 | 허용(같은 기준). 스키마 height_rules에 CH↔CH EQ 분기 추가 예정 | |
 | 7 | DMS 스키마(리비전·체크아웃·승인·감사)를 `packages/schema/dms`에 둘지, 엔진 pydantic+OpenAPI에만 둘지 | W1-05 | `packages/schema/dms`(P2 W6-01에서 추가), 엔진은 코드젠 소비 | |
+| 8 | acad-ts가 비ASCII(한글) 텍스트를 Latin-1로 읽어 깨뜨리고, 블록명=레이어명일 때 INSERT를 드롭한다. ADR-0002의 변환기 순위(acad-ts 1차)를 바꿀지 | W2-05 | W2-06 실측 후 결정. 우회(UTF-8 재디코드)가 되면 유지, 안 되면 mlightcad dxfOut을 1차로 | |

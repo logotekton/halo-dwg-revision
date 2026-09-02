@@ -173,6 +173,35 @@ git 상태에 영향이 없다).
     오름차순 정렬, `\n`으로 결합, `sha1` 앞 16 hex (이전 구현은 텍스트별로 먼저 해시하고 그
     해시 문자열들을 이어붙여 다시 해시했다 -- 계약과 다른 방식이었다).
 
+## DWG 픽스처 (W2-05)
+
+`fixtures/generated/F##.dwg`(F01~F09, F10_host, F10_grid; AC1027)는 대응하는 R2018 `F##.dxf`를
+`@node-projects/acad-ts`의 `dxf2dwg`로 저장한 것이다 (`packages/acad-bridge`, ADR-0002 1차
+변환기 후보). 생성기·truth와 달리 acad-ts는 결정론적이지 않을 수 있어(DWG 헤더 타임스탬프 등)
+`fixtures/generated/*.dwg`는 **재생성 시 바이트 동일성을 보장하지 않는다** -- truth와 달리
+diff 검사 대상이 아니다. 11개 파일 합계 180KB (< 10MB 예산).
+
+재생성:
+```bash
+pnpm --filter @halo-cad/acad-bridge build
+for f in F01 F02 F03 F04 F05 F06 F07 F08 F09; do
+  node packages/acad-bridge/bin/acad-bridge.mjs dxf2dwg "fixtures/generated/$f.dxf" "fixtures/generated/$f.dwg"
+done
+node packages/acad-bridge/bin/acad-bridge.mjs dxf2dwg fixtures/generated/F10_grid.dxf fixtures/generated/F10_grid.dwg
+node packages/acad-bridge/bin/acad-bridge.mjs dxf2dwg fixtures/generated/F10_host.dxf fixtures/generated/F10_host.dwg
+```
+
+F11/F12는 DWG로도 만들지 않는다 (브리프 W2-05 범위 밖, `.gitignore`의 `fixtures/**/F11*.dwg`,
+`fixtures/**/F12*.dwg` 규칙으로도 제외됨).
+
+**주의 -- F06.dwg와 F10_grid.dwg는 acad-ts의 알려진 버그로 원본과 완전히 같지 않다.** 두 픽스처
+모두 도곽(title block)의 INSERT가 자신과 같은 이름의 레이어(`X-TITLE`)를 쓰는데, acad-ts의
+`DxfReader`가 이 경우 INSERT의 블록 참조를 `null`로 남긴다(최소 재현: 레이어와 블록이 같은 이름을
+쓰는 문서를 만들어 DXF 왕복 시 재현됨). 결과: `F06.dxf`를 직접 읽으면 `count_by_type.INSERT`는
+`fixtures/truth/F06.json`과 똑같이 8이지만, `F06.dwg`를 만든 뒤 다시 읽으면(`dxf2dwg`가 DWG로
+쓸 때 이 INSERT를 조용히 버린다) 7이 된다 -- `packages/acad-bridge/README.md` "Known acad-ts
+gaps" #1, 이 태스크 보고서의 "Deviations from brief"/"Questions for gate"에 근거를 남겼다.
+
 ## 테스트
 
 ```bash

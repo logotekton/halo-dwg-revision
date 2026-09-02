@@ -59,6 +59,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # dist/ of @halo-cad/schema is not committed; build it before the workspace-wide steps.
+      - name: Build schema package
+        run: pnpm --filter @halo-cad/schema build
+
       - name: Lint
         run: pnpm -r lint
 

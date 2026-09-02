@@ -51,6 +51,10 @@ if [ -n "$viol" ]; then echo "$viol"; bad "CH compared for equality with a struc
 if [ -f pnpm-lock.yaml ]; then
   step "pnpm install --frozen-lockfile"
   if [ "$INSTALL" = 1 ]; then pnpm install --frozen-lockfile >/dev/null && ok "installed" || bad "pnpm install"; else ok "skipped (--no-install)"; fi
+  # @halo-cad/schema ships runtime validators from dist/ (not committed); build it once,
+  # up front, so no package needs pre* hooks that would race under pnpm -r concurrency.
+  step "build @halo-cad/schema (runtime validators)"
+  pnpm --filter @halo-cad/schema build >/dev/null && ok "schema built" || bad "schema build"
   step "pnpm -r lint / typecheck / test"
   pnpm -r --if-present run lint      && ok "lint"      || bad "lint"
   pnpm -r --if-present run typecheck && ok "typecheck" || bad "typecheck"

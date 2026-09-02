@@ -1,0 +1,31 @@
+{
+  "name": "@halo-cad/acad-bridge",
+  "private": true,
+  "version": "0.0.1",
+  "description": "acad-ts (ACadSharp port) CLI bridge: DWG/DXF conversion and parser crosscheck stats (ADR-0002 3rd parser)",
+  "license": "GPL-3.0-only",
+  "type": "module",
+  "bin": {
+    "acad-bridge": "bin/acad-bridge.mjs"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "cd ../.. && eslint packages/acad-bridge/src packages/acad-bridge/tsup.config.ts packages/acad-bridge/vitest.config.ts --config eslint.config.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@halo-cad/schema": "workspace:*",
+    "@node-projects/acad-ts": "3.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.9.1",
+    "tsup": "8.5.1",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>W1-04 mlightcad spike</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+      #app { display: flex; height: 100%; }
+      #cad { flex: 1 1 auto; position: relative; background: #1b1b1f; min-width: 0; }
+      #side { width: 460px; flex: none; border-left: 1px solid #333; display: flex; flex-direction: column; background: #111; color: #ddd; }
+      #bar { padding: 6px; display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid #333; }
+      button { font: inherit; padding: 2px 6px; background: #262630; color: #ddd; border: 1px solid #444; cursor: pointer; }
+      button:hover { background: #33333f; }
+      #log { flex: 1 1 auto; overflow: auto; padding: 6px; white-space: pre-wrap; word-break: break-all; }
+      .ok { color: #7ddc7d; } .bad { color: #ff8080; } .warn { color: #ffd479; } .k { color: #7fb2ff; }
+      h1 { font-size: 13px; margin: 0; padding: 6px; border-bottom: 1px solid #333; background: #191922; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="cad"></div>
+      <div id="side">
+        <h1>W1-04 · mlightcad 1.6.3 스파이크</h1>
+        <div id="bar">
+          <button id="b-all">run all probes</button>
+          <button id="b-dxf">open DXF fixture</button>
+          <button id="b-cp949">open R2000 cp949</button>
+          <button id="b-dwg">open canteen.dwg</button>
+          <button id="b-json">dump JSON</button>
+        </div>
+        <div id="log"></div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

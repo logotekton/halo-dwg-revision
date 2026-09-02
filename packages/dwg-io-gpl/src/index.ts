@@ -33,10 +33,15 @@ export interface RegisterLibreDwgConverterOptions {
   workerBaseUrl: string;
   /** Parse in a Web Worker. Default `true`; `false` is main-thread parsing. */
   useWorker?: boolean;
-  /** Worker parse timeout in milliseconds. */
+  /**
+   * Worker parse timeout in milliseconds.
+   *
+   * There is no progress option here on purpose: `AcDbDatabaseConverterConfig`
+   * in data-model 1.14.3 carries only `parserWorkerUrl`, `timeout` and
+   * `useWorker`. Parse progress arrives through the global `open-file-progress`
+   * event, or through `AcDbOpenDatabaseOptions` at read time.
+   */
   timeout?: number;
-  /** Progress callback forwarded to the converter. */
-  progress?: AcDbDatabaseConverterConfig['progress'];
 }
 
 export interface LibreDwgRegistration {
@@ -69,7 +74,6 @@ export function registerLibreDwgConverter(
     parserWorkerUrl,
     useWorker: options.useWorker ?? true,
     ...(options.timeout === undefined ? {} : { timeout: options.timeout }),
-    ...(options.progress === undefined ? {} : { progress: options.progress }),
   };
   AcDbDatabaseConverterManager.instance.register(
     AcDbFileType.DWG,

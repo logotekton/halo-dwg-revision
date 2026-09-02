@@ -2,11 +2,13 @@
  * Performance budget of `docs/briefs/W2-02.md`: layer statistics for F11
  * (~200k entities, ~41 MB) in under 15 seconds.
  *
- * F11 is not committed (`.gitignore`: `fixtures/**\/F11*.dxf`), so the test
- * skips when it is absent and reports how to make it:
+ * F11 is never committed (`.gitignore`: `fixtures/**\/F11*.dxf`), so this
+ * suite is opt-in and skips unless both `HALO_PERF=1` is set and the file is
+ * present. To run it:
  *
  *   cd fixtures/gen && uv sync --frozen \
  *     && uv run python -m fixtures_gen --out ../generated --truth /tmp/truth-scratch --only F11
+ *   HALO_PERF=1 pnpm --filter @halo-cad/cad-core test
  */
 
 import { describe, expect, it } from 'vitest';
@@ -17,7 +19,15 @@ import { fixtureBytes, fixtureExists, sha256Of } from './helpers';
 const F11 = 'F11.dxf';
 const STATS_BUDGET_MS = 15_000;
 
-describe.skipIf(!fixtureExists(F11))('F11 (200k entities)', () => {
+/**
+ * Opt-in: `HALO_PERF=1 pnpm --filter @halo-cad/cad-core test`. F11 is 41 MB and
+ * is never committed, so the default suite must not depend on it, and running
+ * it inside every `pnpm -r test` pass would add tens of seconds of I/O for a
+ * number that only matters when performance changes.
+ */
+const PERF_ENABLED = process.env['HALO_PERF'] === '1' && fixtureExists(F11);
+
+describe.skipIf(!PERF_ENABLED)('F11 (200k entities)', () => {
   it(`computes layer statistics in under ${String(STATS_BUDGET_MS)} ms`, async () => {
     const bytes = fixtureBytes(F11);
     const sha256 = sha256Of(bytes);
@@ -48,8 +58,8 @@ describe.skipIf(!fixtureExists(F11))('F11 (200k entities)', () => {
   });
 });
 
-describe.skipIf(fixtureExists(F11))('F11 (200k entities)', () => {
-  it.skip('needs fixtures/generated/F11.dxf — see the header of this file', () => {
+describe.skipIf(PERF_ENABLED)('F11 (200k entities)', () => {
+  it.skip('needs HALO_PERF=1 and fixtures/generated/F11.dxf — see the header of this file', () => {
     /* documented skip */
   });
 });

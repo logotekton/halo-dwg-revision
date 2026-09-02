@@ -40,5 +40,5 @@
       "@halo-cad/schema/gen/ts/*": ["../schema/gen/ts/*"]
     }
   },
-  "include": ["src/**/*", "test/**/*"]
+  "include": ["src/**/*"]
 }

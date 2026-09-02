@@ -24,5 +24,5 @@
     "types": ["node"],
     "allowJs": true
   },
-  "include": ["src/**/*", "test/**/*", "scripts/**/*"]
+  "include": ["src/**/*"]
 }

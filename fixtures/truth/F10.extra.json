@@ -1,0 +1,325 @@
+{
+  "extra": {
+    "grid": {
+      "grid_lines": [
+        {
+          "axis": "X",
+          "id": "X1",
+          "position": 4000.0
+        },
+        {
+          "axis": "X",
+          "id": "X2",
+          "position": 10000.0
+        },
+        {
+          "axis": "X",
+          "id": "X3",
+          "position": 16000.0
+        },
+        {
+          "axis": "Y",
+          "id": "Y1",
+          "position": 4000.0
+        },
+        {
+          "axis": "Y",
+          "id": "Y2",
+          "position": 10000.0
+        }
+      ],
+      "grid_origin": [
+        4000.0,
+        4000.0
+      ],
+      "title_block": {
+        "DWGNAME": "기준 그리드 평면도",
+        "DWGNO": "S-100"
+      }
+    },
+    "host": {
+      "columns": [
+        {
+          "center": [
+            4000.0,
+            4000.0
+          ],
+          "tag": "C1"
+        },
+        {
+          "center": [
+            4000.0,
+            10000.0
+          ],
+          "tag": "C2"
+        },
+        {
+          "center": [
+            10000.0,
+            4000.0
+          ],
+          "tag": "C3"
+        },
+        {
+          "center": [
+            10000.0,
+            10000.0
+          ],
+          "tag": "C4"
+        },
+        {
+          "center": [
+            16000.0,
+            4000.0
+          ],
+          "tag": "C5"
+        },
+        {
+          "center": [
+            16000.0,
+            10000.0
+          ],
+          "tag": "C6"
+        }
+      ],
+      "xref": {
+        "block_name": "F10_GRID",
+        "insert": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "insert_entity_handle": "8F",
+        "path": "F10_grid.dxf",
+        "path_kind": "relative"
+      }
+    }
+  },
+  "fixture": "F10",
+  "primary": {
+    "grid": {
+      "dxf_version": "AC1032",
+      "encoding": "cp1252",
+      "file": "F10_grid.dxf",
+      "sha256": "b3c3caa2bd5ca2426bdd26300a6902b7f127637c31c91c8f26a5e1babe84998b",
+      "size_bytes": 59291
+    },
+    "host": {
+      "dxf_version": "AC1032",
+      "encoding": "cp1252",
+      "file": "F10_host.dxf",
+      "sha256": "8edfafa3c505c6bb41e0b61dfaf07d23f9b6ddb9ddd5078a4bc35c846b925d8d",
+      "size_bytes": 57052
+    }
+  },
+  "variants": {
+    "r2000_cp949": {
+      "grid": {
+        "dxf_version": "AC1015",
+        "encoding": "cp949",
+        "file": "F10_grid_r2000_cp949.dxf",
+        "sha256": "481995cc2e7c8b0c5dc2e678546f56998ce4372a45d09ef3e90839a68522af8d",
+        "size_bytes": 38370,
+        "stats": {
+          "buckets": [
+            {
+              "aggregate": {
+                "bbox": {
+                  "max": [
+                    16500.0,
+                    11550.0
+                  ],
+                  "min": [
+                    2450.0,
+                    3500.0
+                  ]
+                },
+                "count_by_type": {
+                  "INSERT": 5,
+                  "LINE": 5
+                },
+                "entity_count": 10,
+                "hatch_area_sum_mm2": 0.0,
+                "insert_by_block": {
+                  "GRID-BUBBLE": 5
+                },
+                "length_sum_mm": 47000.0,
+                "text_count": 5,
+                "text_hash": "16b0f5dfa89101a2"
+              },
+              "layer": "X-GRID",
+              "space": "MODEL"
+            },
+            {
+              "aggregate": {
+                "bbox": {
+                  "max": [
+                    84100.0,
+                    59400.0
+                  ],
+                  "min": [
+                    0.0,
+                    -194.815825
+                  ]
+                },
+                "count_by_type": {
+                  "INSERT": 1
+                },
+                "entity_count": 1,
+                "hatch_area_sum_mm2": 0.0,
+                "insert_by_block": {
+                  "X-TITLE": 1
+                },
+                "length_sum_mm": 0.0,
+                "text_count": 2,
+                "text_hash": "02d42f7c87e9a063"
+              },
+              "layer": "X-TITLE",
+              "space": "MODEL"
+            }
+          ],
+          "file_sha256": "481995cc2e7c8b0c5dc2e678546f56998ce4372a45d09ef3e90839a68522af8d",
+          "producer": {
+            "name": "engine.ezdxf",
+            "version": "fixtures-gen/0.1.0+ezdxf/1.4.4"
+          },
+          "schema_version": "0.1",
+          "totals": {
+            "bbox": {
+              "max": [
+                84100.0,
+                59400.0
+              ],
+              "min": [
+                0.0,
+                -194.815825
+              ]
+            },
+            "count_by_type": {
+              "INSERT": 6,
+              "LINE": 5
+            },
+            "entity_count": 11,
+            "hatch_area_sum_mm2": 0.0,
+            "insert_by_block": {
+              "GRID-BUBBLE": 5,
+              "X-TITLE": 1
+            },
+            "length_sum_mm": 47000.0,
+            "text_count": 7,
+            "text_hash": "71424455db060745"
+          }
+        }
+      },
+      "host": {
+        "dxf_version": "AC1015",
+        "encoding": "cp949",
+        "file": "F10_host_r2000_cp949.dxf",
+        "sha256": "a117b97838e349740c0cf581520b5ad92178d3cf7c90fb9f969962175e8f1bc1",
+        "size_bytes": 36493,
+        "stats": {
+          "buckets": [
+            {
+              "aggregate": {
+                "count_by_type": {
+                  "INSERT": 1
+                },
+                "entity_count": 1,
+                "hatch_area_sum_mm2": 0.0,
+                "insert_by_block": {
+                  "F10_GRID": 1
+                },
+                "length_sum_mm": 0.0,
+                "text_count": 0,
+                "text_hash": "da39a3ee5e6b4b0d"
+              },
+              "layer": "0",
+              "space": "MODEL"
+            },
+            {
+              "aggregate": {
+                "bbox": {
+                  "max": [
+                    16357.162347,
+                    10580.0
+                  ],
+                  "min": [
+                    4000.0,
+                    4324.338336
+                  ]
+                },
+                "count_by_type": {
+                  "TEXT": 6
+                },
+                "entity_count": 6,
+                "hatch_area_sum_mm2": 0.0,
+                "insert_by_block": {},
+                "length_sum_mm": 0.0,
+                "text_count": 6,
+                "text_hash": "143206d9f0cd3b04"
+              },
+              "layer": "A-TEXT",
+              "space": "MODEL"
+            },
+            {
+              "aggregate": {
+                "bbox": {
+                  "max": [
+                    16300.0,
+                    10300.0
+                  ],
+                  "min": [
+                    3700.0,
+                    3700.0
+                  ]
+                },
+                "count_by_type": {
+                  "LWPOLYLINE": 6
+                },
+                "entity_count": 6,
+                "hatch_area_sum_mm2": 0.0,
+                "insert_by_block": {},
+                "length_sum_mm": 14400.0,
+                "text_count": 0,
+                "text_hash": "da39a3ee5e6b4b0d"
+              },
+              "layer": "S-COL",
+              "space": "MODEL"
+            }
+          ],
+          "file_sha256": "a117b97838e349740c0cf581520b5ad92178d3cf7c90fb9f969962175e8f1bc1",
+          "producer": {
+            "name": "engine.ezdxf",
+            "version": "fixtures-gen/0.1.0+ezdxf/1.4.4"
+          },
+          "schema_version": "0.1",
+          "totals": {
+            "bbox": {
+              "max": [
+                16357.162347,
+                10580.0
+              ],
+              "min": [
+                3700.0,
+                3700.0
+              ]
+            },
+            "count_by_type": {
+              "INSERT": 1,
+              "LWPOLYLINE": 6,
+              "TEXT": 6
+            },
+            "entity_count": 13,
+            "hatch_area_sum_mm2": 0.0,
+            "insert_by_block": {
+              "F10_GRID": 1
+            },
+            "length_sum_mm": 14400.0,
+            "text_count": 6,
+            "text_hash": "143206d9f0cd3b04"
+          }
+        }
+      }
+    }
+  }
+}

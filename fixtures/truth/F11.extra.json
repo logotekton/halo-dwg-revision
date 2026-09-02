@@ -1,0 +1,25 @@
+{
+  "extra": {
+    "actual_entity_count": 200006,
+    "entities_per_tile": 85,
+    "note": "Per-tile member placement (columns/beams/grid) follows the same schema as F06.json's extra, offset by this tile's (tile_offset) and suffixed with '-T{index:05d}' on every tag/label -- not enumerated here to keep this truth file small.",
+    "target_entities": 200000,
+    "tile_count": 2353,
+    "tile_grid": {
+      "cols": 49,
+      "rows": 49,
+      "step_x": 40000.0,
+      "step_y": 30000.0
+    },
+    "tile_offset_formula": "(col * step_x, row * step_y), row-major, col = index % cols, row = index // cols",
+    "tile_source": "fixtures_gen.fixtures.f06_structural_plan.build"
+  },
+  "fixture": "F11",
+  "primary": {
+    "dxf_version": "AC1032",
+    "encoding": "cp1252",
+    "file": "F11.dxf",
+    "sha256": "fbb49aa8e206dcca1acbe73b2ccd7878b92b17fd188ee568206bc5480b6de518",
+    "size_bytes": 41375639
+  }
+}

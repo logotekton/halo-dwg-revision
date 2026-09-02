@@ -1,40 +1,32 @@
-"""Independent statistics computation: a ``LayerStatsDocument`` (brief W2-03,
-``docs/contracts/stats-definition.md``, ``packages/schema/src/stats/layer-stats.schema.json``).
+"""``LayerStatsDocument`` computation (docs/contracts/stats-definition.md,
+``packages/schema/src/stats/layer-stats.schema.json``).
 
-This module is the *cross-check* half of the generator: fixture builders
-never compute truth numbers while placing entities. Instead, ``compute_layer_stats``
-re-opens the DXF bytes that were just written with ``ezdxf.readfile`` and
-recomputes every number from scratch -- independently of
-``halo_engine.ingest.stats`` (brief Constraints: "서로 임포트하지 않는다"), so
-the F01-F10 crosscheck test (``tests/test_engine_crosscheck.py``) is
-meaningful.
+Deliberately independent of ``fixtures_gen.stats`` (brief W2-03 Constraints:
+"엔진 stats.py와 fixtures_gen/stats.py는 서로 임포트하지 않는다") -- the two
+implementations exist to cross-check each other, so sharing code between them
+would defeat the point.
 
-Definitions (``docs/contracts/stats-definition.md``):
+Definitions, verbatim from the contract:
 
-* Bucket key ``(space, layer)``. ``space`` is ``MODEL`` or ``PAPER:<layout
-  name>``. Only top-level entities of a space are counted -- never the
-  content of a block *definition* (an INSERT counts, what it points at
-  doesn't).
-* ``count_by_type``  -- ``dxftype()`` -> count over top-level entities.
-  ATTRIB, ATTDEF, SEQEND and VERTEX are never counted (owned entities).
-* ``length_sum_mm``  -- LINE, LWPOLYLINE, POLYLINE (2D only), ARC, CIRCLE,
+* Bucket key: ``(space, layer)``. ``space`` is ``MODEL`` or ``PAPER:<layout
+  name>``. Entities inside block *definitions* are never counted -- only
+  INSERT counts, not what an INSERT points at.
+* ``count_by_type``: DXF type name -> count of top-level entities. ATTRIB,
+  SEQEND and VERTEX are never counted (they belong to their owning entity).
+* ``length_sum_mm``: LINE, LWPOLYLINE, POLYLINE (2D only), ARC, CIRCLE,
   ELLIPSE, SPLINE. Bulges use the analytic arc formula; ELLIPSE/SPLINE use a
   0.01mm ``flattening`` polyline approximation.
-* ``hatch_area_sum_mm2`` -- signed sum of HATCH boundary-path polygon areas:
-  external/outermost paths add, other (hole/island) paths subtract.
-  Fixtures only ever build HATCH boundaries as straight-edge
-  ``PolylinePath`` loops (no bulges, no EdgePath), so plain shoelace area is
-  exact -- see ``fixtures/README.md`` Decisions.
-* ``text_count`` / ``text_hash`` -- TEXT + MTEXT + ATTRIB (collected via
-  ``insert.attribs``, attributed to the ATTRIB's own layer). MTEXT uses the
-  raw ``.text`` (control codes included). Hash: NFC-normalise each string,
-  sort ascending by code point, join with ``"\\n"``, ``sha1`` and keep the
-  first 16 hex characters (empty set -> hash of the empty string).
-* ``insert_by_block`` -- ``dxf.name`` -> count over top-level INSERTs (NFC
-  normalised, XREF blocks included).
-* ``bbox`` -- ``{"min": [x, y], "max": [x, y]}`` via ``ezdxf.bbox.extents``
-  over every entity attributed to the bucket (top-level entities and that
-  bucket's ATTRIBs); omitted when the bucket has no entity with extents.
+* ``hatch_area_sum_mm2``: signed sum of HATCH boundary polygon areas
+  (external/outermost paths add, island/hole paths subtract).
+* ``text_count`` / ``text_hash``: TEXT + MTEXT + ATTRIB (collected via
+  ``insert.attribs``, attributed to the ATTRIB's *own* layer -- not the
+  INSERT's). MTEXT uses the raw ``.text`` (control codes included). Hash:
+  NFC-normalise each string, sort ascending by code point, join with
+  ``"\\n"``, ``sha1`` and take the first 16 hex characters (empty set ->
+  hash of the empty string).
+* ``insert_by_block``: block name -> INSERT count (XREF blocks included).
+* ``bbox``: union of ``geometricExtents`` of every entity attributed to the
+  bucket (top-level entities plus that bucket's ATTRIBs).
 """
 
 from __future__ import annotations
@@ -42,6 +34,7 @@ from __future__ import annotations
 import hashlib
 import math
 import unicodedata
+from dataclasses import dataclass, field
 from typing import Any
 
 import ezdxf
@@ -50,33 +43,31 @@ from ezdxf.document import Drawing
 from ezdxf.entities import DXFGraphic
 from ezdxf.layouts import Layout
 
-import fixtures_gen
-
 SCHEMA_VERSION = "0.1"
 
+#: Types counted in ``length_sum_mm`` (docstring above; POLYLINE only when 2D).
 LENGTH_TYPES = {"LINE", "LWPOLYLINE", "POLYLINE", "ARC", "CIRCLE", "ELLIPSE", "SPLINE"}
 TEXT_TYPES = {"TEXT", "MTEXT"}
+#: Flattening tolerance for ELLIPSE/SPLINE arc-length approximation, mm.
 FLATTEN_DISTANCE = 0.01
 #: HatchBoundaryPath.path_type_flags bits: EXTERNAL(1) | OUTERMOST(16).
 _EXTERNAL_OR_OUTERMOST = 0b10001
 
 
 def producer_info() -> dict[str, str]:
-    """``producer`` for a document this module computed.
+    """``producer`` object for a document this module computed.
 
-    ``"fixtures-gen"`` is not a member of the schema's closed ``producer.name``
-    enum (``packages/schema/src/ndj/document.schema.json`` ``$defs/producer``
-    only lists ``viewer.mlightcad``/``engine.ezdxf``/``acad-ts``/``libredwg-web``),
-    so this reuses ``"engine.ezdxf"`` -- both this module and
-    ``halo_engine.ingest.stats`` are, after all, ezdxf-based readers -- and
-    distinguishes itself in ``version`` instead. See the W2-03 report's
-    Decisions and its "Shared-file patch" note asking packages/schema to add
-    a ``"fixtures-gen"`` enum member.
+    ``"engine.ezdxf"`` is the only enum member (``packages/schema/src/ndj/document.schema.json``
+    ``$defs/producer``) that fits an ezdxf-based Python reader; see the W2-03
+    report's Decisions for why ``fixtures_gen.stats`` reuses the same name
+    with a distinguishing version string instead of the schema's unlisted
+    ``"fixtures-gen"``.
     """
-    return {
-        "name": "engine.ezdxf",
-        "version": f"fixtures-gen/{fixtures_gen.__version__}+ezdxf/{ezdxf.__version__}",
-    }
+    return {"name": "engine.ezdxf", "version": ezdxf.__version__}
+
+
+def _space_label(layout: Layout) -> str:
+    return "MODEL" if layout.name == "Model" else f"PAPER:{layout.name}"
 
 
 def _nfc_sorted_join(texts: list[str]) -> str:
@@ -89,14 +80,9 @@ def _text_hash(texts: list[str]) -> str:
     return hashlib.sha1(joined.encode("utf-8")).hexdigest()[:16]
 
 
-def _space_label(layout: Layout) -> str:
-    return "MODEL" if layout.name == "Model" else f"PAPER:{layout.name}"
-
-
 def _polyline_length(points_xyb: list[tuple[float, float, float]], closed: bool) -> float:
-    """``points_xyb``: list of (x, y, bulge). Bulge follows the DXF convention:
-    ``4 * atan(bulge)`` is the included angle of the arc replacing the
-    straight segment from this vertex to the next.
+    """``points_xyb``: ``(x, y, bulge)``. ``4 * atan(bulge)`` is the arc's
+    included angle replacing the straight segment to the next vertex.
     """
     n = len(points_xyb)
     if n < 2:
@@ -106,8 +92,7 @@ def _polyline_length(points_xyb: list[tuple[float, float, float]], closed: bool)
     for i in range(seg_count):
         x1, y1, bulge = points_xyb[i]
         x2, y2, _ = points_xyb[(i + 1) % n]
-        chord = math.hypot(float(x2) - float(x1), float(y2) - float(y1))
-        bulge = float(bulge)
+        chord = math.hypot(x2 - x1, y2 - y1)
         if bulge:
             angle = 4.0 * math.atan(bulge)
             if angle:
@@ -126,7 +111,8 @@ def _flattened_length(entity: DXFGraphic) -> float:
     return total
 
 
-def _entity_length(entity: DXFGraphic) -> float:
+def entity_length(entity: DXFGraphic) -> float:
+    """Length in mm of one LENGTH_TYPES entity, or 0.0 for anything else."""
     t = entity.dxftype()
     if t == "LINE":
         return float((entity.dxf.end - entity.dxf.start).magnitude)
@@ -154,26 +140,48 @@ def _entity_length(entity: DXFGraphic) -> float:
     return 0.0
 
 
-def _hatch_area(entity: DXFGraphic) -> float:
-    total = 0.0
-    for path in entity.paths:
-        verts = getattr(path, "vertices", None)
-        if not verts or len(verts) < 3:
-            continue
-        area = _shoelace([(float(x), float(y)) for x, y, _b in verts])
-        is_hole = not (path.path_type_flags & _EXTERNAL_OR_OUTERMOST)
-        total += -area if is_hole else area
-    return total
+def _path_points(path: Any) -> list[tuple[float, float]] | None:
+    verts = getattr(path, "vertices", None)
+    if verts:
+        return [(float(x), float(y)) for x, y, _b in verts]
+    edges = getattr(path, "edges", None)
+    if edges:
+        pts: list[tuple[float, float]] = []
+        for edge in edges:
+            flat = getattr(edge, "flattening", None)
+            if callable(flat):
+                pts.extend((float(p.x), float(p.y)) for p in flat(FLATTEN_DISTANCE))
+            else:  # pragma: no cover - defensive, every ezdxf edge type flattens
+                start = getattr(edge, "start", None)
+                if start is not None:
+                    pts.append((float(start.x), float(start.y)))
+        return pts
+    return None
 
 
 def _shoelace(points: list[tuple[float, float]]) -> float:
     n = len(points)
+    if n < 3:
+        return 0.0
     acc = 0.0
     for i in range(n):
         x1, y1 = points[i]
         x2, y2 = points[(i + 1) % n]
         acc += x1 * y2 - x2 * y1
     return abs(acc) / 2.0
+
+
+def hatch_area(entity: DXFGraphic) -> float:
+    """Net HATCH area: external/outermost boundary paths add, holes subtract."""
+    total = 0.0
+    for path in entity.paths:
+        points = _path_points(path)
+        if not points or len(points) < 3:
+            continue
+        area = _shoelace(points)
+        is_hole = not (path.path_type_flags & _EXTERNAL_OR_OUTERMOST)
+        total += -area if is_hole else area
+    return total
 
 
 def _bbox_of(entities: list[DXFGraphic]) -> dict[str, list[float]] | None:
@@ -188,31 +196,22 @@ def _bbox_of(entities: list[DXFGraphic]) -> dict[str, list[float]] | None:
     }
 
 
+@dataclass
 class _Bucket:
-    __slots__ = (
-        "count_by_type",
-        "length_sum_mm",
-        "hatch_area_sum_mm2",
-        "texts",
-        "insert_by_block",
-        "bbox_entities",
-    )
-
-    def __init__(self) -> None:
-        self.count_by_type: dict[str, int] = {}
-        self.length_sum_mm = 0.0
-        self.hatch_area_sum_mm2 = 0.0
-        self.texts: list[str] = []
-        self.insert_by_block: dict[str, int] = {}
-        self.bbox_entities: list[DXFGraphic] = []
+    count_by_type: dict[str, int] = field(default_factory=dict)
+    length_sum_mm: float = 0.0
+    hatch_area_sum_mm2: float = 0.0
+    texts: list[str] = field(default_factory=list)
+    insert_by_block: dict[str, int] = field(default_factory=dict)
+    bbox_entities: list[DXFGraphic] = field(default_factory=list)
 
     def add_top_level(self, entity: DXFGraphic) -> None:
         t = entity.dxftype()
         self.count_by_type[t] = self.count_by_type.get(t, 0) + 1
         if t in LENGTH_TYPES:
-            self.length_sum_mm += _entity_length(entity)
+            self.length_sum_mm += entity_length(entity)
         if t == "HATCH":
-            self.hatch_area_sum_mm2 += _hatch_area(entity)
+            self.hatch_area_sum_mm2 += hatch_area(entity)
         if t in TEXT_TYPES:
             self.texts.append(entity.dxf.text if t == "TEXT" else entity.text)
         if t == "INSERT":
@@ -296,3 +295,15 @@ def compute_layer_stats(doc: Drawing, *, file_sha256: str) -> dict[str, Any]:
         "buckets": bucket_docs,
         "totals": totals_bucket.to_aggregate(),
     }
+
+
+__all__ = [
+    "FLATTEN_DISTANCE",
+    "LENGTH_TYPES",
+    "SCHEMA_VERSION",
+    "TEXT_TYPES",
+    "compute_layer_stats",
+    "entity_length",
+    "hatch_area",
+    "producer_info",
+]

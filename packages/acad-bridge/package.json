@@ -20,7 +20,8 @@
   },
   "dependencies": {
     "@halo-cad/schema": "workspace:*",
-    "@node-projects/acad-ts": "3.1.0"
+    "@node-projects/acad-ts": "3.1.0",
+    "iconv-lite": "0.7.3"
   },
   "devDependencies": {
     "@types/node": "24.9.1",

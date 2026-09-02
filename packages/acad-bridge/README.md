@@ -37,7 +37,7 @@ acad-ts is a large, actively-ported library; this table is scoped to what
 | **Gradient HATCH** | Supported | Also contrary to the brief's guess -- `HatchGradientPattern` is a real, populated class. |
 | DIMENSION (linear/aligned/angular/radius/diameter/ordinate), LEADER | Supported | `DimensionArc`'s `objectName` is the DXF token `ARC_DIMENSION`, not `DIMENSION` -- normalised in `acad/entity-types.ts`. |
 | XREF (INSERT of an external block record) | Supported | F10_host round-trips clean; the XREF's own geometry lives only in F10_grid, as expected (acad-ts does not resolve XREF contents across files, matching ADR-0002's own working-DXF-embeds-XREF design). |
-| Non-ASCII (Korean) text decoding, any DXF version | **Broken** | See "Known acad-ts gaps" #3 -- not limited to legacy cp949. |
+| Non-ASCII (Korean) text decoding, any DXF/DWG version | **Broken in acad-ts, worked around here** | See "Known acad-ts gaps" #3 -- `acad/decode-fix.ts` fixes it in this package's read path; `stats` `text_hash` matches ezdxf truth exactly. |
 | A BLOCK and a LAYER sharing one name | **Broken** | See "Known acad-ts gaps" #1. Affects F06 and F10_grid (both use the shared `X-TITLE` title-block fixture, whose layer and block are both named `X-TITLE`). |
 | XDATA, extended dictionaries | Not exercised | None of F01-F10 use them (`grep -rn "xdata\|extension_dict" fixtures/gen/src` is empty) -- `CadObject.extendedData`/`.xDictionary` exist in the type surface, so this package does not claim they are unsupported, only untested. |
 
@@ -70,26 +70,40 @@ observed once in a fixture.
    `Insert.attributes` by `objectName` before yielding, and `acad/stats-builder.ts`'s `unionBBox`
    wraps `entity.getBoundingBox()` in try/catch (bbox is an optional stats field, so the entity is
    just excluded from the union with a drop entry, rather than crashing the whole `stats` run).
-3. **Non-ASCII DXF text (Korean) decodes to mojibake -- in BOTH the UTF-8-era and the legacy
-   cp949 fixture.** Originally investigated for `F03_r2000_cp949.dxf` (R2000, `$DWGCODEPAGE` =
-   `ANSI_949`, confirmed correctly cp949-round-tripped by ezdxf itself per
-   `fixtures/gen/tests/test_cp949_roundtrip.py`), where TEXT values read back as e.g. `°Å½Ç` where
-   the source is `거실` ("living room") -- Latin-1-shaped garbage, not Hangul. But the *same*
-   corruption shows up reading the **primary R2018/AC1032 UTF-8 fixtures directly**, e.g.
-   `F03.dxf`'s first few TEXT values come back `"ê±°ì‹¤"`, `"ì¹¨ì‹¤1"`, ... -- which is exactly what
-   `"거실"`/`"침실1"` look like when valid UTF-8 bytes are read one byte at a time as Latin-1/ANSI
-   instead of being UTF-8-decoded. So this is not specific to legacy code pages: acad-ts's ASCII
-   DXF reader appears to always decode multi-byte text as a single-byte codepage, even for
-   R2007+/UTF-8-era files where DXF text is UTF-8 bytes directly (no `$DWGCODEPAGE` escaping
-   involved at all). This affects every fixture with non-ASCII text read directly from DXF
-   (F01, F03, F06, F07, F08, F09 all have Korean strings) and is very likely why this package's
-   `text_hash` does not match `fixtures/truth/F06.json` despite an otherwise-identical algorithm
-   (see below). Per the brief's "Defaults for ambiguity" ("한글 인코딩 문제가 나오면 우회하지 말고
-   드롭 리포트와 Questions에 기록"), this package does not implement its own decoder to paper over
-   it; `src/acad/cp949.test.ts` documents the R2000/cp949 case and checks only that whatever
-   acad-ts decodes stays self-consistent (`text_hash`/`text_count` unchanged) through a DWG round
-   trip. **This is the single highest-priority finding in this report for ADR-0002** -- see this
-   task's report "Questions for gate".
+3. **acad-ts decodes all DXF/DWG text bytes as windows-1252, regardless of the file's real
+   encoding -- worked around in `acad/decode-fix.ts`.** Originally found on
+   `F03_r2000_cp949.dxf` (R2000, `$DWGCODEPAGE` = `ANSI_949`; ezdxf itself round-trips this file's
+   cp949 correctly per `fixtures/gen/tests/test_cp949_roundtrip.py`), where TEXT read back as e.g.
+   `°Å½Ç` for source `거실` ("living room"). The *same* corruption showed up reading the
+   **primary R2018/AC1032 UTF-8 fixtures directly** too (`F03.dxf`'s TEXT values came back
+   `"ê±°ì‹¤"`, `"ì¹¨ì‹¤1"`, ...) -- so it is not a legacy-codepage-only bug: acad-ts always decodes
+   multi-byte text as windows-1252, even for R2007+/UTF-8-era files where DXF text is UTF-8 bytes
+   directly.
+
+   This turned out to be reversible without forking acad-ts, because acad-ts's windows-1252
+   decode is precise and byte-preserving *except* for the 5 code points CP1252 itself leaves
+   undefined (`0x81`, `0x8D`, `0x8F`, `0x90`, `0x9D`), where acad-ts passes the byte value through
+   directly (confirmed with a synthetic round trip: a `TextEntity("적")` -- UTF-8 bytes
+   `EC A0 81` -- written and reread comes back with code points `ec a0 81`, i.e. the last byte
+   passed straight through rather than becoming U+FFFD or CP1252's `?`). `acad/decode-fix.ts`
+   reverses this precisely (a 32-entry table for CP1252's `0x80-0x9F` block, including those 5
+   as identity, everything else Latin-1-identity) to recover the *original bytes*, then decodes
+   those bytes with the real target encoding: UTF-8 for `$ACADVER` AC1021+ (R2007+), else the
+   `iconv-lite` (MIT) encoding for `$DWGCODEPAGE` (e.g. `ANSI_949` -> `cp949`). Naively reversing
+   via `iconv-lite`'s own windows-1252 *encoder* does not work for this: it maps all 5 of those
+   code points to `?`, which is why this package needed its own table rather than a plain
+   `iconv.encode(s, "windows-1252")` round trip.
+
+   Applied unconditionally to every TEXT/MTEXT/ATTRIB/ATTDEF value, layer name, and block name
+   read by `read.ts` (both `readDxfFile` and `readDwgFile` -- the DWG read path showed the same
+   pattern). Safe by construction: when the *correct* target encoding is windows-1252 itself
+   (the common case for fixtures without Korean text), reversing and redecoding through
+   windows-1252 is the identity, so nothing changes; and if the fixed string would contain a
+   replacement character, the original is kept instead (never make already-plausible text worse).
+   `src/acad/encoding-fix.test.ts` checks the fix directly against `fixtures/truth/F03.json` /
+   `F06.json`'s `text_hash` (computed independently by ezdxf, W2-03) -- **exact match**, on
+   `F03.dxf` (UTF-8), `F03_r2000_cp949.dxf` (legacy cp949), `F03.dxf` -> DWG -> `stats`, and
+   `F06.dxf` (whose title block carries the Korean ATTRIB `2층 구조평면도`).
 4. **Benign notification noise on any DWG that has been through this package's writers.**
    Re-reading a `dxf2dwg`-produced DWG emits ~25-26 `[Warning] DWG VisualStyle payload is only
    partially mapped; preserving base object data for <name> ...` notifications (once per standard
@@ -125,15 +139,11 @@ observed once in a fixture.
   *own* layer's bucket. Confirmed against `fixtures/truth/F06.json` (post-merge, now a real
   `LayerStatsDocument`): `entity_count: 86`, `text_count: 40` (30 TEXT + 10 ATTRIB), no `ATTRIB` key
   in `count_by_type` -- all three match this package's output on `F06.dxf` exactly.
-- `text_hash` on F06 does not match `fixtures/truth/F06.json` (`3b5647d80a0bb067` vs
-  `125bac30a2dbb6b8`) despite this package implementing the exact documented algorithm (confirmed
-  identical to `fixtures/gen/src/fixtures_gen/stats.py`'s `_text_hash`/`_nfc_sorted_join`, W2-03's
-  updated implementation). Root cause: "Known acad-ts gaps" #3 -- F06's title block has a Korean
-  ATTRIB value (`2층 구조평면도`) that acad-ts mis-decodes, so the *string* hashed differs even
-  though the algorithm and the rest of the text set are correct. Every other measure
-  (`count_by_type`, `entity_count`, `length_sum_mm`, `hatch_area_sum_mm2`, `text_count`) matches
-  `fixtures/truth/F06.json` exactly. Not part of the brief's named acceptance fields
-  (`count_by_type`/`length_sum`/`hatch_area_sum`/`insert_by_block`).
+- `text_hash` on F06 now matches `fixtures/truth/F06.json` exactly (`125bac30a2dbb6b8`), once
+  read through the windows-1252 decode workaround ("Known acad-ts gaps" #3): F06's title block has
+  a Korean ATTRIB value (`2층 구조평면도`) that acad-ts otherwise mis-decodes, changing the string
+  hashed even though the algorithm (confirmed identical to `fixtures/gen/src/fixtures_gen/stats.py`'s
+  `_text_hash`/`_nfc_sorted_join`, W2-03's updated implementation) was always correct.
 - `length_sum_mm` includes ELLIPSE, per `stats-definition.md`'s field table (LINE, LWPOLYLINE,
   POLYLINE(2D), ARC, CIRCLE, ELLIPSE, SPLINE). `fixtures/truth/F01.json` (post-merge, now
   computed by the same contract) agrees it should be included -- `count_by_type` there lists
@@ -167,8 +177,9 @@ fixtures, per the brief.
 src/cli.ts                    CLI entry (argv dispatch)
 src/commands/*.ts              dwg2dxf / dxf2dwg / stats / info
 src/acad/read.ts, write.ts     acad-ts reader/writer wrappers (keepUnknownEntities, notification capture)
+src/acad/decode-fix.ts         windows-1252-forced-decode workaround (see "Known acad-ts gaps" #3)
 src/acad/walk.ts               (space, entity) iteration incl. INSERT.attributes, SeqendCollection guard
-src/acad/entity-types.ts       DXF type name -> LayerStatsDocument entity_type enum
+src/acad/entity-types.ts       raw DXF record name -> count_by_type key (DimensionArc normalisation, key-pattern guard)
 src/acad/length.ts             length_sum_mm (bulge analytic formula; SPLINE/ELLIPSE flattened via acad-ts's polygonalVertexes)
 src/acad/hatch-area.ts         hatch_area_sum_mm2 (signed shoelace, external/outermost vs. hole)
 src/acad/text.ts               text_hash (NFC, code-point sort, sha1)

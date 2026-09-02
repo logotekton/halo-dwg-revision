@@ -11,6 +11,7 @@ import {
 } from "@node-projects/acad-ts";
 
 import type { DropEntry } from "../drops";
+import { fixDocumentTextEncoding } from "./decode-fix";
 
 export interface ReadResult {
   doc: CadDocument;
@@ -41,6 +42,7 @@ export function readDwgFile(path: string): ReadResult {
   const doc = DwgReader.readFromStreamWithConfig(arrayBuffer, configuration, (_sender, e) => {
     if (e.notificationType !== NotificationType.None) drops.push(notificationDrop(e));
   });
+  fixDocumentTextEncoding(doc);
   return { doc, drops };
 }
 
@@ -60,6 +62,7 @@ export function readDxfFile(path: string): ReadResult {
   const doc = DxfReader.readFromStreamWithConfig(bytes, configuration, (_sender, e) => {
     if (e.notificationType !== NotificationType.None) drops.push(notificationDrop(e));
   });
+  fixDocumentTextEncoding(doc);
   return { doc, drops };
 }
 

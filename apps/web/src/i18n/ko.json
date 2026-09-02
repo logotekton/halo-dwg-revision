@@ -7,6 +7,13 @@
     "placeholder": "열린 도면이 없습니다"
   },
   "status": {
-    "engineDisconnected": "엔진: 연결 안 됨"
+    "engineDisconnected": "엔진: 연결 안 됨",
+    "engine": {
+      "disconnected": "엔진: 연결 안 됨",
+      "starting": "엔진: 시작 중",
+      "ready": "엔진: 연결됨 v{{version}}",
+      "restarting": "엔진: 재연결 중",
+      "failed": "엔진 시작 실패: {{message}}"
+    }
   }
 }

@@ -55,6 +55,10 @@ if [ -f pnpm-lock.yaml ]; then
   pnpm -r --if-present run lint      && ok "lint"      || bad "lint"
   pnpm -r --if-present run typecheck && ok "typecheck" || bad "typecheck"
   pnpm -r --if-present run test      && ok "test"      || bad "test"
+  if command -v uv >/dev/null 2>&1 && [ -f apps/desktop/vitest.integration.config.ts ]; then
+    step "apps/desktop: test:integration (real engine spawn)"
+    pnpm --filter @halo-cad/desktop test:integration && ok "integration" || bad "integration"
+  fi
   if [ -f tools/license-check.mjs ]; then
     step "license-check"
     node tools/license-check.mjs && ok "licenses" || bad "licenses"

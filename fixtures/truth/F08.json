@@ -1,0 +1,365 @@
+{
+  "extra": {
+    "floor_finish_mm": 100,
+    "inequality": "CH + SLAB_THICKNESS_MM + FLOOR_FINISH_MM < FLOOR_HEIGHT",
+    "levels": [
+      {
+        "CH": 3000.0,
+        "FL": -3500.0,
+        "FLOOR_HEIGHT": 3600.0,
+        "SL": -3600.0,
+        "floor": "B1"
+      },
+      {
+        "CH": 2600.0,
+        "FL": 100.0,
+        "FLOOR_HEIGHT": 3300.0,
+        "SL": 0.0,
+        "floor": "1F"
+      },
+      {
+        "CH": 2650.0,
+        "FL": 3400.0,
+        "FLOOR_HEIGHT": 3300.0,
+        "SL": 3300.0,
+        "floor": "2F"
+      },
+      {
+        "CH": 2600.0,
+        "FL": 6700.0,
+        "FLOOR_HEIGHT": 3300.0,
+        "SL": 6600.0,
+        "floor": "3F"
+      },
+      {
+        "CH": 2700.0,
+        "FL": 10000.0,
+        "FLOOR_HEIGHT": 3300.0,
+        "SL": 9900.0,
+        "floor": "4F"
+      }
+    ],
+    "section": {
+      "level_lines": [
+        {
+          "floor": "B1",
+          "label": "B1FL SL-3,600",
+          "sl": -3600.0,
+          "y": -3560.0
+        },
+        {
+          "floor": "1F",
+          "label": "1FL SL+0",
+          "sl": 0.0,
+          "y": -3200.0
+        },
+        {
+          "floor": "2F",
+          "label": "2FL SL+3,300",
+          "sl": 3300.0,
+          "y": -2870.0
+        },
+        {
+          "floor": "3F",
+          "label": "3FL SL+6,600",
+          "sl": 6600.0,
+          "y": -2540.0
+        },
+        {
+          "floor": "4F",
+          "label": "4FL SL+9,900",
+          "sl": 9900.0,
+          "y": -2210.0
+        }
+      ]
+    },
+    "slab_thickness_mm": 150,
+    "table": {
+      "cell_matrix": [
+        [
+          "층",
+          "SL",
+          "FL",
+          "층고",
+          "CH"
+        ],
+        [
+          "B1",
+          "-3,600",
+          "-3,500",
+          "3,600",
+          "3,000"
+        ],
+        [
+          "1F",
+          "+0",
+          "+100",
+          "3,300",
+          "2,600"
+        ],
+        [
+          "2F",
+          "+3,300",
+          "+3,400",
+          "3,300",
+          "2,650"
+        ],
+        [
+          "3F",
+          "+6,600",
+          "+6,700",
+          "3,300",
+          "2,600"
+        ],
+        [
+          "4F",
+          "+9,900",
+          "+10,000",
+          "3,300",
+          "2,700"
+        ]
+      ],
+      "col_boundaries_x": [
+        0.0,
+        700.0,
+        1600.0,
+        2500.0,
+        3400.0,
+        4300.0
+      ],
+      "headers": [
+        "층",
+        "SL",
+        "FL",
+        "층고",
+        "CH"
+      ],
+      "merges": [],
+      "row_boundaries_y": [
+        0.0,
+        -300.0,
+        -600.0,
+        -900.0,
+        -1200.0,
+        -1500.0,
+        -1800.0
+      ],
+      "title": "층고표 (Level Table)"
+    }
+  },
+  "fixture": "F08",
+  "primary": {
+    "dxf_version": "AC1032",
+    "encoding": "cp1252",
+    "file": "F08.dxf",
+    "sha256": "9c3dbc46c95898bf72dd1c40e6cfbf5b07e2e181c8c85bdbe3e2bf915ba7c0b1",
+    "size_bytes": 66291,
+    "stats": {
+      "by_space": {
+        "Model": {
+          "by_layer": {
+            "A-DIM": {
+              "bbox": [
+                0.0,
+                -1800.0,
+                4300.0,
+                0.0
+              ],
+              "count_by_type": {
+                "LINE": 41
+              },
+              "hatch_area_sum": 0.0,
+              "insert_by_block": {},
+              "length_sum": 40900.0,
+              "text_count": 0,
+              "text_hash": null
+            },
+            "A-TEXT": {
+              "bbox": [
+                0.0,
+                -3590.613915,
+                7183.66985,
+                348.0
+              ],
+              "count_by_type": {
+                "TEXT": 36
+              },
+              "hatch_area_sum": 0.0,
+              "insert_by_block": {},
+              "length_sum": 0.0,
+              "text_count": 36,
+              "text_hash": "beb57ff562d90c2684f4f98531332960b543e51c"
+            },
+            "S-SLAB": {
+              "bbox": [
+                0.0,
+                -3560.0,
+                6000.0,
+                -2210.0
+              ],
+              "count_by_type": {
+                "LINE": 5
+              },
+              "hatch_area_sum": 0.0,
+              "insert_by_block": {},
+              "length_sum": 30000.0,
+              "text_count": 0,
+              "text_hash": null
+            }
+          },
+          "totals": {
+            "bbox": [
+              0.0,
+              -3590.613915,
+              7183.66985,
+              348.0
+            ],
+            "count_by_type": {
+              "LINE": 46,
+              "TEXT": 36
+            },
+            "hatch_area_sum": 0.0,
+            "insert_by_block": {},
+            "length_sum": 70900.0,
+            "text_count": 36,
+            "text_hash": "beb57ff562d90c2684f4f98531332960b543e51c"
+          }
+        }
+      },
+      "totals": {
+        "bbox": [
+          0.0,
+          -3590.613915,
+          7183.66985,
+          348.0
+        ],
+        "count_by_type": {
+          "LINE": 46,
+          "TEXT": 36
+        },
+        "hatch_area_sum": 0.0,
+        "insert_by_block": {},
+        "length_sum": 70900.0,
+        "text_count": 36,
+        "text_hash": "beb57ff562d90c2684f4f98531332960b543e51c"
+      }
+    }
+  },
+  "totals": {
+    "bbox": [
+      0.0,
+      -3590.613915,
+      7183.66985,
+      348.0
+    ],
+    "count_by_type": {
+      "LINE": 46,
+      "TEXT": 36
+    },
+    "hatch_area_sum": 0.0,
+    "insert_by_block": {},
+    "length_sum": 70900.0,
+    "text_count": 36,
+    "text_hash": "beb57ff562d90c2684f4f98531332960b543e51c"
+  },
+  "variants": {
+    "r2000_cp949": {
+      "dxf_version": "AC1015",
+      "encoding": "cp949",
+      "file": "F08_r2000_cp949.dxf",
+      "omitted": [],
+      "sha256": "a1e709b11c7509b86429c653f8c651a61c43c3f76afa2ba9c25707858d0a9662",
+      "size_bytes": 45725,
+      "stats": {
+        "by_space": {
+          "Model": {
+            "by_layer": {
+              "A-DIM": {
+                "bbox": [
+                  0.0,
+                  -1800.0,
+                  4300.0,
+                  0.0
+                ],
+                "count_by_type": {
+                  "LINE": 41
+                },
+                "hatch_area_sum": 0.0,
+                "insert_by_block": {},
+                "length_sum": 40900.0,
+                "text_count": 0,
+                "text_hash": null
+              },
+              "A-TEXT": {
+                "bbox": [
+                  0.0,
+                  -3590.613915,
+                  7183.66985,
+                  348.0
+                ],
+                "count_by_type": {
+                  "TEXT": 36
+                },
+                "hatch_area_sum": 0.0,
+                "insert_by_block": {},
+                "length_sum": 0.0,
+                "text_count": 36,
+                "text_hash": "beb57ff562d90c2684f4f98531332960b543e51c"
+              },
+              "S-SLAB": {
+                "bbox": [
+                  0.0,
+                  -3560.0,
+                  6000.0,
+                  -2210.0
+                ],
+                "count_by_type": {
+                  "LINE": 5
+                },
+                "hatch_area_sum": 0.0,
+                "insert_by_block": {},
+                "length_sum": 30000.0,
+                "text_count": 0,
+                "text_hash": null
+              }
+            },
+            "totals": {
+              "bbox": [
+                0.0,
+                -3590.613915,
+                7183.66985,
+                348.0
+              ],
+              "count_by_type": {
+                "LINE": 46,
+                "TEXT": 36
+              },
+              "hatch_area_sum": 0.0,
+              "insert_by_block": {},
+              "length_sum": 70900.0,
+              "text_count": 36,
+              "text_hash": "beb57ff562d90c2684f4f98531332960b543e51c"
+            }
+          }
+        },
+        "totals": {
+          "bbox": [
+            0.0,
+            -3590.613915,
+            7183.66985,
+            348.0
+          ],
+          "count_by_type": {
+            "LINE": 46,
+            "TEXT": 36
+          },
+          "hatch_area_sum": 0.0,
+          "insert_by_block": {},
+          "length_sum": 70900.0,
+          "text_count": 36,
+          "text_hash": "beb57ff562d90c2684f4f98531332960b543e51c"
+        }
+      }
+    }
+  }
+}

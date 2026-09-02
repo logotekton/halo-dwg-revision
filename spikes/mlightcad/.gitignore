@@ -1,0 +1,10 @@
+node_modules/
+dist/
+out/
+
+# Downloaded third-party assets (see fixtures/assets.lock.json for URL + sha256).
+# SHX fonts are proprietary AutoCAD-era files and the sample DWG is 2.5 MB;
+# neither belongs in the repository. Run `npm run assets` to fetch them.
+public/fonts/
+public/workers/
+fixtures/canteen.dwg

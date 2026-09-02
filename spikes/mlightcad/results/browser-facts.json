@@ -1,0 +1,2198 @@
+{
+  "facts": [
+    {
+      "id": "0-versions",
+      "title": "package versions actually loaded",
+      "verdict": "confirmed",
+      "detail": {
+        "cad-simple-viewer": "1.6.3",
+        "data-model": "1.14.3",
+        "three-renderer": "1.6.3",
+        "mtext-renderer": "0.12.4",
+        "libredwg-converter": "3.14.3",
+        "libredwg-web": "0.7.10",
+        "three": "0.172.0"
+      }
+    },
+    {
+      "id": "worker-wiring",
+      "title": "AcApDocManager.createInstance({ webworkerFileUrls }) + areWorkersReady()",
+      "verdict": "confirmed",
+      "detail": {
+        "optionKey": "webworkerFileUrls",
+        "keys": [
+          "mtextRender",
+          "dwgParser"
+        ],
+        "urls": {
+          "mtextRender": "http://localhost:5178/workers/mtext-renderer-worker.js",
+          "dwgParser": "http://localhost:5178/workers/libredwg-parser-worker.js"
+        },
+        "workersReadyBeforeCheck": null,
+        "areWorkersReady": true,
+        "staticCheck": true,
+        "dwgConverterRegistered": true,
+        "registeredFileTypes": [
+          "dxf",
+          "dwg"
+        ]
+      }
+    },
+    {
+      "id": "fonts",
+      "title": "self-hosted font repository via baseUrl",
+      "verdict": "confirmed",
+      "detail": {
+        "docManagerBaseUrl": "http://localhost:5178",
+        "fontManagerBaseUrl": "http://localhost:5178/fonts/",
+        "manifestUrl": "http://localhost:5178/fonts/fonts.json",
+        "availableCount": 9,
+        "availableNames": [
+          "amgdt",
+          "applegothic|AppleGothic|맑은 고딕|malgun",
+          "arial",
+          "hztxt",
+          "romans",
+          "simsun|宋体",
+          "txt",
+          "whgdtxt",
+          "whgtxt"
+        ],
+        "koreanShx": [
+          {
+            "file": "whgdtxt.shx",
+            "encoding": "euc-kr"
+          },
+          {
+            "file": "whgtxt.shx",
+            "encoding": "euc-kr"
+          }
+        ],
+        "meshFallback": [
+          "applegothic.ttf",
+          "arial.woff",
+          "simsun.woff"
+        ],
+        "loadStatus": [
+          {
+            "fontName": "whgtxt",
+            "url": "http://localhost:5178/fonts/whgtxt.shx",
+            "status": "Success"
+          },
+          {
+            "fontName": "txt",
+            "url": "http://localhost:5178/fonts/txt.shx",
+            "status": "Success"
+          },
+          {
+            "fontName": "simsun",
+            "url": "http://localhost:5178/fonts/simsun.woff",
+            "status": "Success"
+          },
+          {
+            "fontName": "amgdt",
+            "url": "http://localhost:5178/fonts/amgdt.shx",
+            "status": "Success"
+          },
+          {
+            "fontName": "no-such-font",
+            "url": "",
+            "status": "NotFound"
+          }
+        ],
+        "defaultChain": [
+          "hztxt",
+          "simsun",
+          "simplex",
+          "amgdt"
+        ],
+        "newFontEventsDuringLoad": 0
+      }
+    },
+    {
+      "id": "fonts-korean",
+      "title": "Korean glyph coverage with the default font chain",
+      "verdict": "confirmed",
+      "detail": {
+        "styleWithKoreanBigFont": "HANGUL (STYLE 3=txt.shx, 4=whgtxt.shx) — TEXT/ATTRIB render Hangul correctly",
+        "styleWithoutBigFont": "Standard (3=txt.shx, 4=empty) — MTEXT Hangul renders as `?` under the shipped default chain",
+        "defaultChainShipped": [
+          "hztxt",
+          "simsun",
+          "simplex"
+        ],
+        "symbolChainShipped": [
+          "amgdt"
+        ],
+        "koreanCoverageInShippedChain": false,
+        "unsupportedCharsBefore": {},
+        "missedFontsBefore": {},
+        "viewMissedDataFonts": {},
+        "fixApi": "AcTrMTextRenderer.getInstance().setDefaultFonts(chain)  [worker pool]  +  FontManager.instance.setDefaultFonts(chain) / setFontMapping({...})  [main thread]  +  AcApDocManager.loadDefaultFonts(chain)  +  AcApDocManager.regen()",
+        "workerCaveat": "FontManager.setFontMapping() exists only on the main thread; the mtext worker pool has no mapping channel in 1.6.3, so SHX substitution for MTEXT needs useMainThreadDraw:true or an upstream change",
+        "appliedChain": [
+          "whgtxt",
+          "applegothic",
+          "hztxt",
+          "simsun",
+          "simplex"
+        ],
+        "koreanTtfAvailable": true,
+        "unsupportedCharsAfter": {},
+        "eventsSeen": [
+          {
+            "name": "fonts-not-found",
+            "payload": {
+              "fonts": [
+                "simplex"
+              ]
+            },
+            "t": 740
+          }
+        ],
+        "note": "the mlightcad font repository ships Korean SHX big fonts (whgtxt/whgdtxt/whtgtxt/whtmtxt, encoding euc-kr) but no Hangul mesh/TTF font"
+      }
+    },
+    {
+      "id": "1-enumerate",
+      "title": "model space enumeration + fields",
+      "verdict": "confirmed",
+      "detail": {
+        "open": {
+          "ok": true,
+          "bytes": 10736,
+          "parseMs": 48,
+          "totalMs": 298,
+          "inputBufferDetachedAfterOpen": false
+        },
+        "api": "db.tables.blockTable.modelSpace.newIterator()",
+        "dwgVersion": {
+          "name": "AC1032",
+          "value": 33
+        },
+        "fileName": "F-spike-r2018.dxf",
+        "modelSpaceCount": 9,
+        "rows": [
+          {
+            "handle": "100",
+            "dxfTypeName": "LINE",
+            "type": "Line",
+            "layer": "A-WALL",
+            "owner": "1E",
+            "bbox": [
+              0,
+              0,
+              200,
+              0
+            ],
+            "length": 200
+          },
+          {
+            "handle": "101",
+            "dxfTypeName": "LWPOLYLINE",
+            "type": "Polyline",
+            "layer": "A-WALL",
+            "owner": "1E",
+            "bbox": [
+              0,
+              0,
+              200,
+              150
+            ],
+            "closed": true,
+            "numberOfVertices": 4,
+            "area": 26988.4808392102,
+            "length": 631.823805
+          },
+          {
+            "handle": "102",
+            "dxfTypeName": "CIRCLE",
+            "type": "Circle",
+            "layer": "A-WALL",
+            "owner": "1E",
+            "bbox": [
+              30,
+              30,
+              70,
+              70
+            ],
+            "radius": 20
+          },
+          {
+            "handle": "103",
+            "dxfTypeName": "ARC",
+            "type": "Arc",
+            "layer": "A-WALL",
+            "owner": "1E",
+            "bbox": [
+              150,
+              50,
+              175,
+              75
+            ],
+            "radius": 25,
+            "startAngle": 0,
+            "endAngle": 1.5707963267948966
+          },
+          {
+            "handle": "104",
+            "dxfTypeName": "TEXT",
+            "type": "Text",
+            "layer": "A-TEXT",
+            "owner": "1E",
+            "bbox": [
+              10,
+              110,
+              66,
+              118
+            ],
+            "textString": "대명건설 도면"
+          },
+          {
+            "handle": "105",
+            "dxfTypeName": "MTEXT",
+            "type": "MText",
+            "layer": "A-TEXT",
+            "owner": "1E",
+            "bbox": [
+              10,
+              119,
+              130,
+              145
+            ],
+            "contents": "지하 1층 평면도\\P축척 1:100\\P{\\C1;검토자 홍길동}"
+          },
+          {
+            "handle": "106",
+            "dxfTypeName": "INSERT",
+            "type": "BlockReference",
+            "layer": "0",
+            "owner": "1E",
+            "bbox": [
+              205,
+              10,
+              297.942,
+              80.981
+            ],
+            "blockName": "TITLEBLK",
+            "position": [
+              220,
+              10
+            ],
+            "rotation": 0.5235987755982988,
+            "scaleFactors": [
+              1.5,
+              1.5,
+              1
+            ],
+            "blockTransform": [
+              1.299038105676658,
+              0.7499999999999999,
+              0,
+              0,
+              -0.7499999999999999,
+              1.299038105676658,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              220,
+              10,
+              0,
+              1
+            ],
+            "attributes": [
+              {
+                "tag": "TITLE",
+                "value": "대명건설 신축공사",
+                "handle": "107"
+              }
+            ]
+          },
+          {
+            "handle": "109",
+            "dxfTypeName": "HATCH",
+            "type": "Hatch",
+            "layer": "A-HATCH",
+            "owner": "1E",
+            "bbox": [
+              20,
+              20,
+              80,
+              80
+            ],
+            "area": 3600,
+            "patternName": "SOLID"
+          },
+          {
+            "handle": "10A",
+            "dxfTypeName": "DIMENSION",
+            "type": "RotatedDimension",
+            "layer": "치수",
+            "owner": "1E",
+            "bbox": [
+              0,
+              -22,
+              100,
+              -2
+            ],
+            "dimBlockId": "*D1",
+            "measurement": 100,
+            "dimensionStyleName": "Standard",
+            "dimensionText": ""
+          }
+        ],
+        "paperSpaceRows": [
+          {
+            "handle": "200",
+            "dxfTypeName": "VIEWPORT",
+            "type": "Viewport",
+            "layer": "0",
+            "owner": "1F",
+            "bbox": [
+              61.5,
+              -61.5,
+              358.5,
+              358.5
+            ]
+          },
+          {
+            "handle": "201",
+            "dxfTypeName": "VIEWPORT",
+            "type": "Viewport",
+            "layer": "0",
+            "owner": "1F",
+            "bbox": [
+              60,
+              30,
+              240,
+              270
+            ]
+          },
+          {
+            "handle": "202",
+            "dxfTypeName": "LINE",
+            "type": "Line",
+            "layer": "0",
+            "owner": "1F",
+            "bbox": [
+              10,
+              10,
+              410,
+              10
+            ],
+            "length": 400
+          }
+        ],
+        "blockDefs": [
+          {
+            "name": "*Model_Space",
+            "handle": "1E",
+            "entities": 9
+          },
+          {
+            "name": "*Paper_Space",
+            "handle": "1F",
+            "entities": 3
+          },
+          {
+            "name": "TITLEBLK",
+            "handle": "20",
+            "entities": 2
+          },
+          {
+            "name": "*D1",
+            "handle": "21",
+            "entities": 4
+          }
+        ],
+        "layers": [
+          {
+            "name": "0",
+            "handle": "10",
+            "isOff": false,
+            "isFrozen": false,
+            "isLocked": false,
+            "lineWeight": -3,
+            "linetype": "Continuous"
+          },
+          {
+            "name": "A-WALL",
+            "handle": "11",
+            "isOff": false,
+            "isFrozen": false,
+            "isLocked": false,
+            "lineWeight": 25,
+            "linetype": "Continuous"
+          },
+          {
+            "name": "A-TEXT",
+            "handle": "12",
+            "isOff": false,
+            "isFrozen": false,
+            "isLocked": false,
+            "lineWeight": 13,
+            "linetype": "Continuous"
+          },
+          {
+            "name": "A-HATCH",
+            "handle": "13",
+            "isOff": false,
+            "isFrozen": false,
+            "isLocked": false,
+            "lineWeight": 9,
+            "linetype": "DASHED"
+          },
+          {
+            "name": "치수",
+            "handle": "14",
+            "isOff": false,
+            "isFrozen": false,
+            "isLocked": false,
+            "lineWeight": 9,
+            "linetype": "Continuous"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2-stats",
+      "title": "geometry access needed for statsByLayer()",
+      "verdict": "confirmed",
+      "detail": {
+        "statsByLayer": {
+          "0": {
+            "INSERT": 1
+          },
+          "A-WALL": {
+            "LINE": 1,
+            "_length": 871.093713,
+            "LWPOLYLINE": 1,
+            "CIRCLE": 1,
+            "ARC": 1
+          },
+          "A-TEXT": {
+            "TEXT": 1,
+            "MTEXT": 1
+          },
+          "A-HATCH": {
+            "HATCH": 1,
+            "_area": 3600
+          },
+          "치수": {
+            "DIMENSION": 1
+          }
+        },
+        "note": "no public length getter on AcDbCurve; length summed from subGetIntersectCurves() primitives (AcGeLine3d.length / AcGeCircArc3d.length / AcGeSpline3d.length)",
+        "hatchAreaApi": "AcDbHatch.area",
+        "polylineAreaApi": "AcDbPolyline.area",
+        "entityPropertiesSample": {
+          "type": "Polyline",
+          "groups": [
+            {
+              "groupName": "general",
+              "properties": [
+                {
+                  "name": "handle",
+                  "type": "int",
+                  "editable": false,
+                  "value": "101"
+                },
+                {
+                  "name": "color",
+                  "type": "color",
+                  "editable": true,
+                  "value": {
+                    "_colorMethod": 3,
+                    "_value": 256
+                  }
+                },
+                {
+                  "name": "layer",
+                  "type": "string",
+                  "editable": true,
+                  "value": "A-WALL"
+                },
+                {
+                  "name": "linetype",
+                  "type": "linetype",
+                  "editable": true,
+                  "value": "ByLayer"
+                },
+                {
+                  "name": "linetypeScale",
+                  "type": "float",
+                  "editable": true,
+                  "value": 1
+                },
+                {
+                  "name": "lineWeight",
+                  "type": "lineweight",
+                  "editable": true,
+                  "value": -1
+                },
+                {
+                  "name": "transparency",
+                  "type": "transparency",
+                  "editable": true,
+                  "value": {
+                    "_method": 0,
+                    "_alpha": 255
+                  }
+                }
+              ]
+            },
+            {
+              "groupName": "geometry",
+              "properties": [
+                {
+                  "name": "vertices",
+                  "type": "array",
+                  "editable": false,
+                  "value": [
+                    {
+                      "x": 0,
+                      "y": 0,
+                      "bulge": 0,
+                      "startWidth": 0,
+                      "endWidth": 0
+                    },
+                    {
+                      "x": 200,
+                      "y": 0,
+                      "bulge": 0,
+                      "startWidth": 0,
+                      "endWidth": 0
+                    },
+                    {
+                      "x": 200,
+                      "y": 100,
+                      "bulge": 0.5,
+                      "startWidth": 0,
+                      "endWidth": 0
+                    },
+                    {
+                      "x": 0,
+                      "y": 100,
+                      "bulge": 0,
+                      "startWidth": 0,
+                      "endWidth": 0
+                    }
+                  ]
+                },
+                {
+                  "name": "elevation",
+                  "type": "float",
+                  "editable": true,
+                  "value": 0
+                },
+                {
+                  "name": "length",
+                  "type": "float",
+                  "editable": false,
+                  "value": 631.8238045004031
+                }
+              ]
+            },
+            {
+              "groupName": "others",
+              "properties": [
+                {
+                  "name": "closed",
+                  "type": "float",
+                  "editable": true,
+                  "value": true
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "3-pick",
+      "title": "pick / search / selectByBox / highlight / zoomTo",
+      "verdict": "confirmed",
+      "detail": {
+        "pickApi": "AcTrView2d.pick(point, hitRadiusPx, pickOneOnly) → AcEdSpatialQueryResultItemEx[]",
+        "pickAt50_30": [],
+        "searchApi": "AcTrView2d.search(AcGeBox2d) → AcEdSpatialQueryResultItemEx[]",
+        "searchCount": 0,
+        "searchIds": [],
+        "selectByBoxIds": [],
+        "selectionEvents": [],
+        "selectionSetApi": "AcTrView2d.selectionSet (AcEdSelectionSet: add/delete/has/clear/ids/count)",
+        "highlightApi": "AcTrView2d.highlight(ids) / unhighlight(ids)",
+        "zoomToChangedCenter": true,
+        "zoomToFitLayerReturned": false,
+        "screenToWorld": [
+          -14.842105263157897,
+          103.84210526315795
+        ]
+      }
+    },
+    {
+      "id": "4-events",
+      "title": "document / selection / render events",
+      "verdict": "confirmed",
+      "detail": {
+        "docManagerEvents": [
+          "documentToBeOpened",
+          "documentCreated",
+          "documentActivated",
+          "documentToBeActivated",
+          "documentToBeDestroyed",
+          "documentDestroyed",
+          "workersReady"
+        ],
+        "docEventsSeen": [
+          {
+            "name": "workersReady",
+            "t": 162
+          },
+          {
+            "name": "documentToBeOpened",
+            "t": 354
+          },
+          {
+            "name": "documentActivated",
+            "t": 401
+          },
+          {
+            "name": "documentCreated",
+            "t": 1554
+          },
+          {
+            "name": "documentToBeOpened",
+            "t": 1554
+          },
+          {
+            "name": "documentActivated",
+            "t": 1593
+          },
+          {
+            "name": "documentCreated",
+            "t": 1653
+          },
+          {
+            "name": "documentToBeOpened",
+            "t": 1653
+          },
+          {
+            "name": "documentActivated",
+            "t": 3643
+          }
+        ],
+        "viewEvents": [
+          "mouseMove",
+          "viewResize",
+          "viewChanged",
+          "hover",
+          "unhover",
+          "renderFrame"
+        ],
+        "renderFramesSoFar": 54,
+        "selectionSetEvents": [
+          "selectionAdded",
+          "selectionRemoved"
+        ],
+        "editorEvents": [
+          "sysVarChanged",
+          "commandWillStart",
+          "commandEnded"
+        ],
+        "databaseEvents": [
+          "dictObjetSet",
+          "dictObjectErased",
+          "entityAppended",
+          "entityModified",
+          "entityErased",
+          "layerAppended",
+          "layerModified",
+          "layerErased",
+          "openProgress",
+          "openFailed"
+        ],
+        "globalBusEvents": [
+          {
+            "name": "undo-stack-changed",
+            "payload": {},
+            "t": 354
+          },
+          {
+            "name": "fonts-not-found",
+            "payload": {
+              "fonts": [
+                "simplex"
+              ]
+            },
+            "t": 740
+          }
+        ],
+        "note": "no single \"render complete\" event; use AcTrView2d.waitUntilIdle(timeoutMs) or isProcessingEntities",
+        "waitUntilIdle": "function"
+      }
+    },
+    {
+      "id": "5-overlay",
+      "title": "transient entities + markup/measurement sidecars",
+      "verdict": "confirmed",
+      "detail": {
+        "api": "AcTrView2d.addTransientEntity(entity|entities) / removeTransientEntity(objectId) / setTransientEntityVisible(objectId, visible)",
+        "transientPublishedToScene": true,
+        "unknownIdToggle": false,
+        "hasEntityForTransient": false,
+        "note": "AcTrView2d.addTransientEntity() is async fire-and-forget (asyncDraw().then(...)) and returns void; AcTrView2d.setTransientEntityVisible() also returns void — only AcTrScene.setTransientEntityVisible() returns boolean. AcTrView2d.hasEntity() never sees transients.",
+        "previewApi": "createEntityPreview(ids) / updateEntityPreview(handle, AcGeMatrix3d) / removeEntityPreview(handle)",
+        "markupSidecar": {
+          "format": "AcApMarkupSidecarFile { version: 1, drawingName?, markups: AcApMarkupRecord[] }",
+          "record": "AcApMarkupMeta { id,type,layoutId?,style{color,lineWeight?,fontSize?},text?,comment,status,author,createdAt,updatedAt } & { geometry }",
+          "types": [
+            "text",
+            "line",
+            "arrow",
+            "cloud",
+            "rect",
+            "circle",
+            "highlight",
+            "callout",
+            "stamp",
+            "symbol"
+          ],
+          "status": [
+            "open",
+            "question",
+            "answered",
+            "closed"
+          ],
+          "helpers": [
+            "parseMarkupSidecar",
+            "stringifyMarkupSidecar",
+            "markupSidecarFileName"
+          ],
+          "commands": [
+            "REVCLOUD",
+            "MARKUPTEXT",
+            "MARKUPLINE",
+            "MARKUPARROW",
+            "MARKUPCLOUD",
+            "MARKUPRECT",
+            "MARKUPCIRCLE",
+            "MARKUPHIGHLIGHT",
+            "MARKUPCALLOUT",
+            "MARKUPSTAMP",
+            "MARKUPVIS",
+            "CLEARMARKUPS",
+            "MARKUPEXPORT",
+            "MARKUPIMPORT"
+          ]
+        },
+        "measurement": {
+          "helpers": [
+            "parseMeasurementSidecar",
+            "stringifyMeasurementSidecar",
+            "measurementSidecarFileName"
+          ],
+          "commands": [
+            "MEASUREDISTANCE",
+            "MEASUREAREA",
+            "MEASUREANGLE",
+            "MEASUREARC",
+            "MEASUREPOINT",
+            "CLEARMEASUREMENTS",
+            "MEASUREMENTVIS",
+            "MEASUREMENTEXPORT",
+            "MEASUREMENTIMPORT",
+            "MEASUREMENT",
+            "MEASUREMENTCOLOR"
+          ]
+        }
+      }
+    },
+    {
+      "id": "6-edit-undo",
+      "title": "acapRunDatabaseEdit + undo/redo",
+      "verdict": "confirmed",
+      "detail": {
+        "appEditApi": "acapRunDatabaseEdit(db, label, fn) — wraps AcDbDatabase.runDatabaseEdit and emits `undo-stack-changed`",
+        "dbEditApi": "AcDbDatabase.runDatabaseEdit(label, fn)",
+        "txApi": "AcDbDatabase.transactionManager: startTransaction/commitTransaction/abortTransaction/startUndoMark(label)/endUndoMark/cancelUndoMark/undo/redo/canUndo/canRedo/clearUndoStack",
+        "counts": {
+          "before": 9,
+          "afterAppend": 10,
+          "afterUndo": 9,
+          "afterRedo": 10
+        },
+        "undoReturned": true,
+        "redoReturned": true,
+        "canUndoBefore": false,
+        "canUndoNow": false,
+        "entityService": "AcApDocument.entityService (AcApEntityService): transformEntities/translateEntities/rotateEntities/cloneAndTransform/eraseEntities/moveEntitiesToCurrentLayer/runEdit",
+        "entityServiceResults": {
+          "moved": 1,
+          "rotated": 1,
+          "cloned": 1,
+          "erased": 1
+        },
+        "undoCommands": [
+          "UNDO (alias U)",
+          "REDO"
+        ]
+      }
+    },
+    {
+      "id": "7-dxfout",
+      "title": "AcDbDatabase.dxfOut() round-trip",
+      "verdict": "confirmed",
+      "detail": {
+        "signature": "dxfOut(_fileName?, precision?, version?, optionsOrThumbnail?: boolean | { saveThumbnailImage?, format?: 'ascii'|'binary' }) : string | Uint8Array",
+        "asciiBytes": 10450,
+        "binaryIsUint8Array": true,
+        "binaryBytes": 11788,
+        "exportMs": 2,
+        "writtenAcadver": "AC1032",
+        "writtenAcadverR2000": "AC1015",
+        "sectionsWritten": [
+          "HEADER",
+          "TABLES",
+          "BLOCKS",
+          "ENTITIES",
+          "OBJECTS"
+        ],
+        "before": {
+          "count": 9,
+          "byType": {
+            "LINE": 1,
+            "LWPOLYLINE": 1,
+            "CIRCLE": 1,
+            "ARC": 1,
+            "TEXT": 1,
+            "MTEXT": 1,
+            "INSERT": 1,
+            "HATCH": 1,
+            "DIMENSION": 1
+          }
+        },
+        "after": {
+          "count": 9,
+          "byType": {
+            "LINE": 1,
+            "LWPOLYLINE": 1,
+            "CIRCLE": 1,
+            "ARC": 1,
+            "TEXT": 1,
+            "MTEXT": 1,
+            "INSERT": 1,
+            "HATCH": 1,
+            "DIMENSION": 1
+          }
+        },
+        "handlesPreserved": true,
+        "handlesBefore": [
+          "100",
+          "101",
+          "102",
+          "103",
+          "104",
+          "105",
+          "106",
+          "109",
+          "10A"
+        ],
+        "handlesAfter": [
+          "100",
+          "101",
+          "102",
+          "103",
+          "104",
+          "105",
+          "106",
+          "109",
+          "10A"
+        ],
+        "lostHandles": [],
+        "newHandles": [],
+        "layersBefore": [
+          "0#10",
+          "A-WALL#11",
+          "A-TEXT#12",
+          "A-HATCH#13",
+          "치수#14"
+        ],
+        "layersAfter": [
+          "0#10",
+          "A-WALL#11",
+          "A-TEXT#12",
+          "A-HATCH#13",
+          "치수#14"
+        ],
+        "blocksBefore": [
+          "*Model_Space#1E",
+          "*Paper_Space#1F",
+          "TITLEBLK#20",
+          "*D1#21"
+        ],
+        "blocksAfter": [
+          "*Model_Space#1E",
+          "*Paper_Space#1F",
+          "TITLEBLK#20",
+          "*D1#21"
+        ],
+        "koreanTextRoundTrip": [
+          "대명건설 도면",
+          "지하 1층 평면도\\P축척 1:100\\P{\\C1;검토자 홍길동}"
+        ],
+        "attributesAfter": [
+          {
+            "tag": "TITLE",
+            "value": "대명건설 신축공사",
+            "handle": "107"
+          }
+        ],
+        "layoutsAfter": [
+          "Model",
+          "Layout1"
+        ],
+        "viewerCommand": "CDXF (AcApConvertToDxfCmd) exports the current document through the same path"
+      }
+    },
+    {
+      "id": "8-layouts",
+      "title": "paper space layouts and viewport drill-down",
+      "verdict": "confirmed",
+      "detail": {
+        "layoutNames": [
+          "Model",
+          "Layout1"
+        ],
+        "layoutDictionary": "AcDbDatabase.objects.layout (AcDbLayoutDictionary), numEntries=2",
+        "layoutRecords": [
+          {
+            "name": "Model",
+            "tabOrder": 0,
+            "btrId": "1E",
+            "handle": "30",
+            "viewportArray": []
+          },
+          {
+            "name": "Layout1",
+            "tabOrder": 1,
+            "btrId": "1F",
+            "handle": "31",
+            "viewportArray": []
+          }
+        ],
+        "switchApi": "AcTrView2d.activeLayoutBtrId = <block table record id>  +  AcApDocManager.setActiveLayout(view, db)",
+        "layoutViewManagerApi": "AcTrLayoutViewManager (has/getAt/add/activeLayoutView) via AcTrView2d.activeLayoutView",
+        "modelSpaceBtrId": "1E",
+        "before": "1E",
+        "switched": "1F",
+        "viewports": [
+          {
+            "handle": "200",
+            "number": 1,
+            "width": 297,
+            "height": 420,
+            "centerPoint": [
+              210,
+              148.5
+            ],
+            "viewCenter": [
+              0,
+              0
+            ]
+          },
+          {
+            "handle": "201",
+            "number": 2,
+            "width": 180,
+            "height": 240,
+            "centerPoint": [
+              150,
+              150
+            ],
+            "viewCenter": [
+              100,
+              50
+            ]
+          }
+        ],
+        "drillDown": "AcTrView2d.pick() drills through AcDbViewport rectangles in paper space (pickThroughViewports); near the border the viewport entity itself is picked"
+      }
+    },
+    {
+      "id": "9-xref",
+      "title": "XREF resolution and manual attach",
+      "verdict": "confirmed",
+      "detail": {
+        "autoResolution": "none — the viewer never fetches xref targets by itself",
+        "evidence": "AcTrView2d.missedData.xrefs collects { name, pathName, isOverlay } for unresolved external references",
+        "missedXrefs": [],
+        "manualApi": "AcApXrefManager.instance.attachOverlay({ blockName, fileName, content|sourceDb, sourcePath, transform?, insertId? }) → AcApXrefSession",
+        "sessionShape": "AcApXrefSession { id, blockName, insertId?, overlayId, sourcePath, visible }",
+        "otherApi": [
+          "setVisible",
+          "setVisibleByBlockName",
+          "unload",
+          "unloadByBlockName",
+          "clearAll",
+          "getSessionByBlockName",
+          "AcApXrefManager.createHostXrefInsert(db, blockName, pathName, transform, origin?)"
+        ],
+        "command": "XATTACH (alias XA) — AcApXAttachCmd",
+        "overlayApi": "AcApDocManager.loadOverlay(fileName, content, options) / registerOverlayDatabase(db) / setOverlayVisible / removeOverlay / clearOverlays / getOverlayIds",
+        "overlayLimitation": "AcApDocManager.loadOverlay doc comment: INSERT expansion, viewports and dimensions are skipped in overlay geometry",
+        "sessionsNow": 0
+      }
+    },
+    {
+      "id": "10-mdi",
+      "title": "multi document interface",
+      "verdict": "confirmed",
+      "detail": {
+        "api": "AcApDocManager: documents / documentCount / document(i) / activeSessionId / activateDocument(doc) / closeDocument(doc) / sessionFor(doc)",
+        "splitView": "ensureSplitView(container) creates a second AcTrView2d; openDocument(..., view) targets it",
+        "documentCount": 2,
+        "documents": [
+          {
+            "fileName": "F-spike-r2018.dxf",
+            "title": "F-spike-r2018.dxf",
+            "mode": 8
+          },
+          {
+            "fileName": "F-spike-r2000-cp949.dxf",
+            "title": "F-spike-r2000-cp949.dxf",
+            "mode": 8
+          }
+        ],
+        "okSecond": true,
+        "activatedFirst": false,
+        "cp949Decoding": [
+          {
+            "file": "F-spike-r2018.dxf",
+            "text": [
+              "대명건설 도면",
+              "지하 1층 평면도\\P축척 1:100\\P{\\C1;검토자 홍길동}"
+            ],
+            "layers": [
+              "0",
+              "A-WALL",
+              "A-TEXT",
+              "A-HATCH",
+              "치수"
+            ]
+          },
+          {
+            "file": "F-spike-r2000-cp949.dxf",
+            "text": [
+              "대명건설 도면",
+              "지하 1층 평면도\\P축척 1:100\\P{\\C1;검토자 홍길동}"
+            ],
+            "layers": [
+              "0",
+              "A-WALL",
+              "A-TEXT",
+              "A-HATCH",
+              "치수"
+            ]
+          }
+        ],
+        "caveat": "one shared AcTrView2d per canvas; switching parks/restores the scene via captureSessionState/restoreSessionState"
+      }
+    },
+    {
+      "id": "11-headless",
+      "title": "headless / Node usage",
+      "verdict": "confirmed",
+      "detail": {
+        "cliPackagePublished": "see scripts/probe-node.cjs result in docs",
+        "note": "measured out-of-band; see docs/spikes/mlightcad-api.md fact 11"
+      }
+    },
+    {
+      "id": "12-dwg",
+      "title": "DWG load through libredwg worker + memory",
+      "verdict": "confirmed",
+      "detail": {
+        "registration": "AcDbDatabaseConverterManager.instance.register(AcDbFileType.DWG, new AcDbLibreDwgConverter({ parserWorkerUrl, useWorker: true }))",
+        "wasm": "libredwg-web.wasm resolved from `import.meta.url` of libredwg-parser-worker.js — must be a sibling file",
+        "openResult": {
+          "ok": true,
+          "bytes": 2618816,
+          "parseMs": 1991,
+          "totalMs": 2576,
+          "inputBufferDetachedAfterOpen": true
+        },
+        "modelSpaceCount": 25122,
+        "byType": {
+          "HATCH": 274,
+          "INSERT": 690,
+          "LINE": 22835,
+          "MTEXT": 188,
+          "TEXT": 106,
+          "WIPEOUT": 3,
+          "LWPOLYLINE": 359,
+          "CIRCLE": 97,
+          "ARC": 516,
+          "SPLINE": 25,
+          "DIMENSION": 28,
+          "ELLIPSE": 1
+        },
+        "layerCount": 14,
+        "dwgVersion": {
+          "name": "AC1014",
+          "value": 21
+        },
+        "heapBeforeBytes": 18200000,
+        "heapAfterBytes": 18200000,
+        "heapDeltaMB": 0,
+        "dxfOutMs": 80,
+        "dxfOutBytes": 6623024,
+        "dxfOutReopenCount": 25122
+      }
+    },
+    {
+      "id": "cmd-inventory",
+      "title": "registered commands (AcEdCommandStack.iterator())",
+      "verdict": "confirmed",
+      "detail": {
+        "count": 135,
+        "items": [
+          {
+            "group": "ACAD",
+            "global": "-HATCH",
+            "local": "-HATCH",
+            "mode": 8,
+            "aliases": [
+              "-H"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "-INSERT",
+            "local": "-INSERT",
+            "mode": 8,
+            "aliases": [
+              "I"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "-LAYER",
+            "local": "-LAYER",
+            "mode": 8,
+            "aliases": [
+              "-LA"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "ABOUT",
+            "local": "ABOUT",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "ANGBASE",
+            "local": "ANGBASE",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "ANGDIR",
+            "local": "ANGDIR",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "ARC",
+            "local": "ARC",
+            "mode": 8,
+            "aliases": [
+              "A"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "AUNITS",
+            "local": "AUNITS",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "AUPREC",
+            "local": "AUPREC",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "CACHEFONT",
+            "local": "CACHEFONT",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "CDXF",
+            "local": "CDXF",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "CECOLOR",
+            "local": "CECOLOR",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "CELTSCALE",
+            "local": "CELTSCALE",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "CELTYPE",
+            "local": "CELTYPE",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "CELWEIGHT",
+            "local": "CELWEIGHT",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "CETRANSPARENCY",
+            "local": "CETRANSPARENCY",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "CIRCLE",
+            "local": "CIRCLE",
+            "mode": 8,
+            "aliases": [
+              "C"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "CLAYER",
+            "local": "CLAYER",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "CLEARMARKUPS",
+            "local": "CLEARMARKUPS",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "CLEARMEASUREMENTS",
+            "local": "CLEARMEASUREMENTS",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "CLOSE",
+            "local": "CLOSE",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "CMLEADERSTYLE",
+            "local": "CMLEADERSTYLE",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "CMLSCALE",
+            "local": "CMLSCALE",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "CMLSTYLE",
+            "local": "CMLSTYLE",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "COLORTHEME",
+            "local": "COLORTHEME",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "COMPAREHATCH",
+            "local": "COMPAREHATCH",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "COMPAREPROPS",
+            "local": "COMPAREPROPS",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "COMPARERCMARGIN",
+            "local": "COMPARERCMARGIN",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "COMPARETEXT",
+            "local": "COMPARETEXT",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "COMPARETOLERANCE",
+            "local": "COMPARETOLERANCE",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "COPY",
+            "local": "COPY",
+            "mode": 8,
+            "aliases": [
+              "CO"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "DIMLINEAR",
+            "local": "DIMLINEAR",
+            "mode": 4,
+            "aliases": [
+              "DLI"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "DWGNAME",
+            "local": "DWGNAME",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "DYNMODE",
+            "local": "DYNMODE",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "DYNPROMPT",
+            "local": "DYNPROMPT",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "ELLIPSE",
+            "local": "ELLIPSE",
+            "mode": 8,
+            "aliases": [
+              "EL"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "ENTOUT",
+            "local": "ENTOUT",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "ERASE",
+            "local": "ERASE",
+            "mode": 8,
+            "aliases": [
+              "E"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "GRIPCOLOR",
+            "local": "GRIPCOLOR",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "GRIPHOT",
+            "local": "GRIPHOT",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "GRIPOBJLIMIT",
+            "local": "GRIPOBJLIMIT",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "GRIPS",
+            "local": "GRIPS",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "GRIPSIZE",
+            "local": "GRIPSIZE",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "HIDEOBJECTS",
+            "local": "HIDEOBJECTS",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "HPANG",
+            "local": "HPANG",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "HPASSOC",
+            "local": "HPASSOC",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "HPBACKGROUNDCOLOR",
+            "local": "HPBACKGROUNDCOLOR",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "HPCOLOR",
+            "local": "HPCOLOR",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "HPDOUBLE",
+            "local": "HPDOUBLE",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "HPISLANDDETECTION",
+            "local": "HPISLANDDETECTION",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "HPLAYER",
+            "local": "HPLAYER",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "HPNAME",
+            "local": "HPNAME",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "HPSCALE",
+            "local": "HPSCALE",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "HPSEPARATE",
+            "local": "HPSEPARATE",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "HPTRANSPARENCY",
+            "local": "HPTRANSPARENCY",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "IMAGEATTACH",
+            "local": "IMAGEATTACH",
+            "mode": 8,
+            "aliases": [
+              "IAT"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "INSUNITS",
+            "local": "INSUNITS",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "LAYCUR",
+            "local": "LAYCUR",
+            "mode": 8,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "LAYDEL",
+            "local": "LAYDEL",
+            "mode": 8,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "LAYERCLOSE",
+            "local": "LAYERCLOSE",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "LAYERP",
+            "local": "LAYERP",
+            "mode": 8,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "LAYFRZ",
+            "local": "LAYFRZ",
+            "mode": 8,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "LAYISO",
+            "local": "LAYISO",
+            "mode": 8,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "LAYLCK",
+            "local": "LAYLCK",
+            "mode": 8,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "LAYOFF",
+            "local": "LAYOFF",
+            "mode": 8,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "LAYON",
+            "local": "LAYON",
+            "mode": 8,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "LAYTHW",
+            "local": "LAYTHW",
+            "mode": 8,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "LAYULK",
+            "local": "LAYULK",
+            "mode": 8,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "LAYUNISO",
+            "local": "LAYUNISO",
+            "mode": 8,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "LINE",
+            "local": "LINE",
+            "mode": 8,
+            "aliases": [
+              "L"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "LOG",
+            "local": "LOG",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "LOGINNAME",
+            "local": "LOGINNAME",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "LUNITS",
+            "local": "LUNITS",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "LUPREC",
+            "local": "LUPREC",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "LWDISPLAY",
+            "local": "LWDISPLAY",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MARKUPARROW",
+            "local": "MARKUPARROW",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MARKUPCALLOUT",
+            "local": "MARKUPCALLOUT",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MARKUPCIRCLE",
+            "local": "MARKUPCIRCLE",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MARKUPCLOUD",
+            "local": "MARKUPCLOUD",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MARKUPEXPORT",
+            "local": "MARKUPEXPORT",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MARKUPHIGHLIGHT",
+            "local": "MARKUPHIGHLIGHT",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MARKUPIMPORT",
+            "local": "MARKUPIMPORT",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MARKUPLINE",
+            "local": "MARKUPLINE",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MARKUPRECT",
+            "local": "MARKUPRECT",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MARKUPSTAMP",
+            "local": "MARKUPSTAMP",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MARKUPTEXT",
+            "local": "MARKUPTEXT",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MARKUPVIS",
+            "local": "MARKUPVIS",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MEASUREANGLE",
+            "local": "MEASUREANGLE",
+            "mode": 0,
+            "aliases": [
+              "ANG"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "MEASUREARC",
+            "local": "MEASUREARC",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MEASUREAREA",
+            "local": "MEASUREAREA",
+            "mode": 0,
+            "aliases": [
+              "AA",
+              "AREA"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "MEASUREDISTANCE",
+            "local": "MEASUREDISTANCE",
+            "mode": 0,
+            "aliases": [
+              "DI",
+              "DIST"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "MEASUREMENT",
+            "local": "MEASUREMENT",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MEASUREMENTCOLOR",
+            "local": "MEASUREMENTCOLOR",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MEASUREMENTEXPORT",
+            "local": "MEASUREMENTEXPORT",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MEASUREMENTIMPORT",
+            "local": "MEASUREMENTIMPORT",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MEASUREMENTVIS",
+            "local": "MEASUREMENTVIS",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MEASUREPOINT",
+            "local": "MEASUREPOINT",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MLINE",
+            "local": "MLINE",
+            "mode": 8,
+            "aliases": [
+              "ML"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "MODELBKCOLOR",
+            "local": "MODELBKCOLOR",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "MOVE",
+            "local": "MOVE",
+            "mode": 8,
+            "aliases": [
+              "M"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "MTEXT",
+            "local": "MTEXT",
+            "mode": 8,
+            "aliases": [
+              "T"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "OFFSET",
+            "local": "OFFSET",
+            "mode": 8,
+            "aliases": [
+              "O"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "OPEN",
+            "local": "OPEN",
+            "mode": 0,
+            "aliases": [
+              "OP"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "OPENPROF",
+            "local": "OPENPROF",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "ORTHOMODE",
+            "local": "ORTHOMODE",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "OSMODE",
+            "local": "OSMODE",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "PAN",
+            "local": "PAN",
+            "mode": 0,
+            "aliases": [
+              "P"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "PAPERBKCOLOR",
+            "local": "PAPERBKCOLOR",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "PICKBOX",
+            "local": "PICKBOX",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "PLINE",
+            "local": "PLINE",
+            "mode": 8,
+            "aliases": [
+              "PL"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "PNGOUT",
+            "local": "PNGOUT",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "POINT",
+            "local": "POINT",
+            "mode": 8,
+            "aliases": [
+              "PO"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "POLARADDANG",
+            "local": "POLARADDANG",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "POLARANG",
+            "local": "POLARANG",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "POLARMODE",
+            "local": "POLARMODE",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "POLYGON",
+            "local": "POLYGON",
+            "mode": 8,
+            "aliases": [
+              "POL"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "QNEW",
+            "local": "QNEW",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "RAY",
+            "local": "RAY",
+            "mode": 8,
+            "aliases": [
+              "RA"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "RECTANG",
+            "local": "RECTANG",
+            "mode": 8,
+            "aliases": [
+              "REC"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "REDO",
+            "local": "REDO",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "REGEN",
+            "local": "REGEN",
+            "mode": 0,
+            "aliases": [
+              "RE"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "REVCLOUD",
+            "local": "REVCLOUD",
+            "mode": 8,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "ROTATE",
+            "local": "ROTATE",
+            "mode": 8,
+            "aliases": [
+              "RO"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "SELECT",
+            "local": "SELECT",
+            "mode": 0,
+            "aliases": [
+              "SE"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "SHORTCUTMENU",
+            "local": "SHORTCUTMENU",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "SKETCH",
+            "local": "SKETCH",
+            "mode": 8,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "SPLINE",
+            "local": "SPLINE",
+            "mode": 8,
+            "aliases": [
+              "SPL"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "SWITCHBG",
+            "local": "SWITCHBG",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "TEXTSTYLE",
+            "local": "TEXTSTYLE",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "UNDO",
+            "local": "UNDO",
+            "mode": 0,
+            "aliases": [
+              "U"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "UNISOLATEOBJECTS",
+            "local": "UNISOLATEOBJECTS",
+            "mode": 0,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "UNITMODE",
+            "local": "UNITMODE",
+            "mode": 4,
+            "aliases": []
+          },
+          {
+            "group": "ACAD",
+            "global": "XATTACH",
+            "local": "XATTACH",
+            "mode": 8,
+            "aliases": [
+              "XA"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "XLINE",
+            "local": "XLINE",
+            "mode": 8,
+            "aliases": [
+              "XL"
+            ]
+          },
+          {
+            "group": "ACAD",
+            "global": "ZOOM",
+            "local": "ZOOM",
+            "mode": 0,
+            "aliases": [
+              "Z"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "ready": true,
+  "errors": [],
+  "console": [
+    "debug: [vite] connecting...",
+    "debug: [vite] connected.",
+    "warning: [.WebGL-0x13c004c6000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x13c004c6000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x13c004c6000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x13c004c6000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+    "warning: WebGL: CONTEXT_LOST_WEBGL: loseContext: context lost",
+    "log: THREE.WebGLRenderer: Context Lost.",
+    "log: THREE.WebGLRenderer: Context Restored.",
+    "warning: Something wrong! The number of entities to process should not be less than 0.",
+    "warning: Something wrong! The number of entities to process should not be less than 0.",
+    "warning: Something wrong! The number of entities to process should not be less than 0.",
+    "warning: Something wrong! The number of entities to process should not be less than 0.",
+    "warning: Something wrong! The number of entities to process should not be less than 0."
+  ]
+}

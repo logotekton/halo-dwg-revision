@@ -1,0 +1,193 @@
+{
+  "node": "v24.20.0",
+  "dataModel": "1.14.3",
+  "note": "package.json is not in @mlightcad/data-model's `exports` map, so it cannot be require()d by subpath",
+  "esmImport": {
+    "failed": "ERR_UNSUPPORTED_DIR_IMPORT"
+  },
+  "openMs": 10,
+  "version": {
+    "name": "AC1032",
+    "value": 33
+  },
+  "lastOpenError": null,
+  "layers": [
+    {
+      "name": "0",
+      "handle": "10"
+    },
+    {
+      "name": "A-WALL",
+      "handle": "11"
+    },
+    {
+      "name": "A-TEXT",
+      "handle": "12"
+    },
+    {
+      "name": "A-HATCH",
+      "handle": "13"
+    },
+    {
+      "name": "치수",
+      "handle": "14"
+    }
+  ],
+  "blocks": [
+    {
+      "name": "*Model_Space",
+      "handle": "1E",
+      "count": 9
+    },
+    {
+      "name": "*Paper_Space",
+      "handle": "1F",
+      "count": 3
+    },
+    {
+      "name": "TITLEBLK",
+      "handle": "20",
+      "count": 2
+    },
+    {
+      "name": "*D1",
+      "handle": "21",
+      "count": 4
+    }
+  ],
+  "modelSpace": {
+    "count": 9,
+    "byType": {
+      "LINE": 1,
+      "LWPOLYLINE": 1,
+      "CIRCLE": 1,
+      "ARC": 1,
+      "TEXT": 1,
+      "MTEXT": 1,
+      "INSERT": 1,
+      "HATCH": 1,
+      "DIMENSION": 1
+    },
+    "rows": [
+      {
+        "handle": "100",
+        "dxfTypeName": "LINE",
+        "typeGetter": "Line",
+        "ctorName": "Qr",
+        "layer": "A-WALL",
+        "owner": "1E"
+      },
+      {
+        "handle": "101",
+        "dxfTypeName": "LWPOLYLINE",
+        "typeGetter": "Polyline",
+        "ctorName": "gn",
+        "layer": "A-WALL",
+        "owner": "1E"
+      },
+      {
+        "handle": "102",
+        "dxfTypeName": "CIRCLE",
+        "typeGetter": "Circle",
+        "ctorName": "$r",
+        "layer": "A-WALL",
+        "owner": "1E"
+      },
+      {
+        "handle": "103",
+        "dxfTypeName": "ARC",
+        "typeGetter": "Arc",
+        "ctorName": "Wr",
+        "layer": "A-WALL",
+        "owner": "1E"
+      },
+      {
+        "handle": "104",
+        "dxfTypeName": "TEXT",
+        "typeGetter": "Text",
+        "ctorName": "xo",
+        "layer": "A-TEXT",
+        "owner": "1E"
+      },
+      {
+        "handle": "105",
+        "dxfTypeName": "MTEXT",
+        "typeGetter": "MText",
+        "ctorName": "So",
+        "layer": "A-TEXT",
+        "owner": "1E"
+      },
+      {
+        "handle": "106",
+        "dxfTypeName": "INSERT",
+        "typeGetter": "BlockReference",
+        "ctorName": "dn",
+        "layer": "0",
+        "owner": "1E"
+      },
+      {
+        "handle": "109",
+        "dxfTypeName": "HATCH",
+        "typeGetter": "Hatch",
+        "ctorName": "Po",
+        "layer": "A-HATCH",
+        "owner": "1E"
+      },
+      {
+        "handle": "10A",
+        "dxfTypeName": "DIMENSION",
+        "typeGetter": "RotatedDimension",
+        "ctorName": "$o",
+        "layer": "치수",
+        "owner": "1E"
+      }
+    ]
+  },
+  "roundTrip": {
+    "asciiBytes": 10554,
+    "acadver": "AC1032",
+    "count": 9,
+    "byType": {
+      "LINE": 1,
+      "LWPOLYLINE": 1,
+      "CIRCLE": 1,
+      "ARC": 1,
+      "TEXT": 1,
+      "MTEXT": 1,
+      "INSERT": 1,
+      "HATCH": 1,
+      "DIMENSION": 1
+    },
+    "handlesPreserved": true,
+    "layers": [
+      "0#10",
+      "A-WALL#11",
+      "A-TEXT#12",
+      "A-HATCH#13",
+      "치수#14"
+    ],
+    "blocks": [
+      "*Model_Space#1E",
+      "*Paper_Space#1F",
+      "TITLEBLK#20",
+      "*D1#21"
+    ]
+  },
+  "cp949": {
+    "version": {
+      "name": "AC1015",
+      "value": 23
+    },
+    "layers": [
+      "0",
+      "A-WALL",
+      "A-TEXT",
+      "A-HATCH",
+      "치수"
+    ],
+    "text": [
+      "대명건설 도면",
+      "지하 1층 평면도\\P축척 1:100\\P{\\C1;검토자 홍길동}"
+    ]
+  }
+}

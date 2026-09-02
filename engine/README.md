@@ -59,6 +59,9 @@ uvicorn/애플리케이션 로그는 모두 `stderr`로 간다 — stdout은 이
   (`{dwg2dxf: false, ifc_export: true, job_runner: false, websocket: false, dms_sync: false}`).
   잡 러너·WebSocket 라우터는 W2-01·W8-05에서 붙는다(`api/routers/__init__.py`가 자리만 남김).
 - `POST /api/v1/system/shutdown` — 토큰 필요. 우아한 종료를 요청한다.
+- `POST /api/v1/files/crosscheck` — 토큰 필요. 본문 `{reference, other, whitelist?}`
+  (`LayerStatsDocument` 두 개 + 화이트리스트 경로). 응답은 `CrosscheckReport`
+  (`halo_engine/validate/crosscheck_report.schema.json`). 아래 "파서 교차검증" 절 참고.
 
 CORS는 `halocad://app`, `http://localhost:5173`, `http://127.0.0.1:5173`만 허용한다.
 
@@ -88,6 +91,31 @@ uv run halo-engine ingest <dxf 경로> --out <출력 디렉터리> [--search-pat
 W6-01), `ingest/stats.py`, `ingest/working_dxf.py`. `ingest/stats.py`는 `fixtures_gen/stats.py`
 (`fixtures/gen/`, 독립 uv 프로젝트)와 서로 임포트하지 않는 별도 구현이며, 두 결과는
 F01~F10에서 정렬 직렬화 기준으로 일치해야 한다(`tests/ingest/test_engine_crosscheck.py`).
+
+## 파서 교차검증 (crosscheck, `docs/adr/0002-working-dxf.md` 6, W2-04)
+
+```bash
+uv run halo-engine crosscheck --ref <stats.json> --other <stats.json> --out <경로 스템> \
+  [--whitelist <yaml> | --no-whitelist] [--allow-sha-mismatch] [--fail-on-red]
+```
+
+세 파서(mlightcad / ezdxf / acad-ts)가 같은 정본 바이트에서 낸 `LayerStatsDocument`를
+`(space, layer)` 버킷 단위로 비교해 레이어별 GREEN/AMBER/RED를 판정한다. 임계는
+`docs/contracts/stats-definition.md` "비교 임계" 그대로다(카운트·`insert_by_block`·
+`text_count`·`text_hash` 정확, 길이 ±0.1%, 해치 면적 ±0.5%, bbox ±1mm).
+
+- `--out`은 **스템**이다: `<스템>.json`(`CrosscheckReport`)과 `<스템>.md`(한국어 레이어 표)를 쓴다.
+- 종료 코드는 RED에서도 0이다(셸에서 `&& grep RED <스템>.md`로 이어 붙일 수 있게).
+  CI에서 실패시키려면 `--fail-on-red`.
+- 화이트리스트는 기본값이 `src/halo_engine/validate/whitelist.yaml`(알려진 파서 격차,
+  항목마다 `reason` 필수). **카운트 격차는 절대 낮출 수 없다** — `count_by_type`·`text_count`·
+  한쪽에만 있는 버킷은 로더가 거부하고, `insert_by_block`은 INSERT 총개수가 같을 때
+  (= 블록 이름만 못 푼 경우)만 낮춰진다.
+- `file_sha256`이 서로 다르면 경고만 남기고 비교는 진행한다(`--allow-sha-mismatch`로 경고 억제).
+- `red_layers`가 신뢰도 라우팅(P4) 입력이다: 적색 레이어에 근거를 둔 물량은 감점된다.
+
+픽스처 전체 실행은 저장소 루트의 `tools/crosscheck.sh`(결과표는
+`docs/spikes/crosscheck-fixtures.md`에 재생성된다).
 
 ## 테스트
 
@@ -125,12 +153,13 @@ strict mypy가 적용된다 — 첫 실제 모듈부터 타입 검사가 걸린�
 ```
 src/halo_engine/
   __init__.py      # __version__
-  cli.py           # typer: serve, ingest, stats
+  cli.py           # typer: serve, ingest, stats, crosscheck
   config.py        # pydantic-settings, env prefix HALO_ENGINE_
   api/
     main.py        # FastAPI 앱 팩토리 create_app(settings)
     routers/
-      system.py    # health / capabilities / shutdown
+      system.py     # health / capabilities / shutdown
+      crosscheck.py # POST /api/v1/files/crosscheck
   ingest/          # DXF 로드·인코딩·XREF·정본·통계 (W2-03)
     dxf_loader.py    # ezdxf.readfile -> 실패 시 ezdxf.recover, 헤더/감사 추출
     encoding.py      # R2007 이전 코드페이지 모지바케 점수·cp949 재시도, \M+/\U+ 디코드
@@ -138,9 +167,14 @@ src/halo_engine/
     entity_index.py  # 최상위 엔티티 레코드 생성기(iterable/JSONL, SQLite는 W6-01)
     stats.py         # LayerStatsDocument (fixtures_gen/stats.py와 독립 구현)
     working_dxf.py   # 위 넷을 조합해 <sha256>.working.dxf/.json 생성
-  model/           # 부재·공간·면 모델 (W3+)
+  validate/        # 교차검증 (W2-04)
+    crosscheck.py                    # 버킷 비교·임계·화이트리스트·마크다운 렌더
+    whitelist.yaml                   # 알려진 파서 격차 (항목마다 reason 필수)
+    crosscheck_report.schema.json    # CrosscheckReport의 JSON Schema (모델에서 생성)
+  model/           # 부재·공간·면 모델 (W3+); crosscheck.py = CrosscheckReport (mypy strict)
   rules/           # 적산 룰 엔진 (W4+)
   geometry/        # 3D 재구성 기하 (W3+)
 tests/
   ingest/          # ingest/** 단위·통합 테스트
+  validate/        # 교차검증 단위·API·스키마 테스트
 ```

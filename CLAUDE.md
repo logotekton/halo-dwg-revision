@@ -1,11 +1,11 @@
-# DMCAD — 에이전트 공통 규약 (모든 에이전트는 작업 전에 이 문서를 읽는다)
+# Halo CAD — 에이전트 공통 규약 (모든 에이전트는 작업 전에 이 문서를 읽는다)
 
 대명건설 사내 전용 워크스테이션. **(1) Mac/Windows 무료 CAD → (2) 도면관리 DMS → (3) 3D 재구성 → (4) 적산(구조 → 내부마감 → 외부마감)** 순서로 만든다.
 전체 계획은 `docs/PLAN.md`. 결정 근거는 `docs/adr/`. 태스크 브리프는 `docs/briefs/<ID>.md`.
 
 ## 절대 규칙
 
-1. **원본 도면은 불변.** 사용자가 가져온 DWG/DXF에 쓰지 않는다. 편집·결과는 `derivatives/`, 사이드카 JSON, 프로젝트 번들(`*.dmqto/`), DMS 서버 스토어에만 쓴다. 원본 경로 쓰기는 코드 가드가 거부해야 한다.
+1. **원본 도면은 불변.** 사용자가 가져온 DWG/DXF에 쓰지 않는다. 편집·결과는 `derivatives/`, 사이드카 JSON, 프로젝트 번들(`*.halo/`), DMS 서버 스토어에만 쓴다. 원본 경로 쓰기는 코드 가드가 거부해야 한다.
 2. **ODA File Converter 금지.** `odafc`, `ODAFileConverter`, `opendesign.com` 참조 금지(CI grep). 비회원 상업 사용이 라이선스 위반이다.
 3. **GPL 경계.** `@mlightcad/libredwg-*`는 `packages/dwg-io-gpl/**`와 `apps/desktop/src/main/ipc/convert.ts` 배선에서만 임포트한다. 신규 의존성은 MIT/BSD/Apache/MPL/OFL만. GPL은 사내 전용이라 허용되지만 위치를 지킨다.
 4. **높이 4필드 분리.** `SL`(구조 레벨), `FL`(마감 바닥 레벨), `FLOOR_HEIGHT`(층고 = SL–SL), `CH`(천장고, 층고표 출처). **CH를 SL/FL/FLOOR_HEIGHT와 등호 비교하는 코드를 쓰지 않는다.** 구조체·외벽 면 높이는 SL 기준, 실내 벽 마감 높이는 CH 기준. 다른 기준 사이 검사는 부등식만(CH + 슬래브 + 바닥마감 < 층고).
@@ -36,7 +36,7 @@ Python 3.12 (uv), ezdxf 1.4.4, shapely 2.1.x, manifold3d 3.5.x, trimesh 5.x, ifc
 | `packages/acad-bridge/` | acad-ts 변환·쓰기 CLI | |
 | `packages/schema/` | JSON Schema + 코드젠 | **Fable 소유** |
 | `packages/shared-types/`, `packages/diff/`, `packages/testing/` | 공용 타입, diff, 테스트 유틸 | |
-| `engine/` | Python `dmqto` | 하위 패키지 단위로 소유 |
+| `engine/` | Python `halo_engine` | 하위 패키지 단위로 소유 |
 | `fixtures/` | 합성 도면 + truth | `truth/`는 생성기만 쓴다 |
 | `tools/`, `CLAUDE.md`, 루트 `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml` | 공유 | **Fable 소유** — 변경은 보고서 "Shared-file patch"로 제안 |
 | `spikes/` | 일회성 실험 | 패키지에서 임포트 금지, 채택 후 삭제 |
@@ -58,5 +58,5 @@ pnpm dev                              # Electron + Vite 개발 실행
 tools/verify.sh                       # 린트·타입·단위·라이선스·금지어 검사 (모든 태스크 완료 전 필수)
 tools/verify.sh --e2e                 # + Playwright
 cd engine && uv sync --frozen && uv run pytest
-cd engine && uv run dmqto serve --dev --port 8765 --token dev   # 브라우저 개발 시 DMCAD_ENGINE_URL로 부착
+cd engine && uv run halo-engine serve --dev --port 8765 --token dev   # 브라우저 개발 시 HALO_ENGINE_URL로 부착
 ```

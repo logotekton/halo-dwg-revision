@@ -1,5 +1,5 @@
 {
-  "name": "dmcad",
+  "name": "halo-cad",
   "private": true,
   "version": "0.0.1",
   "description": "대명건설 무료 CAD + 도면관리 + 적산 워크스테이션 (사내 전용)",
@@ -8,7 +8,7 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "pnpm --filter @dmcad/desktop dev",
+    "dev": "pnpm --filter @halo-cad/desktop dev",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",

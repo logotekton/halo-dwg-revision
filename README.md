@@ -1,4 +1,4 @@
-# DMCAD
+# Halo CAD (halo-cad)
 
 대명건설 사내 전용 워크스테이션: **무료 CAD(Mac/Windows) → 도면관리 → 3D 재구성 → 적산**.
 

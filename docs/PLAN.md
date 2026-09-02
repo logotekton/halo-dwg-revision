@@ -1,6 +1,6 @@
 # 대명건설 무료 CAD + 도면관리 + 적산 — 전체 계획
 
-작성 2026-09-02 (v2, 순서 재조정). 가칭 **DMCAD**(앱), `dmqto`(파이썬 엔진), 저장소 `dmcad`. 이름은 사용자가 변경 가능.
+작성 2026-09-02 (v2, 순서 재조정). 가칭 **Halo CAD**(앱), `halo_engine`(파이썬 엔진), 저장소 `halo-cad`. 이름은 사용자가 변경 가능.
 
 ## Context
 
@@ -40,18 +40,18 @@
 ## 2. 아키텍처와 저장소
 
 ```
-Electron 44 main ──spawn(env 토큰)──▶ dmqto-server (FastAPI, 127.0.0.1:임의포트, PyInstaller onedir)
-  │ dmcad://app 렌더러 (apps/web)                 │ REST + WS(진행률·model.changed), 파일은 절대경로 교환
+Electron 44 main ──spawn(env 토큰)──▶ halo-engine (FastAPI, 127.0.0.1:임의포트, PyInstaller onedir)
+  │ halocad://app 렌더러 (apps/web)                 │ REST + WS(진행률·model.changed), 파일은 절대경로 교환
   ├─ packages/cad-core   ← mlightcad 유일 임포트(CadHost 파사드), 자체 편집 명령, stats, 오버레이
   ├─ packages/dwg-io-gpl ← libredwg-web/converter 유일 임포트(브라우저 워커 + Node utilityProcess)
   ├─ packages/acad-bridge← acad-ts: DWG→DXF 변환, 파생 DWG 쓰기, CLI
   ├─ apps/viewer3d       ← iframe, Three≥0.182 + ThatOpen + web-ifc, postMessage 브리지
   ├─ packages/schema     ← JSON Schema(NDJ/사이드카/브리지) → TS·pydantic 코드젠; API 타입은 OpenAPI→TS
-  └─ (P2) dmqto-server --mode server  ← 같은 코드, PostgreSQL + 오브젝트 스토어 + 인증, 클라이언트 동기화 API
+  └─ (P2) halo-engine --mode server  ← 같은 코드, PostgreSQL + 오브젝트 스토어 + 인증, 클라이언트 동기화 API
 ```
 
 ```
-dmcad/
+halo-cad/
 ├─ CLAUDE.md  package.json  pnpm-workspace.yaml  .nvmrc  .python-version  pyproject.toml  uv.lock
 ├─ .github/workflows/{ci.yml, package.yml, nightly-golden.yml}     # macos-14(arm64), macos-13(x64), windows-latest
 ├─ apps/desktop/   src/main/{index,sidecar,windows,menu}.ts  main/ipc/{files,convert,dwgwrite}.ts  preload/  electron-builder.yml  resources/{engine,fonts}
@@ -59,8 +59,8 @@ dmcad/
 ├─ apps/viewer3d/  별도 Vite 엔트리(iframe)
 ├─ apps/dms-admin/ (P2) 관리 UI, apps/web와 컴포넌트 공유
 ├─ packages/{cad-core, dwg-io-gpl, acad-bridge, schema, shared-types, diff, testing}
-├─ engine/  pyproject.toml  .python-version(3.12)  alembic.ini  dmqto-server.spec
-│   └─ src/dmqto/{cli,config}.py  api/{main,ws,jobs,routers/*}  db/{engine,models,repos,alembic}  model/
+├─ engine/  pyproject.toml  .python-version(3.12)  alembic.ini  halo-engine.spec
+│   └─ src/halo_engine/{cli,config}.py  api/{main,ws,jobs,routers/*}  db/{engine,models,repos,alembic}  model/
 │       server/{auth,storage,sync,revisions}.py                       # P2 DMS
 │       ingest/{dxf_loader,encoding,xref,working_dxf,entity_index,fingerprint,stats}.py
 │       sheetgraph/{frames,classify_rules,tags,floors,units_scale}.py
@@ -82,18 +82,18 @@ dmcad/
 
 ## 3. 사이드카 프로토콜
 
-1. main이 32바이트 토큰 생성 → `dmqto-server serve --data-dir <userData>/engine` 실행. env `DMQTO_TOKEN`(argv 금지), `DMQTO_PARENT_PID`, `PYTHONUTF8=1`.
+1. main이 32바이트 토큰 생성 → `halo-engine serve --data-dir <userData>/engine` 실행. env `HALO_ENGINE_TOKEN`(argv 금지), `HALO_ENGINE_PARENT_PID`, `PYTHONUTF8=1`.
 2. 엔진이 `127.0.0.1:0` 바인드 후 stdout 한 줄 `{"event":"ready","port":N,"version":...}`.
 3. main이 `/api/v1/system/health` 폴링(30s), 실패 시 로그 tail + "다시 시도".
 4. preload `window.dmcad.engine.getConnection()`으로 baseUrl+토큰 1회 전달. 렌더러는 openapi-fetch. WS 첫 프레임 `{"type":"auth","token"}`.
 5. 부모 PID 감시(부모 종료 시 5초 내 종료). 종료 `POST /system/shutdown` → 5초 → SIGTERM/taskkill. 크래시 시 3회 백오프 재시작, 진행 중 잡 `FAILED(engine_restart)`.
 6. 300ms 초과 작업은 `202 {job_id}`, ProcessPool(spawn, 2), WS `job.progress/done/failed`, `model.changed`. 대용량은 ETag/Range HTTP 스트림.
-7. 개발 모드: `DMCAD_ENGINE_URL` 지정 시 spawn 생략, `uv run dmqto serve --dev --reload`에 부착. Electron 없이 브라우저에서 UI 개발 가능.
+7. 개발 모드: `HALO_ENGINE_URL` 지정 시 spawn 생략, `uv run halo-engine serve --dev --reload`에 부착. Electron 없이 브라우저에서 UI 개발 가능.
 8. (P2) 서버 모드: 같은 라우터 + `server/*`, 인증은 어댑터(LDAP 또는 로컬 계정), 클라이언트 사이드카가 서버와 동기화(체크인/아웃, 리비전 업로드·다운로드). 로컬 사이드카는 오프라인에서도 동작.
 
 ## 4. 데이터 모델(부재 DB)
 
-번들 `<name>.dmqto/`: `project.json`, `project.sqlite`, `originals/<sha256>.dwg`(0444), `cache/dxf/<sha256>.working.dxf`, `cache/mesh/<run>/<floor>.glb`, `derivatives/`, `sidecars/*.json`(핸들 키, git diff 가능), `exports/`. 기하 WKB + bbox + R*Tree. id ULID. SQLite 전용 타입 회피(PostgreSQL 공용).
+번들 `<name>.halo/`: `project.json`, `project.sqlite`, `originals/<sha256>.dwg`(0444), `cache/dxf/<sha256>.working.dxf`, `cache/mesh/<run>/<floor>.glb`, `derivatives/`, `sidecars/*.json`(핸들 키, git diff 가능), `exports/`. 기하 WKB + bbox + R*Tree. id ULID. SQLite 전용 타입 회피(PostgreSQL 공용).
 
 - 파일: `project`, `drawing_set`(=DMS 리비전 단위), `drawing_file`(sha256, dwg_version, fingerprint_guid, codepage_declared/effective, working_dxf_path, parser_crosscheck), `xref_link`, `xref_handle_map`, `entity_index`(file_id, handle, etype, layer, block_name, bbox, length, area, text, fingerprint).
 - **EntityRef** `{file, handle, path[INSERT 체인], space, role}` — 모든 근거(evidence)의 단위.
@@ -139,7 +139,7 @@ dmcad/
 - **W0-01 저장소 부트스트랩** — Fable · `git init`, 루트 package.json(pnpm 10), workspace, `.nvmrc`, `.python-version`, `.gitignore`, `CLAUDE.md`(소유권 맵, 명령, 금지 영역, i18n, GPL 경계, no-ODA), ADR-0001 스택/0002 정본 DXF·NDJ/0003 높이 필드/0004 Three 격리/0005 단계 순서(1→3→2, 3D 먼저), `docs/briefs/TEMPLATE.md`, `docs/gates/G0.md`, `docs/samples/REQUEST.md` · 차단: 모든 W1.
 
 ### Wave 1 — 골격과 스파이크 (P0, 5 에이전트, ~7일)
-- **W1-01 Electron+Vite 골격** — Sonnet · `pnpm dev`로 "대명 CAD" 창; ESLint(`no-literal-string`, libredwg 임포트 제한), Prettier, Vitest, `tools/verify.sh`; 하드코딩 한글 리터럴 린트 실패 테스트 · 차단: W2-01, W2-07, W3-*.
+- **W1-01 Electron+Vite 골격** — Sonnet · `pnpm dev`로 "Halo CAD" 창; ESLint(`no-literal-string`, libredwg 임포트 제한), Prettier, Vitest, `tools/verify.sh`; 하드코딩 한글 리터럴 린트 실패 테스트 · 차단: W2-01, W2-07, W3-*.
 - **W1-02 Python 엔진 골격** — Sonnet · pyproject 핀, `uv sync` 청결, READY 라인, `/health` deps 버전, 네이티브 dep 임포트 테스트, ruff/mypy · 차단: W2-01, W2-03, W2-08.
 - **W1-03 합성 DXF 픽스처 생성기** — Sonnet · F01 기본 기하, F02 블록+속성, F03 한글 텍스트, F04 해치, F05 치수, F06 구조평면, F07 부재일람표(LINE+TEXT), F08 층고표+레벨, F09 실+문, F10 XREF, F11 20만, F12 100만; R2018·R12 cp949 변형; `truth/*.json` · 시드 결정론, ezdxf 재읽기 일치 · 차단: W2-*.
 - **W1-04 mlightcad 스파이크 + capability 감사** — Opus · `spikes/mlightcad/`, 워커 배선, `docs/spikes/mlightcad-api.md`, `mlightcad-capabilities.md`, 라이선스 트리 · F03 한글 스크린샷, "unknown" 없음 · 차단: W3-02, W3-05, W3-06, W4-03.
@@ -184,7 +184,7 @@ dmcad/
 
 ### Wave 6 — DMS 서버·모델 (P2, 5 에이전트, ~10일)
 - **W6-01 엔진 영속성 기반** — Sonnet · SQLAlchemy 2 모델(§4 파일·DMS 테이블), Alembic up/down, 리포지토리, SQLite/PostgreSQL DSN 스위치, 동일 테스트 양 DB 통과 · 차단: W6-02~.
-- **W6-02 DMS 서버 서비스** — Opus(2일) · `dmqto-server --mode server`: PostgreSQL, 오브젝트 스토어(파일시스템/MinIO 어댑터, sha256 주소), 인증 어댑터(LDAP + 로컬), 역할(관리자/편집자/열람), API 버저닝, 감사 로그 미들웨어, docker-compose 개발용 · 계약 테스트, 두 어댑터 모두 로그인 e2e · 차단: W6-03, W7-*.
+- **W6-02 DMS 서버 서비스** — Opus(2일) · `halo-engine --mode server`: PostgreSQL, 오브젝트 스토어(파일시스템/MinIO 어댑터, sha256 주소), 인증 어댑터(LDAP + 로컬), 역할(관리자/편집자/열람), API 버저닝, 감사 로그 미들웨어, docker-compose 개발용 · 계약 테스트, 두 어댑터 모두 로그인 e2e · 차단: W6-03, W7-*.
 - **W6-03 클라이언트 동기화** — Sonnet · 체크인/아웃, 해시 기반 충돌 감지, 오프라인 큐·재시도, 진행률 WS, 서버 연결 설정 UI · 두 클라이언트 동시 체크아웃 시 두 번째 거부, 오프라인 후 재동기화 e2e · 차단: W7-*.
 - **W6-04 리비전·계보·복원** — Sonnet · 리비전 체인(parent_rev), 파일 계보(fingerprint_guid, 사용자 확정), 임의 리비전 바이트 동일 복원, 리비전 라벨·노트 · 복원 sha256 일치 테스트 · 차단: W7-01.
 - **W6-05 DMS 픽스처** — Sonnet · F06 기반 리비전 A/B/C(기둥 이동, 보 단면 변경, 시트 추가·삭제, 파일명 변경) + 기대 diff · 차단: W7-01.
@@ -237,7 +237,7 @@ dmcad/
 - **W12-08 선형재 추출** — Sonnet · 부지·토목 폴리라인 타입 텍스트 매칭(경계석·측구), 걸레받이 후보(실 둘레−문폭) · 차단: W17-03, W19-03.
 
 ### Wave 13 — IFC·3D 골든·하드닝 (P3, 4 에이전트, ~8일)
-- **W13-01 IFC 내보내기·검증** — Opus · IfcColumn/Beam/Wall/Slab 돌출 솔리드, IfcBuildingStorey(SL), IfcSpace+Qto_SpaceBaseQuantities, IfcCovering 면 기하, IfcOpening, DMCAD id Pset; ifcopenshell validate; 3D 패널 web-ifc 로드 · Bonsai에서 열림 · 차단: G3.
+- **W13-01 IFC 내보내기·검증** — Opus · IfcColumn/Beam/Wall/Slab 돌출 솔리드, IfcBuildingStorey(SL), IfcSpace+Qto_SpaceBaseQuantities, IfcCovering 면 기하, IfcOpening, Halo CAD id Pset; ifcopenshell validate; 3D 패널 web-ifc 로드 · Bonsai에서 열림 · 차단: G3.
 - **W13-02 3D 재구성 골든(기하) 하네스** — Opus · 부재 배치·단면·레벨·실 폴리곤·면적을 truth와 비교(위치 ±20mm, 치수 정확, 면적 ±0.5%), 실제 세트는 사용자 라벨 대비 P/R, HTML 리포트, 야간 CI · 차단: G3.
 - **W13-03 하드닝·문서·G3 스크립트** — Sonnet · `docs/user/ko/10-model-workflow.md`, `docs/gates/G3.md`.
 - **W13-04 mlightcad 업그레이드 평가** — Sonnet+Fable(단계 경계 전용).
@@ -275,7 +275,7 @@ W19-01 외부 존 룰 YAML(Sonnet: 존 면적−창호, 파라펫·발코니 분
 
 **충돌 방지:** 에이전트별 git worktree, 브랜치 `task/<ID>`, 웨이브 통합 커밋 기준. 같은 웨이브에서 디렉터리 공유 금지. 통합 지점(스키마, API 경로·예시 `docs/contracts/<wave>.md`, IPC 채널명, i18n 키 접두)은 웨이브 시작 전 Fable이 고정. 의존 순서 병합, 병합마다 verify, 태그 `v0.<phase>.<wave>`. 신규 의존성은 MIT/BSD/Apache/MPL/OFL만(GPL은 `dwg-io-gpl` 내부만).
 
-**반환 태스크 검토 체크리스트(Fable 실행, 실패 시 델타 브리프):** (1) worktree에서 `tools/verify.sh` 녹색을 Fable이 직접 실행 (2) 새 테스트가 구현 되돌리면 실패하는지 1건 확인 (3) 소유 파일만 변경 (4) 라이선스 경계·ODA grep (5) i18n 린트, 신규 키 존재·미사용 없음 (6) NDJ 생산자 provenance, 물량 생산자 evidence+rule_id (7) CH↔SL/층고 비교 코드 없음, 구조체 SL·마감 CH (8) `derivatives/`·사이드카·`.dmqto/`·서버 스토어 외 쓰기 없음, 원본 해시 불변 (9) 시드 결정론 (10) contextIsolation on, nodeIntegration off, 127.0.0.1+토큰, DMS 서버는 TLS+인증, 텔레메트리 없음 (11) 성능 예산 (12) ADR/문서·`G<n>-questions.md` (13) 품질 드리프트: jscpd >50줄 없음, 주석 없는 `any`/`type: ignore` 없음, 함수 ≤~80줄, 파일 2개 샘플링.
+**반환 태스크 검토 체크리스트(Fable 실행, 실패 시 델타 브리프):** (1) worktree에서 `tools/verify.sh` 녹색을 Fable이 직접 실행 (2) 새 테스트가 구현 되돌리면 실패하는지 1건 확인 (3) 소유 파일만 변경 (4) 라이선스 경계·ODA grep (5) i18n 린트, 신규 키 존재·미사용 없음 (6) NDJ 생산자 provenance, 물량 생산자 evidence+rule_id (7) CH↔SL/층고 비교 코드 없음, 구조체 SL·마감 CH (8) `derivatives/`·사이드카·`.halo/`·서버 스토어 외 쓰기 없음, 원본 해시 불변 (9) 시드 결정론 (10) contextIsolation on, nodeIntegration off, 127.0.0.1+토큰, DMS 서버는 TLS+인증, 텔레메트리 없음 (11) 성능 예산 (12) ADR/문서·`G<n>-questions.md` (13) 품질 드리프트: jscpd >50줄 없음, 주석 없는 `any`/`type: ignore` 없음, 함수 ≤~80줄, 파일 2개 샘플링.
 
 **Fable이 직접 하는 것:** 계약 정의(부트스트랩, ADR, `CLAUDE.md`, 다중 패키지 스키마, API 계약 문서, 브리프), 통합(병합, lockfile, 스파이크 이식, 태그, 게이트 보고서), ~30줄 미만 델타, 골든 실패 클러스터 분류와 대체 프로토콜 결정, 사용자 소통. **하지 않는 것:** 기능 모듈·파서·UI 패널·테스트 스위트 직접 작성. 1시간 넘게 손코딩하면 멈추고 브리프 작성.
 
@@ -339,7 +339,7 @@ W19-01 외부 존 룰 YAML(Sonnet: 존 면적−창호, 파라펫·발코니 분
 
 ## 12. 사용자가 제공·수행해야 하는 것
 
-- **즉시:** uv 설치 승인(실행은 Claude); GitHub 비공개 저장소 URL; 앱 이름(기본 DMCAD).
+- **즉시:** uv 설치 승인(실행은 Claude); GitHub 비공개 저장소 URL; 앱 이름(기본 Halo CAD).
 - **샘플 요청(`docs/samples/REQUEST.md`):** 국내 DWG ~100개, ≥5 설계사무소·2008~2026, AC1021~1032; ≥20개는 AutoCAD 내보낸 DXF 동반; XREF 세트 ≥10; >50MB ≥5; 한글 SHX/빅폰트·cp949; 구조 일람표 ≥15장; 층고표 ≥10; 실내재료마감표·창호일람표 ≥10; 입면도 세트; 사무소 폰트 파일.
 - **P1까지(10월 말):** Apple Developer ID(연 99달러) vs MDM, Windows 서명 방식, Windows PC 유무.
 - **P2 진입(11월 초):** 서버 호스트(Linux VM 또는 Mac mini)+PostgreSQL, AD/LDAP 여부, 사용자·역할 정책, 도면번호 체계, 승인 절차.

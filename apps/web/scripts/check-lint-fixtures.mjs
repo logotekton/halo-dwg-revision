@@ -11,18 +11,28 @@
 // which defaults to the CURRENT WORKING DIRECTORY (not the --config file's
 // directory) -- so eslint must be invoked with cwd = repo root.
 import { spawnSync } from 'node:child_process'
+import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(__dirname, '..', '..', '..')
 
-const result = spawnSync('pnpm', ['exec', 'eslint', 'apps/web/lint-fixtures', '--config', 'eslint.config.js'], {
-  cwd: repoRoot,
-  encoding: 'utf8',
-})
+// Resolve the ESLint CLI from the repo root and run it with the current Node
+// binary: spawning `pnpm`/`eslint` by name breaks on Windows (they are .cmd
+// shims that need a shell), while spawning node directly is portable.
+const requireFromRoot = createRequire(join(repoRoot, 'package.json'))
+const eslintBin = requireFromRoot.resolve('eslint/bin/eslint.js')
 
-const output = `${result.stdout ?? ''}${result.stderr ?? ''}`
+const result = spawnSync(
+  process.execPath,
+  [eslintBin, 'apps/web/lint-fixtures', '--config', 'eslint.config.js'],
+  { cwd: repoRoot, encoding: 'utf8' },
+)
+
+// ESLint prints OS-native separators; normalise so the expectations below
+// match on Windows as well as POSIX.
+const output = `${result.stdout ?? ''}${result.stderr ?? ''}`.replace(/\\/g, '/')
 
 if (result.error) {
   console.error('[check-lint-fixtures] failed to run eslint:', result.error)

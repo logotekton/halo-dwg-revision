@@ -12,7 +12,7 @@
 // directory) -- so eslint must be invoked with cwd = repo root.
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
-import { dirname, join } from 'node:path'
+import { dirname, join, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -21,8 +21,12 @@ const repoRoot = join(__dirname, '..', '..', '..')
 // Resolve the ESLint CLI from the repo root and run it with the current Node
 // binary: spawning `pnpm`/`eslint` by name breaks on Windows (they are .cmd
 // shims that need a shell), while spawning node directly is portable.
+// eslint's package "exports" map does not expose bin/eslint.js, so resolve the
+// package entry (lib/api.js) and walk up to the package directory instead.
 const requireFromRoot = createRequire(join(repoRoot, 'package.json'))
-const eslintBin = requireFromRoot.resolve('eslint/bin/eslint.js')
+const eslintEntry = requireFromRoot.resolve('eslint')
+const eslintPkgDir = eslintEntry.slice(0, eslintEntry.lastIndexOf(`${sep}lib${sep}`))
+const eslintBin = join(eslintPkgDir, 'bin', 'eslint.js')
 
 const result = spawnSync(
   process.execPath,

@@ -63,3 +63,12 @@ bash tools/verify.sh
 ## 비밀(secret)
 
 이 워크플로는 어떤 GitHub Actions secret도 참조하지 않는다. `astral-sh/setup-uv`의 `github-token` 기본값(`${{ github.token }}`)만 암묵적으로 쓰인다(GitHub Releases 레이트리밋 완화용, 별도 설정 불필요).
+
+## 확인된 Windows 차이 (CI 실행 #2~#4, 2026-09-02)
+
+| 증상 | 원인 | 조치 |
+|---|---|---|
+| `astral-sh/setup-uv@v10` 해석 실패(양 OS) | 해당 액션은 메이저 별칭 태그를 만들지 않음 | 정확 태그 `v10.0.1` 고정 |
+| ts(windows) exit 1 | 린트 픽스처 검사가 `pnpm`을 셸 없이 spawn(`.cmd` 심), ESLint 출력 경로가 백슬래시 | Node로 ESLint 직접 실행, 구분자 정규화, `.npmrc shell-emulator=true` |
+| `test_ready_line_then_health` pid 불일치 | `halo-engine.exe` 런처가 파이썬을 자식으로 띄움 → Popen.pid ≠ READY.pid | 테스트는 READY pid 생존만 단언(POSIX는 등호 유지). 사이드카 종료는 프로세스 트리(`taskkill /T`) 필수 |
+| `test_parent_pid_watch...` 엔진 미종료 | `os.kill(pid, 0)`이 Windows에서는 TerminateProcess이며 없는 PID에 OSError | `halo_engine.procutil.pid_alive`(OpenProcess/GetExitCodeProcess)로 교체 |

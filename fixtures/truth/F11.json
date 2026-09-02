@@ -1,174 +1,154 @@
 {
-  "extra": {
-    "actual_entity_count": 200006,
-    "entities_per_tile": 85,
-    "note": "Per-tile member placement (columns/beams/grid) follows the same schema as F06.json's extra, offset by this tile's (tile_offset) and suffixed with '-T{index:05d}' on every tag/label -- not enumerated here to keep this truth file small.",
-    "target_entities": 200000,
-    "tile_count": 2353,
-    "tile_grid": {
-      "cols": 49,
-      "rows": 49,
-      "step_x": 40000.0,
-      "step_y": 30000.0
-    },
-    "tile_offset_formula": "(col * step_x, row * step_y), row-major, col = index % cols, row = index // cols",
-    "tile_source": "fixtures_gen.fixtures.f06_structural_plan.build"
-  },
-  "fixture": "F11",
-  "primary": {
-    "dxf_version": "AC1032",
-    "encoding": "cp1252",
-    "file": "F11.dxf",
-    "sha256": "fbb49aa8e206dcca1acbe73b2ccd7878b92b17fd188ee568206bc5480b6de518",
-    "size_bytes": 41375639,
-    "stats": {
-      "by_space": {
-        "Model": {
-          "by_layer": {
-            "A-TEXT": {
-              "bbox": [
-                8000.0,
-                8078.253752,
-                1954597.81719,
-                1462980.0
-              ],
-              "count_by_type": {
-                "TEXT": 70590
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {},
-              "length_sum": 0.0,
-              "text_count": 70590,
-              "text_hash": "b7b8c91067db4f505808fc943064b94fdfd2fd49"
-            },
-            "S-BEAM": {
-              "bbox": [
-                8000.0,
-                8000.0,
-                1953200.0,
-                1462400.0
-              ],
-              "count_by_type": {
-                "LINE": 40001
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {},
-              "length_sum": 313419600.0,
-              "text_count": 0,
-              "text_hash": null
-            },
-            "S-COL": {
-              "bbox": [
-                7700.0,
-                7700.0,
-                1953500.0,
-                1462700.0
-              ],
-              "count_by_type": {
-                "HATCH": 28236,
-                "LWPOLYLINE": 28236
-              },
-              "hatch_area_sum": 10164960000.0,
-              "insert_by_block": {},
-              "length_sum": 67766400.0,
-              "text_count": 0,
-              "text_hash": null
-            },
-            "X-GRID": {
-              "bbox": [
-                5755.839018,
-                7600.0,
-                1954444.160982,
-                1463800.0
-              ],
-              "count_by_type": {
-                "INSERT": 16471,
-                "LINE": 16471
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {
-                "GRID-BUBBLE": 16471
-              },
-              "length_sum": 323302200.0,
-              "text_count": 0,
-              "text_hash": null
-            },
-            "X-TITLE": {
-              "bbox": [
-                0.0,
-                -194.815825,
-                84100.0,
-                59400.0
-              ],
-              "count_by_type": {
-                "INSERT": 1
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {
-                "X-TITLE": 1
-              },
-              "length_sum": 0.0,
-              "text_count": 0,
-              "text_hash": null
-            }
-          },
-          "totals": {
-            "bbox": [
-              0.0,
-              -194.815825,
-              1954597.81719,
-              1463800.0
-            ],
-            "count_by_type": {
-              "HATCH": 28236,
-              "INSERT": 16472,
-              "LINE": 56472,
-              "LWPOLYLINE": 28236,
-              "TEXT": 70590
-            },
-            "hatch_area_sum": 10164960000.0,
-            "insert_by_block": {
-              "GRID-BUBBLE": 16471,
-              "X-TITLE": 1
-            },
-            "length_sum": 704488200.0,
-            "text_count": 70590,
-            "text_hash": "b7b8c91067db4f505808fc943064b94fdfd2fd49"
-          }
-        }
-      },
-      "totals": {
-        "bbox": [
-          0.0,
-          -194.815825,
-          1954597.81719,
-          1463800.0
-        ],
+  "buckets": [
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            1954597.81719,
+            1462980.0
+          ],
+          "min": [
+            8000.0,
+            8078.253752
+          ]
+        },
         "count_by_type": {
-          "HATCH": 28236,
-          "INSERT": 16472,
-          "LINE": 56472,
-          "LWPOLYLINE": 28236,
           "TEXT": 70590
         },
-        "hatch_area_sum": 10164960000.0,
+        "entity_count": 70590,
+        "hatch_area_sum_mm2": 0.0,
+        "insert_by_block": {},
+        "length_sum_mm": 0.0,
+        "text_count": 70590,
+        "text_hash": "c222a1fe86263c95"
+      },
+      "layer": "A-TEXT",
+      "space": "MODEL"
+    },
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            1953200.0,
+            1462400.0
+          ],
+          "min": [
+            8000.0,
+            8000.0
+          ]
+        },
+        "count_by_type": {
+          "LINE": 40001
+        },
+        "entity_count": 40001,
+        "hatch_area_sum_mm2": 0.0,
+        "insert_by_block": {},
+        "length_sum_mm": 313419600.0,
+        "text_count": 0,
+        "text_hash": "da39a3ee5e6b4b0d"
+      },
+      "layer": "S-BEAM",
+      "space": "MODEL"
+    },
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            1953500.0,
+            1462700.0
+          ],
+          "min": [
+            7700.0,
+            7700.0
+          ]
+        },
+        "count_by_type": {
+          "HATCH": 28236,
+          "LWPOLYLINE": 28236
+        },
+        "entity_count": 56472,
+        "hatch_area_sum_mm2": 10164960000.0,
+        "insert_by_block": {},
+        "length_sum_mm": 67766400.0,
+        "text_count": 0,
+        "text_hash": "da39a3ee5e6b4b0d"
+      },
+      "layer": "S-COL",
+      "space": "MODEL"
+    },
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            1954444.160982,
+            1463800.0
+          ],
+          "min": [
+            5755.839018,
+            7600.0
+          ]
+        },
+        "count_by_type": {
+          "INSERT": 16471,
+          "LINE": 16471
+        },
+        "entity_count": 32942,
+        "hatch_area_sum_mm2": 0.0,
         "insert_by_block": {
-          "GRID-BUBBLE": 16471,
+          "GRID-BUBBLE": 16471
+        },
+        "length_sum_mm": 323302200.0,
+        "text_count": 16471,
+        "text_hash": "eb77ee7732b3986d"
+      },
+      "layer": "X-GRID",
+      "space": "MODEL"
+    },
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            84100.0,
+            59400.0
+          ],
+          "min": [
+            0.0,
+            -194.815825
+          ]
+        },
+        "count_by_type": {
+          "INSERT": 1
+        },
+        "entity_count": 1,
+        "hatch_area_sum_mm2": 0.0,
+        "insert_by_block": {
           "X-TITLE": 1
         },
-        "length_sum": 704488200.0,
-        "text_count": 70590,
-        "text_hash": "b7b8c91067db4f505808fc943064b94fdfd2fd49"
-      }
+        "length_sum_mm": 0.0,
+        "text_count": 3,
+        "text_hash": "b10f4a889d563cff"
+      },
+      "layer": "X-TITLE",
+      "space": "MODEL"
     }
+  ],
+  "file_sha256": "3b35b2a73112fa2c413d2a96254dca45b418def164ad3923ea3d633f36af3a8b",
+  "producer": {
+    "name": "engine.ezdxf",
+    "version": "fixtures-gen/0.1.0+ezdxf/1.4.4"
   },
+  "schema_version": "0.1",
   "totals": {
-    "bbox": [
-      0.0,
-      -194.815825,
-      1954597.81719,
-      1463800.0
-    ],
+    "bbox": {
+      "max": [
+        1954597.81719,
+        1463800.0
+      ],
+      "min": [
+        0.0,
+        -194.815825
+      ]
+    },
     "count_by_type": {
       "HATCH": 28236,
       "INSERT": 16472,
@@ -176,13 +156,14 @@
       "LWPOLYLINE": 28236,
       "TEXT": 70590
     },
-    "hatch_area_sum": 10164960000.0,
+    "entity_count": 200006,
+    "hatch_area_sum_mm2": 10164960000.0,
     "insert_by_block": {
       "GRID-BUBBLE": 16471,
       "X-TITLE": 1
     },
-    "length_sum": 704488200.0,
-    "text_count": 70590,
-    "text_hash": "b7b8c91067db4f505808fc943064b94fdfd2fd49"
+    "length_sum_mm": 704488200.0,
+    "text_count": 87064,
+    "text_hash": "29c700ff3c7bbf02"
   }
 }

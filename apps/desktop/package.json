@@ -1,5 +1,6 @@
 {
   "name": "@halo-cad/desktop",
+  "productName": "Halo CAD",
   "private": true,
   "version": "0.0.1",
   "description": "Halo CAD Electron shell (main + preload only; renderer is apps/web)",
@@ -8,13 +9,17 @@
     "dev": "node scripts/dev.mjs",
     "build": "electron-vite build",
     "start": "electron .",
+    "build:app": "electron-builder --config electron-builder.yml",
+    "start:packaged": "open '../../dist/mac-arm64/Halo CAD.app'",
     "lint": "cd ../.. && eslint apps/desktop/src apps/desktop/electron.vite.config.ts apps/desktop/scripts apps/desktop/vitest.config.ts --config eslint.config.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "devDependencies": {
     "@types/node": "24.9.1",
     "electron": "44.1.1",
+    "electron-builder": "26.15.3",
     "electron-vite": "5.0.0",
     "typescript": "5.9.3",
     "vite": "7.3.6",

@@ -1,0 +1,507 @@
+{
+  "extra": {
+    "attribs_per_insert": [
+      "TAG",
+      "SIZE"
+    ],
+    "blocks": [
+      "DOOR_900",
+      "WIN_1800",
+      "COL_600",
+      "COL_PAIR"
+    ],
+    "insert_count": 30,
+    "nested_block": "COL_PAIR",
+    "nested_block_contains": [
+      "COL_600",
+      "COL_600"
+    ],
+    "placements": [
+      {
+        "block": "DOOR_900",
+        "insert": [
+          0.0,
+          0.0
+        ],
+        "rotation": 35.804142177157914,
+        "scale": 1.0138159742801454,
+        "tag": "AD1"
+      },
+      {
+        "block": "DOOR_900",
+        "insert": [
+          2400.0,
+          0.0
+        ],
+        "rotation": 220.14983598637187,
+        "scale": 1.2032100708710995,
+        "tag": "AD2"
+      },
+      {
+        "block": "DOOR_900",
+        "insert": [
+          4800.0,
+          0.0
+        ],
+        "rotation": 79.28401156785282,
+        "scale": 0.9766150778975764,
+        "tag": "AD3"
+      },
+      {
+        "block": "DOOR_900",
+        "insert": [
+          7200.0,
+          0.0
+        ],
+        "rotation": 129.49306347446338,
+        "scale": 1.1074558649012156,
+        "tag": "AD4"
+      },
+      {
+        "block": "DOOR_900",
+        "insert": [
+          9600.0,
+          0.0
+        ],
+        "rotation": 335.2593705915301,
+        "scale": 0.9165987107463084,
+        "tag": "AD5"
+      },
+      {
+        "block": "DOOR_900",
+        "insert": [
+          12000.0,
+          0.0
+        ],
+        "rotation": 76.68273635358642,
+        "scale": 0.9993020863320627,
+        "tag": "AD6"
+      },
+      {
+        "block": "DOOR_900",
+        "insert": [
+          0.0,
+          -2400.0
+        ],
+        "rotation": 77.4756877162131,
+        "scale": 0.9146744733748475,
+        "tag": "AD7"
+      },
+      {
+        "block": "DOOR_900",
+        "insert": [
+          2400.0,
+          -2400.0
+        ],
+        "rotation": 188.67564031921668,
+        "scale": 1.2973452818256161,
+        "tag": "AD8"
+      },
+      {
+        "block": "DOOR_900",
+        "insert": [
+          4800.0,
+          -2400.0
+        ],
+        "rotation": 343.17822366698476,
+        "scale": 1.185173834894089,
+        "tag": "AD9"
+      },
+      {
+        "block": "DOOR_900",
+        "insert": [
+          7200.0,
+          -2400.0
+        ],
+        "rotation": 8.592506431217576,
+        "scale": 1.1289108679765025,
+        "tag": "AD10"
+      },
+      {
+        "block": "WIN_1800",
+        "insert": [
+          9600.0,
+          -2400.0
+        ],
+        "rotation": 72.58944324428847,
+        "scale": 0.8049627851704659,
+        "tag": "AW1"
+      },
+      {
+        "block": "WIN_1800",
+        "insert": [
+          12000.0,
+          -2400.0
+        ],
+        "rotation": 32.682822815368716,
+        "scale": 0.9198714302609896,
+        "tag": "AW2"
+      },
+      {
+        "block": "WIN_1800",
+        "insert": [
+          0.0,
+          -4800.0
+        ],
+        "rotation": 211.47509869717652,
+        "scale": 0.9324637009360631,
+        "tag": "AW3"
+      },
+      {
+        "block": "WIN_1800",
+        "insert": [
+          2400.0,
+          -4800.0
+        ],
+        "rotation": 36.66943789794165,
+        "scale": 0.9383805639131233,
+        "tag": "AW4"
+      },
+      {
+        "block": "WIN_1800",
+        "insert": [
+          4800.0,
+          -4800.0
+        ],
+        "rotation": 194.65581666342837,
+        "scale": 1.0933413842249455,
+        "tag": "AW5"
+      },
+      {
+        "block": "WIN_1800",
+        "insert": [
+          7200.0,
+          -4800.0
+        ],
+        "rotation": 179.57086353714553,
+        "scale": 0.9511188497010985,
+        "tag": "AW6"
+      },
+      {
+        "block": "WIN_1800",
+        "insert": [
+          9600.0,
+          -4800.0
+        ],
+        "rotation": 201.79342492844367,
+        "scale": 1.2412849974079594,
+        "tag": "AW7"
+      },
+      {
+        "block": "WIN_1800",
+        "insert": [
+          12000.0,
+          -4800.0
+        ],
+        "rotation": 312.8710313719434,
+        "scale": 0.852475996349622,
+        "tag": "AW8"
+      },
+      {
+        "block": "WIN_1800",
+        "insert": [
+          0.0,
+          -7200.0
+        ],
+        "rotation": 223.06238591728155,
+        "scale": 1.0077023628479227,
+        "tag": "AW9"
+      },
+      {
+        "block": "WIN_1800",
+        "insert": [
+          2400.0,
+          -7200.0
+        ],
+        "rotation": 93.62730693516068,
+        "scale": 1.036384647261353,
+        "tag": "AW10"
+      },
+      {
+        "block": "COL_600",
+        "insert": [
+          4800.0,
+          -7200.0
+        ],
+        "rotation": 90.0,
+        "scale": 1.0,
+        "tag": "C1"
+      },
+      {
+        "block": "COL_600",
+        "insert": [
+          7200.0,
+          -7200.0
+        ],
+        "rotation": 270.0,
+        "scale": 1.0,
+        "tag": "C2"
+      },
+      {
+        "block": "COL_600",
+        "insert": [
+          9600.0,
+          -7200.0
+        ],
+        "rotation": 90.0,
+        "scale": 1.0,
+        "tag": "C3"
+      },
+      {
+        "block": "COL_600",
+        "insert": [
+          12000.0,
+          -7200.0
+        ],
+        "rotation": 0.0,
+        "scale": 1.0,
+        "tag": "C4"
+      },
+      {
+        "block": "COL_600",
+        "insert": [
+          0.0,
+          -9600.0
+        ],
+        "rotation": 90.0,
+        "scale": 1.0,
+        "tag": "C5"
+      },
+      {
+        "block": "COL_600",
+        "insert": [
+          2400.0,
+          -9600.0
+        ],
+        "rotation": 180.0,
+        "scale": 1.0,
+        "tag": "C6"
+      },
+      {
+        "block": "COL_600",
+        "insert": [
+          4800.0,
+          -9600.0
+        ],
+        "rotation": 90.0,
+        "scale": 1.0,
+        "tag": "C7"
+      },
+      {
+        "block": "COL_600",
+        "insert": [
+          7200.0,
+          -9600.0
+        ],
+        "rotation": 270.0,
+        "scale": 1.0,
+        "tag": "C8"
+      },
+      {
+        "block": "COL_600",
+        "insert": [
+          9600.0,
+          -9600.0
+        ],
+        "rotation": 180.0,
+        "scale": 1.0,
+        "tag": "C9"
+      },
+      {
+        "block": "COL_PAIR",
+        "insert": [
+          12000.0,
+          -9600.0
+        ],
+        "rotation": 0.0,
+        "scale": 1.0,
+        "tag": "C-PAIR1"
+      }
+    ]
+  },
+  "fixture": "F02",
+  "primary": {
+    "dxf_version": "AC1032",
+    "encoding": "cp1252",
+    "file": "F02.dxf",
+    "sha256": "ecd79606b09bc30f0aee447093140e95fece9dd952fb5b6db00780786de78e58",
+    "size_bytes": 80118
+  },
+  "variants": {
+    "r2000_cp949": {
+      "dxf_version": "AC1015",
+      "encoding": "cp949",
+      "file": "F02_r2000_cp949.dxf",
+      "omitted": [],
+      "sha256": "e472327224608b1509eb0c13c95a0d9a8901fd845e10e6d406273fb06f198fdc",
+      "size_bytes": 56707,
+      "stats": {
+        "buckets": [
+          {
+            "aggregate": {
+              "bbox": {
+                "max": [
+                  13800.0,
+                  -9000.0
+                ],
+                "min": [
+                  12000.0,
+                  -9627.830832
+                ]
+              },
+              "count_by_type": {
+                "INSERT": 1
+              },
+              "entity_count": 1,
+              "hatch_area_sum_mm2": 0.0,
+              "insert_by_block": {
+                "COL_PAIR": 1
+              },
+              "length_sum_mm": 0.0,
+              "text_count": 0,
+              "text_hash": "da39a3ee5e6b4b0d"
+            },
+            "layer": "0",
+            "space": "MODEL"
+          },
+          {
+            "aggregate": {
+              "bbox": {
+                "max": [
+                  13107.471849,
+                  1135.767174
+                ],
+                "min": [
+                  -702.57084,
+                  -3564.20748
+                ]
+              },
+              "count_by_type": {
+                "INSERT": 10
+              },
+              "entity_count": 10,
+              "hatch_area_sum_mm2": 0.0,
+              "insert_by_block": {
+                "DOOR_900": 10
+              },
+              "length_sum_mm": 0.0,
+              "text_count": 0,
+              "text_hash": "da39a3ee5e6b4b0d"
+            },
+            "layer": "A-DOOR",
+            "space": "MODEL"
+          },
+          {
+            "aggregate": {
+              "bbox": {
+                "max": [
+                  12551.159618,
+                  467.702379
+                ],
+                "min": [
+                  -296.305979,
+                  -9921.609823
+                ]
+              },
+              "count_by_type": {},
+              "entity_count": 0,
+              "hatch_area_sum_mm2": 0.0,
+              "insert_by_block": {},
+              "length_sum_mm": 0.0,
+              "text_count": 60,
+              "text_hash": "afab49569fab99df"
+            },
+            "layer": "A-TEXT",
+            "space": "MODEL"
+          },
+          {
+            "aggregate": {
+              "bbox": {
+                "max": [
+                  14020.72255,
+                  -2001.329158
+                ],
+                "min": [
+                  -1209.719803,
+                  -8411.656836
+                ]
+              },
+              "count_by_type": {
+                "INSERT": 10
+              },
+              "entity_count": 10,
+              "hatch_area_sum_mm2": 0.0,
+              "insert_by_block": {
+                "WIN_1800": 10
+              },
+              "length_sum_mm": 0.0,
+              "text_count": 0,
+              "text_hash": "da39a3ee5e6b4b0d"
+            },
+            "layer": "A-WIND",
+            "space": "MODEL"
+          },
+          {
+            "aggregate": {
+              "bbox": {
+                "max": [
+                  12027.830832,
+                  -6600.0
+                ],
+                "min": [
+                  -27.830832,
+                  -10200.0
+                ]
+              },
+              "count_by_type": {
+                "INSERT": 9
+              },
+              "entity_count": 9,
+              "hatch_area_sum_mm2": 0.0,
+              "insert_by_block": {
+                "COL_600": 9
+              },
+              "length_sum_mm": 0.0,
+              "text_count": 0,
+              "text_hash": "da39a3ee5e6b4b0d"
+            },
+            "layer": "S-COL",
+            "space": "MODEL"
+          }
+        ],
+        "file_sha256": "e472327224608b1509eb0c13c95a0d9a8901fd845e10e6d406273fb06f198fdc",
+        "producer": {
+          "name": "engine.ezdxf",
+          "version": "fixtures-gen/0.1.0+ezdxf/1.4.4"
+        },
+        "schema_version": "0.1",
+        "totals": {
+          "bbox": {
+            "max": [
+              14020.72255,
+              1135.767174
+            ],
+            "min": [
+              -1209.719803,
+              -10200.0
+            ]
+          },
+          "count_by_type": {
+            "INSERT": 30
+          },
+          "entity_count": 30,
+          "hatch_area_sum_mm2": 0.0,
+          "insert_by_block": {
+            "COL_600": 9,
+            "COL_PAIR": 1,
+            "DOOR_900": 10,
+            "WIN_1800": 10
+          },
+          "length_sum_mm": 0.0,
+          "text_count": 60,
+          "text_hash": "afab49569fab99df"
+        }
+      }
+    }
+  }
+}

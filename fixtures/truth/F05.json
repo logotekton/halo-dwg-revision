@@ -1,230 +1,110 @@
 {
-  "extra": {
-    "dimstyles": [
-      "HALO-DIM1",
-      "HALO-DIM2"
-    ],
-    "kinds_created": [
-      "linear",
-      "aligned",
-      "angular",
-      "radius",
-      "diameter",
-      "ordinate_x",
-      "ordinate_y",
-      "leader",
-      "multileader"
-    ]
-  },
-  "fixture": "F05",
-  "primary": {
-    "dxf_version": "AC1032",
-    "encoding": "cp1252",
-    "file": "F05.dxf",
-    "sha256": "ae4f5f05405c9e65f313e9c5a80ddf86f3cb99b0f31f69f724a1484eb6397e04",
-    "size_bytes": 69167,
-    "stats": {
-      "by_space": {
-        "Model": {
-          "by_layer": {
-            "0": {
-              "bbox": [
-                2467.020464,
-                -1600.0,
-                3000.0,
-                -1198.0
-              ],
-              "count_by_type": {
-                "MULTILEADER": 1
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {},
-              "length_sum": 0.0,
-              "text_count": 0,
-              "text_hash": null
-            },
-            "A-DIM": {
-              "bbox": [
-                0.0,
-                -1800.0,
-                12166.54161,
-                1516.54161
-              ],
-              "count_by_type": {
-                "DIMENSION": 7,
-                "LEADER": 1
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {},
-              "length_sum": 0.0,
-              "text_count": 0,
-              "text_hash": null
-            },
-            "S-COL": {
-              "bbox": [
-                6500.0,
-                -500.0,
-                9400.0,
-                500.0
-              ],
-              "count_by_type": {
-                "CIRCLE": 2
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {},
-              "length_sum": 5654.866776,
-              "text_count": 0,
-              "text_hash": null
-            }
-          },
-          "totals": {
-            "bbox": [
-              0.0,
-              -1800.0,
-              12166.54161,
-              1516.54161
-            ],
-            "count_by_type": {
-              "CIRCLE": 2,
-              "DIMENSION": 7,
-              "LEADER": 1,
-              "MULTILEADER": 1
-            },
-            "hatch_area_sum": 0.0,
-            "insert_by_block": {},
-            "length_sum": 5654.866776,
-            "text_count": 0,
-            "text_hash": null
-          }
-        }
-      },
-      "totals": {
-        "bbox": [
-          0.0,
-          -1800.0,
-          12166.54161,
-          1516.54161
-        ],
+  "buckets": [
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            3000.0,
+            -1198.0
+          ],
+          "min": [
+            2467.020464,
+            -1600.0
+          ]
+        },
         "count_by_type": {
-          "CIRCLE": 2,
-          "DIMENSION": 7,
-          "LEADER": 1,
           "MULTILEADER": 1
         },
-        "hatch_area_sum": 0.0,
+        "entity_count": 1,
+        "hatch_area_sum_mm2": 0.0,
         "insert_by_block": {},
-        "length_sum": 5654.866776,
+        "length_sum_mm": 0.0,
         "text_count": 0,
-        "text_hash": null
-      }
+        "text_hash": "da39a3ee5e6b4b0d"
+      },
+      "layer": "0",
+      "space": "MODEL"
+    },
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            12166.54161,
+            1516.54161
+          ],
+          "min": [
+            0.0,
+            -1800.0
+          ]
+        },
+        "count_by_type": {
+          "DIMENSION": 7,
+          "LEADER": 1
+        },
+        "entity_count": 8,
+        "hatch_area_sum_mm2": 0.0,
+        "insert_by_block": {},
+        "length_sum_mm": 0.0,
+        "text_count": 0,
+        "text_hash": "da39a3ee5e6b4b0d"
+      },
+      "layer": "A-DIM",
+      "space": "MODEL"
+    },
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            9400.0,
+            500.0
+          ],
+          "min": [
+            6500.0,
+            -500.0
+          ]
+        },
+        "count_by_type": {
+          "CIRCLE": 2
+        },
+        "entity_count": 2,
+        "hatch_area_sum_mm2": 0.0,
+        "insert_by_block": {},
+        "length_sum_mm": 5654.866776,
+        "text_count": 0,
+        "text_hash": "da39a3ee5e6b4b0d"
+      },
+      "layer": "S-COL",
+      "space": "MODEL"
     }
+  ],
+  "file_sha256": "ae4f5f05405c9e65f313e9c5a80ddf86f3cb99b0f31f69f724a1484eb6397e04",
+  "producer": {
+    "name": "engine.ezdxf",
+    "version": "fixtures-gen/0.1.0+ezdxf/1.4.4"
   },
+  "schema_version": "0.1",
   "totals": {
-    "bbox": [
-      0.0,
-      -1800.0,
-      12166.54161,
-      1516.54161
-    ],
+    "bbox": {
+      "max": [
+        12166.54161,
+        1516.54161
+      ],
+      "min": [
+        0.0,
+        -1800.0
+      ]
+    },
     "count_by_type": {
       "CIRCLE": 2,
       "DIMENSION": 7,
       "LEADER": 1,
       "MULTILEADER": 1
     },
-    "hatch_area_sum": 0.0,
+    "entity_count": 11,
+    "hatch_area_sum_mm2": 0.0,
     "insert_by_block": {},
-    "length_sum": 5654.866776,
+    "length_sum_mm": 5654.866776,
     "text_count": 0,
-    "text_hash": null
-  },
-  "variants": {
-    "r2000_cp949": {
-      "dxf_version": "AC1015",
-      "encoding": "cp949",
-      "file": "F05_r2000_cp949.dxf",
-      "omitted": [
-        "MULTILEADER: requires DXF R2007+, omitted for R2000"
-      ],
-      "sha256": "8537e9ab5836bb8170a5b881d64e4dedd952151148714a2881ce616afc7879f6",
-      "size_bytes": 47412,
-      "stats": {
-        "by_space": {
-          "Model": {
-            "by_layer": {
-              "A-DIM": {
-                "bbox": [
-                  0.0,
-                  -1800.0,
-                  12166.54161,
-                  1516.54161
-                ],
-                "count_by_type": {
-                  "DIMENSION": 7,
-                  "LEADER": 1
-                },
-                "hatch_area_sum": 0.0,
-                "insert_by_block": {},
-                "length_sum": 0.0,
-                "text_count": 0,
-                "text_hash": null
-              },
-              "S-COL": {
-                "bbox": [
-                  6500.0,
-                  -500.0,
-                  9400.0,
-                  500.0
-                ],
-                "count_by_type": {
-                  "CIRCLE": 2
-                },
-                "hatch_area_sum": 0.0,
-                "insert_by_block": {},
-                "length_sum": 5654.866776,
-                "text_count": 0,
-                "text_hash": null
-              }
-            },
-            "totals": {
-              "bbox": [
-                0.0,
-                -1800.0,
-                12166.54161,
-                1516.54161
-              ],
-              "count_by_type": {
-                "CIRCLE": 2,
-                "DIMENSION": 7,
-                "LEADER": 1
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {},
-              "length_sum": 5654.866776,
-              "text_count": 0,
-              "text_hash": null
-            }
-          }
-        },
-        "totals": {
-          "bbox": [
-            0.0,
-            -1800.0,
-            12166.54161,
-            1516.54161
-          ],
-          "count_by_type": {
-            "CIRCLE": 2,
-            "DIMENSION": 7,
-            "LEADER": 1
-          },
-          "hatch_area_sum": 0.0,
-          "insert_by_block": {},
-          "length_sum": 5654.866776,
-          "text_count": 0,
-          "text_hash": null
-        }
-      }
-    }
+    "text_hash": "da39a3ee5e6b4b0d"
   }
 }

@@ -16,6 +16,8 @@ from collections.abc import Iterator
 import httpx
 import pytest
 
+from halo_engine.procutil import pid_alive
+
 READY_TIMEOUT_S = 20.0
 SHUTDOWN_TIMEOUT_S = 5.0
 PARENT_WATCH_TIMEOUT_S = 15.0  # watcher polls every 5s; leave margin
@@ -64,7 +66,12 @@ def test_ready_line_then_health(engine_proc: subprocess.Popen[str]) -> None:
     ready = _read_ready_line(engine_proc)
     assert ready["event"] == "ready"
     assert isinstance(ready["port"], int) and ready["port"] > 0
-    assert ready["pid"] == engine_proc.pid
+    # On Windows `halo-engine` is a .exe launcher that spawns python as a child, so the
+    # READY pid (the real server) differs from Popen.pid (the launcher). Electron must
+    # therefore kill the process tree on shutdown (docs/contracts/wave-2.md).
+    assert pid_alive(ready["pid"])
+    if sys.platform != "win32":
+        assert ready["pid"] == engine_proc.pid
     assert ready["version"] == "0.0.1"
 
     base = f"http://127.0.0.1:{ready['port']}"

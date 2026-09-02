@@ -14,7 +14,7 @@ from fixtures_gen.fixtures.f09_rooms import WALL_THICKNESS
 
 
 def test_f09_gap_count_and_width(truth_dir) -> None:
-    truth = json.loads((truth_dir / "F09.json").read_text(encoding="utf-8"))
+    truth = json.loads((truth_dir / "F09.extra.json").read_text(encoding="utf-8"))
     gaps = truth["extra"]["gaps"]
     assert len(gaps) == 2
     for g in gaps:
@@ -22,7 +22,7 @@ def test_f09_gap_count_and_width(truth_dir) -> None:
 
 
 def test_f09_gaps_are_real_breaks_in_geometry(generated_dir, truth_dir) -> None:
-    truth = json.loads((truth_dir / "F09.json").read_text(encoding="utf-8"))
+    truth = json.loads((truth_dir / "F09.extra.json").read_text(encoding="utf-8"))
     gaps = truth["extra"]["gaps"]
     doc = ezdxf.readfile(str(generated_dir / "F09.dxf"))
     wall_lines = [e for e in doc.modelspace().query("LINE") if e.dxf.layer == "A-WALL"]

@@ -62,6 +62,33 @@ uvicorn/애플리케이션 로그는 모두 `stderr`로 간다 — stdout은 이
 
 CORS는 `halocad://app`, `http://localhost:5173`, `http://127.0.0.1:5173`만 허용한다.
 
+## 파일 인입 (ingest, `docs/adr/0002-working-dxf.md`)
+
+```bash
+uv run halo-engine stats <dxf 경로> --out <json 경로>
+uv run halo-engine ingest <dxf 경로> --out <출력 디렉터리> [--search-path P]...
+```
+
+두 서브커맨드 모두 stdout에 결과 경로만 찍는다(사이드카 프로토콜의 READY 줄과 마찬가지로
+로그는 stderr, 결과는 stdout 한 줄).
+
+- `stats` — `halo_engine.ingest.stats.compute_layer_stats()`로 `LayerStatsDocument`
+  (`packages/schema/src/stats/layer-stats.schema.json`)를 계산해 `--out`에 쓴다.
+- `ingest` — 작업용 DXF 정본(`docs/adr/0002-working-dxf.md`)을 만든다: `ezdxf.readfile` →
+  실패 시 `ezdxf.recover.readfile`(`ingest/dxf_loader.py`), R2007 이전 코드페이지 모지바케
+  보정(`ingest/encoding.py`), XREF 임베드(`ingest/xref.py`, `ezdxf.xref.Loader` 기반, 5단계
+  경로 해석), R2018(AC1032) UTF-8로 업그레이드해 저장한다. `--out` 아래 원본 sha256을 키로
+  네 파일을 쓴다: `<sha256>.working.dxf`, `<sha256>.working.json`(메타: 원본/작업 sha256,
+  코드페이지, 감사 오류 수, 핸들 맵·통계 경로), `<sha256>.stats.json`(LayerStatsDocument),
+  `<sha256>.xref-handles.json`(임베드 시 재번호된 `{xref_file, original_handle,
+  bound_handle}` 목록).
+
+레이아웃(아래 "레이아웃" 절 참고): `ingest/dxf_loader.py`, `ingest/encoding.py`,
+`ingest/xref.py`, `ingest/entity_index.py`(최상위 엔티티 레코드 생성기, SQLite 저장은
+W6-01), `ingest/stats.py`, `ingest/working_dxf.py`. `ingest/stats.py`는 `fixtures_gen/stats.py`
+(`fixtures/gen/`, 독립 uv 프로젝트)와 서로 임포트하지 않는 별도 구현이며, 두 결과는
+F01~F10에서 정렬 직렬화 기준으로 일치해야 한다(`tests/ingest/test_engine_crosscheck.py`).
+
 ## 테스트
 
 ```bash
@@ -73,6 +100,14 @@ uv run pytest -q
 - `tests/test_api.py` — `TestClient`로 인증·라우팅을 검증한다(실제 소켓 없음).
 - `tests/test_serve.py` — 설치된 `halo-engine` 콘솔 스크립트를 서브프로세스로 띄워 READY 핸드셰이크,
   `/health`, `/shutdown`, 부모 PID 감시(부모가 죽으면 5초 내 종료)를 end-to-end로 검증한다.
+- `tests/ingest/` — 로더 복구·감사(`test_dxf_loader.py`), 인코딩 보정·MIF/유니코드
+  디코드(`test_encoding.py`), XREF 경로 해석 5단계·임베드·핸들 맵(`test_xref.py`), 통계
+  계약(ATTRIB 처리·해시·bbox·entity_count 불변식, `test_stats.py`), 엔티티 인덱스
+  JSONL(`test_entity_index.py`), 작업용 DXF 산출물·결정론(`test_working_dxf.py`),
+  `fixtures/truth/F*.json`이 `LayerStatsDocument` 스키마를 통과하는지(`jsonschema` +
+  `referencing`, `test_truth_schema.py`), 엔진 stats와 `fixtures_gen.stats`가 F01~F10에서
+  일치하는지(`test_engine_crosscheck.py`)를 검증한다. `fixtures/generated`·`fixtures/truth`가
+  없으면(`cd fixtures/gen && uv run python -m fixtures_gen` 실행 전) 해당 테스트는 skip된다.
 
 ## 린트·타입
 
@@ -90,14 +125,22 @@ strict mypy가 적용된다 — 첫 실제 모듈부터 타입 검사가 걸린�
 ```
 src/halo_engine/
   __init__.py      # __version__
-  cli.py           # typer: serve
+  cli.py           # typer: serve, ingest, stats
   config.py        # pydantic-settings, env prefix HALO_ENGINE_
   api/
     main.py        # FastAPI 앱 팩토리 create_app(settings)
     routers/
       system.py    # health / capabilities / shutdown
+  ingest/          # DXF 로드·인코딩·XREF·정본·통계 (W2-03)
+    dxf_loader.py    # ezdxf.readfile -> 실패 시 ezdxf.recover, 헤더/감사 추출
+    encoding.py      # R2007 이전 코드페이지 모지바케 점수·cp949 재시도, \M+/\U+ 디코드
+    xref.py          # XREF 경로 해석(5단계)·임베드(ezdxf.xref.Loader)·핸들 맵
+    entity_index.py  # 최상위 엔티티 레코드 생성기(iterable/JSONL, SQLite는 W6-01)
+    stats.py         # LayerStatsDocument (fixtures_gen/stats.py와 독립 구현)
+    working_dxf.py   # 위 넷을 조합해 <sha256>.working.dxf/.json 생성
   model/           # 부재·공간·면 모델 (W3+)
   rules/           # 적산 룰 엔진 (W4+)
   geometry/        # 3D 재구성 기하 (W3+)
 tests/
+  ingest/          # ingest/** 단위·통합 테스트
 ```

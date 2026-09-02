@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  // Tests and the asset copier run as ESM (vitest / `node scripts/*.mjs`) and
+  // use `import.meta`; the package itself still emits CommonJS.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true
+  },
+  "include": ["src/**/*", "test/**/*", "scripts/**/*"]
+}

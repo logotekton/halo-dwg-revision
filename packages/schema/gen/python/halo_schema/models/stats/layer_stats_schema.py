@@ -3,10 +3,10 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field, RootModel, constr
 
 from ..common import primitives_schema
-from ..ndj import document_schema, entity_schema
+from ..ndj import document_schema
 
 
 class CountByType(RootModel[int]):
@@ -25,9 +25,9 @@ class Aggregate(BaseModel):
         extra='forbid',
     )
     entity_count: int = Field(..., ge=0)
-    count_by_type: dict[entity_schema.EntityType, CountByType] = Field(..., title='CountByType')
+    count_by_type: dict[constr(pattern=r'^[A-Z][A-Z0-9_]*$'), CountByType] = Field(..., title='CountByType')
     """
-    Entity count per normalised entity type. Types with a zero count are omitted.
+    Entity count per raw DXF record name (dxfTypeName, e.g. LINE, MULTILEADER, TRACE) as required by docs/contracts/stats-definition.md. Keys are not normalised to the NDJ entity_type enum. Types with a zero count are omitted.
     """
     length_sum_mm: float = Field(..., ge=0.0)
     """

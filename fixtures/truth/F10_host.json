@@ -1,0 +1,102 @@
+{
+  "buckets": [
+    {
+      "aggregate": {
+        "count_by_type": {
+          "INSERT": 1
+        },
+        "entity_count": 1,
+        "hatch_area_sum_mm2": 0.0,
+        "insert_by_block": {
+          "F10_GRID": 1
+        },
+        "length_sum_mm": 0.0,
+        "text_count": 0,
+        "text_hash": "da39a3ee5e6b4b0d"
+      },
+      "layer": "0",
+      "space": "MODEL"
+    },
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            16357.162347,
+            10580.0
+          ],
+          "min": [
+            4000.0,
+            4324.338336
+          ]
+        },
+        "count_by_type": {
+          "TEXT": 6
+        },
+        "entity_count": 6,
+        "hatch_area_sum_mm2": 0.0,
+        "insert_by_block": {},
+        "length_sum_mm": 0.0,
+        "text_count": 6,
+        "text_hash": "143206d9f0cd3b04"
+      },
+      "layer": "A-TEXT",
+      "space": "MODEL"
+    },
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            16300.0,
+            10300.0
+          ],
+          "min": [
+            3700.0,
+            3700.0
+          ]
+        },
+        "count_by_type": {
+          "LWPOLYLINE": 6
+        },
+        "entity_count": 6,
+        "hatch_area_sum_mm2": 0.0,
+        "insert_by_block": {},
+        "length_sum_mm": 14400.0,
+        "text_count": 0,
+        "text_hash": "da39a3ee5e6b4b0d"
+      },
+      "layer": "S-COL",
+      "space": "MODEL"
+    }
+  ],
+  "file_sha256": "8edfafa3c505c6bb41e0b61dfaf07d23f9b6ddb9ddd5078a4bc35c846b925d8d",
+  "producer": {
+    "name": "engine.ezdxf",
+    "version": "fixtures-gen/0.1.0+ezdxf/1.4.4"
+  },
+  "schema_version": "0.1",
+  "totals": {
+    "bbox": {
+      "max": [
+        16357.162347,
+        10580.0
+      ],
+      "min": [
+        3700.0,
+        3700.0
+      ]
+    },
+    "count_by_type": {
+      "INSERT": 1,
+      "LWPOLYLINE": 6,
+      "TEXT": 6
+    },
+    "entity_count": 13,
+    "hatch_area_sum_mm2": 0.0,
+    "insert_by_block": {
+      "F10_GRID": 1
+    },
+    "length_sum_mm": 14400.0,
+    "text_count": 6,
+    "text_hash": "143206d9f0cd3b04"
+  }
+}

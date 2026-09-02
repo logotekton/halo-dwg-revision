@@ -30,3 +30,8 @@ Fable 고정, 2026-09-02. 근거: ADR-0002 §6, `packages/schema/src/stats/layer
 - mlightcad `type`은 클래스명, `dxfTypeName`이 DXF 타입 → 반드시 `dxfTypeName`.
 - mlightcad 공간 구분은 `ownerId` → BlockTableRecord 이름(`*Model_Space`/`*Paper_Space*`)으로 판단.
 - 곡선 길이: mlightcad는 `subGetIntersectCurves()` 합산 또는 `properties.geometry.length`(두 경로 일치 확인됨).
+
+## 통합에서 확정된 사항 (2026-09-02, W2-02·W2-03 병합)
+- `count_by_type` 키는 **raw DXF 레코드명**이다(MULTILEADER, TRACE 그대로). 스키마 `layer-stats.schema.json`의 키 제약을 NDJ 열거형에서 `^[A-Z][A-Z0-9_]*$` 패턴으로 완화했다. NDJ의 `MLEADER` 정규화는 NDJ 문서에만 적용된다.
+- 픽스처의 ATTRIB 소유자(그룹 330)는 INSERT 핸들이다(AutoCAD 방식). ezdxf 기본값(레이아웃 블록 레코드)으로 두면 mlightcad가 ATTRIB를 INSERT에 붙이지 못한다. 실제 도면에서 소유자가 레이아웃인 ATTRIB가 나오면 뷰어 측 `text_count`가 낮게 나온다 → 교차검증 화이트리스트 후보.
+- **알려진 격차(화이트리스트 후보, W2-04):** (1) mlightcad 스플라인 길이는 `flattening(0.01)`급이 아니어서 F01에서 ezdxf 대비 약 11% 크다. 후속: cad-core가 NURBS를 직접 평탄화(W3-02 또는 별도 태스크). (2) 텍스트·치수·지시선만 있는 레이어의 bbox는 폰트 의존 extents라 1mm 임계를 넘는다. 텍스트 보유 버킷의 bbox 차이는 AMBER로 취급.

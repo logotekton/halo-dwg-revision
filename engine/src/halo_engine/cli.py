@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import logging.handlers
@@ -20,6 +21,10 @@ from uvicorn.supervisors import ChangeReload
 from halo_engine import __version__
 from halo_engine.api.main import create_app
 from halo_engine.config import Settings
+from halo_engine.ingest.dxf_loader import load_dxf
+from halo_engine.ingest.stats import compute_layer_stats
+from halo_engine.ingest.working_dxf import build_working_dxf
+from halo_engine.procutil import pid_alive
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
 
@@ -77,14 +82,8 @@ def _resolve_token(token_option: str | None, *, dev: bool) -> str:
 
 
 def _pid_alive(pid: int) -> bool:
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        # Process exists but is owned by someone else — treat as alive.
-        return True
-    return True
+    # Never use os.kill(pid, 0) here: on Windows it terminates the target process.
+    return pid_alive(pid)
 
 
 async def _watch_parent_async(parent_pid: int) -> None:
@@ -119,6 +118,54 @@ def _print_ready(port: int) -> None:
     ready = {"event": "ready", "port": port, "pid": os.getpid(), "version": __version__}
     sys.stdout.write(json.dumps(ready) + "\n")
     sys.stdout.flush()
+
+
+@app.command()
+def stats(
+    path: Annotated[Path, typer.Argument(help="DXF file to compute layer statistics for.")],
+    out: Annotated[Path, typer.Option("--out", help="Output path for the LayerStatsDocument.")],
+) -> None:
+    """Compute a LayerStatsDocument for one DXF file (ADR-0002 6, W2-03).
+
+    Prints only the output path to stdout.
+    """
+    load_result = load_dxf(path)
+    file_sha256 = hashlib.sha256(path.read_bytes()).hexdigest()
+    doc_stats = compute_layer_stats(load_result.doc, file_sha256=file_sha256)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
+        json.dumps(doc_stats, sort_keys=True, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    typer.echo(str(out))
+
+
+@app.command()
+def ingest(
+    path: Annotated[Path, typer.Argument(help="DXF file to ingest.")],
+    out: Annotated[Path, typer.Option("--out", help="Output directory for the working DXF.")],
+    search_path: Annotated[
+        list[Path] | None,
+        typer.Option("--search-path", help="Extra directory to search for XREFs (repeatable)."),
+    ] = None,
+) -> None:
+    """Build the working-DXF canonical form of one DXF file (ADR-0002).
+
+    Writes ``<sha256>.working.dxf`` (R2018 UTF-8, XREFs embedded),
+    ``<sha256>.working.json`` (metadata: original sha256, codepage, audit
+    error count, handle map / stats paths), ``<sha256>.stats.json``
+    (LayerStatsDocument) and ``<sha256>.xref-handles.json`` (bound handle
+    map) under ``--out``. Prints only the four output paths to stdout, one
+    per line.
+    """
+    result = build_working_dxf(path, out, search_paths=search_path)
+    for output_path in (
+        result.working_dxf_path,
+        result.working_meta_path,
+        result.stats_path,
+        result.handle_map_path,
+    ):
+        typer.echo(str(output_path))
 
 
 @app.command()

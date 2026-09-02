@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import secrets
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from halo_engine.api.main import create_app
@@ -45,3 +47,39 @@ def test_capabilities_wrong_token_rejected(tmp_path: Path) -> None:
         "/api/v1/system/capabilities", headers={"Authorization": "Bearer wrong"}
     )
     assert resp.status_code == 401
+
+
+def test_capabilities_missing_authorization_header_rejected(tmp_path: Path) -> None:
+    resp = _client(tmp_path).get("/api/v1/system/capabilities")
+    assert resp.status_code == 401
+
+
+def test_capabilities_near_miss_token_rejected(tmp_path: Path) -> None:
+    # Shares a long prefix with the real token. A naive `!=` also rejects
+    # this, but it guards against a future regression silently swapping
+    # back to a short-circuiting comparison.
+    resp = _client(tmp_path).get(
+        "/api/v1/system/capabilities", headers={"Authorization": "Bearer secre0"}
+    )
+    assert resp.status_code == 401
+
+
+def test_capabilities_auth_uses_constant_time_comparison(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Guards against a regression back to a `!=` timing-unsafe comparison."""
+    calls: list[tuple[str, str]] = []
+    original = secrets.compare_digest
+
+    def spy(a: str, b: str) -> bool:
+        calls.append((a, b))
+        return bool(original(a, b))
+
+    monkeypatch.setattr("halo_engine.api.main.secrets.compare_digest", spy)
+
+    resp = _client(tmp_path).get(
+        "/api/v1/system/capabilities", headers={"Authorization": "Bearer secret"}
+    )
+
+    assert resp.status_code == 200
+    assert calls == [("Bearer secret", "Bearer secret")]

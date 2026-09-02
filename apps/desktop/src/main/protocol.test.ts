@@ -1,6 +1,6 @@
 import { join, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { getMimeType, resolveAssetPath } from './protocol'
+import { getMimeType, resolveAssetPath, resolveWebDistDir } from './protocol'
 
 const DIST_DIR = join(sep, 'app', 'apps', 'web', 'dist')
 
@@ -39,5 +39,38 @@ describe('resolveAssetPath', () => {
 
   it('rejects an encoded traversal attempt', () => {
     expect(() => resolveAssetPath(DIST_DIR, '/%2e%2e/%2e%2e/etc/passwd')).toThrow()
+  })
+})
+
+describe('resolveWebDistDir', () => {
+  const APP_PATH_DEV = join(sep, 'repo', 'apps', 'desktop')
+  const APP_PATH_PACKAGED = join(
+    sep,
+    'Applications',
+    'Halo CAD.app',
+    'Contents',
+    'Resources',
+    'app.asar',
+  )
+  const RESOURCES_PATH = join(sep, 'Applications', 'Halo CAD.app', 'Contents', 'Resources')
+
+  it('dev (unpacked): resolves apps/web/dist next to the desktop app dir', () => {
+    expect(
+      resolveWebDistDir({
+        isPackaged: false,
+        appPath: APP_PATH_DEV,
+        resourcesPath: RESOURCES_PATH,
+      }),
+    ).toBe(join(sep, 'repo', 'apps', 'web', 'dist'))
+  })
+
+  it('packaged: resolves the flat extraResources "web" dir, ignoring appPath', () => {
+    expect(
+      resolveWebDistDir({
+        isPackaged: true,
+        appPath: APP_PATH_PACKAGED,
+        resourcesPath: RESOURCES_PATH,
+      }),
+    ).toBe(join(RESOURCES_PATH, 'web'))
   })
 })

@@ -5,15 +5,29 @@
   "description": "Parser crosscheck statistics for one working DXF (ADR-0002 6). `stats.ts` in the viewer and `stats.py` in the engine emit this same document from the same bytes; the crosscheck compares them bucket by bucket and paints each layer green / amber / red. Tolerances live in the comparer, not here: counts must match exactly, lengths within 0.1 percent, areas within 0.5 percent (docs/PLAN.md 5).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "file_sha256", "producer", "buckets", "totals"],
+  "required": [
+    "schema_version",
+    "file_sha256",
+    "producer",
+    "buckets",
+    "totals"
+  ],
   "properties": {
-    "schema_version": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/schema_version" },
-    "file_sha256": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/sha256" },
-    "producer": { "$ref": "https://schema.halo-cad.internal/v0/ndj/document.schema.json#/$defs/producer" },
+    "schema_version": {
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/schema_version"
+    },
+    "file_sha256": {
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/sha256"
+    },
+    "producer": {
+      "$ref": "https://schema.halo-cad.internal/v0/ndj/document.schema.json#/$defs/producer"
+    },
     "buckets": {
       "description": "One entry per (layer, space) pair that holds at least one entity. Ordered by `layer` then `space` so two documents can be diffed textually.",
       "type": "array",
-      "items": { "$ref": "https://schema.halo-cad.internal/v0/stats/layer-stats.schema.json#/$defs/bucket" }
+      "items": {
+        "$ref": "https://schema.halo-cad.internal/v0/stats/layer-stats.schema.json#/$defs/bucket"
+      }
     },
     "totals": {
       "description": "Document totals across every layer and space.",
@@ -23,16 +37,25 @@
   "$defs": {
     "count_by_type": {
       "title": "CountByType",
-      "description": "Entity count per normalised entity type. Types with a zero count are omitted.",
+      "description": "Entity count per raw DXF record name (dxfTypeName, e.g. LINE, MULTILEADER, TRACE) as required by docs/contracts/stats-definition.md. Keys are not normalised to the NDJ entity_type enum. Types with a zero count are omitted.",
       "type": "object",
-      "propertyNames": { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/entity_type" },
-      "additionalProperties": { "type": "integer", "minimum": 0 }
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[A-Z][A-Z0-9_]*$"
+      },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
     },
     "insert_by_block": {
       "title": "InsertByBlock",
       "description": "INSERT count per block name. Block names are NFC normalised.",
       "type": "object",
-      "additionalProperties": { "type": "integer", "minimum": 0 }
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
     },
     "aggregate": {
       "title": "StatsAggregate",
@@ -49,8 +72,13 @@
         "insert_by_block"
       ],
       "properties": {
-        "entity_count": { "type": "integer", "minimum": 0 },
-        "count_by_type": { "$ref": "https://schema.halo-cad.internal/v0/stats/layer-stats.schema.json#/$defs/count_by_type" },
+        "entity_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "count_by_type": {
+          "$ref": "https://schema.halo-cad.internal/v0/stats/layer-stats.schema.json#/$defs/count_by_type"
+        },
         "length_sum_mm": {
           "description": "Sum of curve lengths in millimetres. Curves are measured on the flattened approximation at the 0.1mm index tolerance so both parsers agree.",
           "type": "number",
@@ -66,20 +94,38 @@
           "type": "integer",
           "minimum": 0
         },
-        "text_hash": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/text_hash" },
-        "insert_by_block": { "$ref": "https://schema.halo-cad.internal/v0/stats/layer-stats.schema.json#/$defs/insert_by_block" },
-        "bbox": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/bbox" }
+        "text_hash": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/text_hash"
+        },
+        "insert_by_block": {
+          "$ref": "https://schema.halo-cad.internal/v0/stats/layer-stats.schema.json#/$defs/insert_by_block"
+        },
+        "bbox": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/bbox"
+        }
       }
     },
     "bucket": {
       "title": "LayerStatsBucket",
       "type": "object",
       "additionalProperties": false,
-      "required": ["layer", "space", "aggregate"],
+      "required": [
+        "layer",
+        "space",
+        "aggregate"
+      ],
       "properties": {
-        "layer": { "type": "string", "minLength": 1, "maxLength": 255 },
-        "space": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/space" },
-        "aggregate": { "$ref": "https://schema.halo-cad.internal/v0/stats/layer-stats.schema.json#/$defs/aggregate" }
+        "layer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "space": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/space"
+        },
+        "aggregate": {
+          "$ref": "https://schema.halo-cad.internal/v0/stats/layer-stats.schema.json#/$defs/aggregate"
+        }
       }
     }
   }

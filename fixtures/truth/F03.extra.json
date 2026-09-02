@@ -1,0 +1,91 @@
+{
+  "extra": {
+    "mtext_count_expected": 10,
+    "special_characters": [
+      "%%d",
+      "Ø",
+      "㎡"
+    ],
+    "styles": [
+      "KOR-BIG",
+      "KOR-TTF"
+    ],
+    "text_count_expected": 20
+  },
+  "fixture": "F03",
+  "primary": {
+    "dxf_version": "AC1032",
+    "encoding": "cp1252",
+    "file": "F03.dxf",
+    "sha256": "9c712ca601090b664ac8c092959ad222381dc4e1f2f359717e67d156a9108c6f",
+    "size_bytes": 60372
+  },
+  "variants": {
+    "r2000_cp949": {
+      "dxf_version": "AC1015",
+      "encoding": "cp949",
+      "file": "F03_r2000_cp949.dxf",
+      "omitted": [],
+      "sha256": "36b70b4a90d7f95b870e3e4182de92594efebf36e90e9a54b469879d840dd31b",
+      "size_bytes": 39706,
+      "stats": {
+        "buckets": [
+          {
+            "aggregate": {
+              "bbox": {
+                "max": [
+                  12800.0,
+                  197.565442
+                ],
+                "min": [
+                  -675.079571,
+                  -12024.313915
+                ]
+              },
+              "count_by_type": {
+                "MTEXT": 10,
+                "TEXT": 20
+              },
+              "entity_count": 30,
+              "hatch_area_sum_mm2": 0.0,
+              "insert_by_block": {},
+              "length_sum_mm": 0.0,
+              "text_count": 30,
+              "text_hash": "6de09c7ab2524f44"
+            },
+            "layer": "A-TEXT",
+            "space": "MODEL"
+          }
+        ],
+        "file_sha256": "36b70b4a90d7f95b870e3e4182de92594efebf36e90e9a54b469879d840dd31b",
+        "producer": {
+          "name": "engine.ezdxf",
+          "version": "fixtures-gen/0.1.0+ezdxf/1.4.4"
+        },
+        "schema_version": "0.1",
+        "totals": {
+          "bbox": {
+            "max": [
+              12800.0,
+              197.565442
+            ],
+            "min": [
+              -675.079571,
+              -12024.313915
+            ]
+          },
+          "count_by_type": {
+            "MTEXT": 10,
+            "TEXT": 20
+          },
+          "entity_count": 30,
+          "hatch_area_sum_mm2": 0.0,
+          "insert_by_block": {},
+          "length_sum_mm": 0.0,
+          "text_count": 30,
+          "text_hash": "6de09c7ab2524f44"
+        }
+      }
+    }
+  }
+}

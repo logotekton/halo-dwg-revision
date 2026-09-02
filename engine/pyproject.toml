@@ -29,6 +29,8 @@ dev = [
   "hypothesis==6.167.1",
   "ruff==0.16.5",
   "mypy==2.3.1",
+  "jsonschema==4.25.1",
+  "referencing==0.36.2",
 ]
 
 [project.scripts]
@@ -56,6 +58,15 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = ["halo_engine.model.*", "halo_engine.rules.*", "halo_engine.geometry.*"]
 strict = true
+
+[[tool.mypy.overrides]]
+# ezdxf ships incomplete/inconsistent __all__ re-exports and its entity
+# classes are only meaningfully typed as their concrete subclass (Line,
+# Hatch, Insert, ...), never the DXFGraphic base ingest code iterates as --
+# treat it as untyped rather than chasing attr-defined noise on every access.
+module = ["ezdxf", "ezdxf.*"]
+follow_imports = "skip"
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

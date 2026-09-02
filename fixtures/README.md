@@ -47,30 +47,52 @@ F01~F10의 DXF 합계는 약 1.2MB (< 20MB 예산). F11/F12의 DXF는 `.gitignor
 F12는 truth도 커밋하지 않는다 (`--large` 없이는 아예 생성되지 않으므로 기본 실행에서는
 git 상태에 영향이 없다).
 
-## truth JSON 형식
+## truth JSON 형식 (W2-03, 스키마 형식으로 재작성)
 
-`fixtures/truth/F##.json`은 **생성된 DXF를 ezdxf로 다시 읽어** 독립적으로 계산한다
-(`fixtures_gen.stats.compute_stats`, `docs/adr/0002-working-dxf.md` §6 정의).
+`fixtures/truth/F##.json`은 이제 **`LayerStatsDocument` 그 자체**다
+(`packages/schema/src/stats/layer-stats.schema.json`, `docs/contracts/stats-definition.md`).
+스키마가 닫혀 있어(`additionalProperties: false`) 픽스처별 부가 정보를 담을 자리가 없으므로,
+그 밖의 모든 것(원본/변형 파일 설명, R2000/cp949 변형의 통계와 `omitted` 목록, 부재
+배치·표 셀·층고표 4필드·벽 갭 좌표·XREF 관계 등 생성기 설계값)은 `fixtures/truth/F##.extra.json`에
+분리해 담는다. **생성된 DXF를 ezdxf로 다시 읽어** 독립적으로 계산한다
+(`fixtures_gen.stats.compute_layer_stats`; `engine/src/halo_engine/ingest/stats.py`가 서로
+임포트하지 않는 독립 구현으로 같은 계약을 계산하고, F01~F10에서 두 결과가 일치함을
+`engine/tests/ingest/test_engine_crosscheck.py`가 검증한다).
+
+`F##.json` (예: F06):
+
+```jsonc
+{
+  "schema_version": "0.1",
+  "file_sha256": "...",                 // F06.dxf(원본, R2018) 자체의 sha256
+  "producer": { "name": "engine.ezdxf", "version": "fixtures-gen/0.1.0+ezdxf/1.4.4" },
+  "buckets": [
+    { "layer": "A-TEXT", "space": "MODEL", "aggregate": { "entity_count": 30, "count_by_type": {"TEXT": 30}, "length_sum_mm": 0, "hatch_area_sum_mm2": 0, "text_count": 30, "text_hash": "...", "insert_by_block": {}, "bbox": {"min": [..], "max": [..]} } },
+    ...
+  ],
+  "totals": { "entity_count": 86, "count_by_type": {...}, "length_sum_mm": ..., "hatch_area_sum_mm2": ..., "text_count": ..., "text_hash": ..., "insert_by_block": {...}, "bbox": {"min": [..], "max": [..]} }
+}
+```
+
+`F##.extra.json` (같은 F06 예):
 
 ```jsonc
 {
   "fixture": "F06",
-  "primary": { "file": "F06.dxf", "dxf_version": "AC1032", "sha256": "...", "size_bytes": ..., "stats": { "by_space": {...}, "totals": {...} } },
-  "variants": { "r2000_cp949": { "file": "F06_r2000_cp949.dxf", ..., "omitted": [] } },
-  "totals": { "count_by_type": {...}, "length_sum": ..., "hatch_area_sum": ..., "text_count": ..., "text_hash": ..., "insert_by_block": {...}, "bbox": [...] },
+  "primary": { "file": "F06.dxf", "dxf_version": "AC1032", "encoding": "cp1252", "sha256": "...", "size_bytes": ... },
+  "variants": { "r2000_cp949": { "file": "F06_r2000_cp949.dxf", ..., "omitted": [], "stats": { /* F06_r2000_cp949.dxf의 LayerStatsDocument 전체 */ } } },
   "extra": { "grid": {...}, "columns": [...], "beams": [...], "slab": {...}, "title_block": {...} }
 }
 ```
 
-- `totals`는 `primary.stats.totals`와 동일한 값이며, 최상위에 복제해 두어
-  `d["totals"]["count_by_type"]`처럼 바로 접근할 수 있게 한다(브리프의 수용 기준 예시와 일치).
-- `count_by_type`/`length_sum`/`hatch_area_sum`/`text_count`/`text_hash`/`insert_by_block`/`bbox`는
-  `primary.stats.by_space.Model.totals`, 그리고 레이어별은 `...by_space.Model.by_layer.<layer명>`에도
-  같은 필드 이름으로 반복된다 -- `packages/schema`의 `stats/layer-stats.schema.json`(W1-05가 병행 작성 중)이
-  아직 없어 필드 이름은 브리프에 명시된 이름을 그대로 썼다 (Decisions 참조).
-- `extra`는 생성기가 실제로 배치한 값(부재 중심좌표·치수·태그, 표 셀 매트릭스, 층고표 4필드,
-  벽 갭 좌표, XREF 관계 등)을 그대로 기록한 것 -- 재읽기로 검증하는 통계와 달리, 생성 시점의
-  설계값 자체가 truth다.
+- `producer.name`은 스키마의 닫힌 열거값(`viewer.mlightcad`/`engine.ezdxf`/`acad-ts`/`libredwg-web`,
+  `packages/schema/src/ndj/document.schema.json` `$defs/producer`) 중 하나여야 하는데
+  `"fixtures-gen"`이 없다 -- `"engine.ezdxf"`를 재사용하고 `version`으로 구분한다
+  (아래 Decisions, `engine/`의 W2-03 보고서 "Shared-file patch" 참고).
+- **F10은 파일 쌍**(grid+host)이라 `F10.json` 대신 `F10_grid.json`/`F10_host.json`(각각 독립된
+  `LayerStatsDocument`) + `F10.extra.json`(둘의 파일 설명·변형·`extra`를 함께 담음) 형태다.
+- F01~F09/F11은 `F##.json` + `F##.extra.json`, F10은 위 세 파일, F12는 생성만 되고 커밋되지 않는다
+  (기존과 동일).
 
 ## Decisions (모호함에 대한 선택)
 
@@ -118,7 +140,38 @@ git 상태에 영향이 없다).
    치수에 `.render()`를 호출했다.
 10. **DXF 엔티티 타입 이름 표기**: 브리프는 "MLEADER"라 부르지만 실제 DXF 엔티티 타입명은
     `MULTILEADER`다 (AutoCAD UI 명칭과 DXF 그룹코드 상 타입명이 다름). truth와 코드 전반에서
-    `MULTILEADER`를 쓰고 F05의 docstring에 이 차이를 적어 두었다.
+    `MULTILEADER`를 쓰고 F05의 docstring에 이 차이를 적어 두었다. `packages/schema`의
+    `entity_type` 열거값은 여전히 `MLEADER`라 F05.json은 스키마 검증에서 이 한 항목만
+    화이트리스트 처리한다 (W2-03, `engine/tests/ingest/test_truth_schema.py`의
+    `KNOWN_SCHEMA_GAPS`).
+11. **(W2-03) `producer.name`은 `"engine.ezdxf"`를 재사용한다.** `docs/contracts/stats-definition.md`는
+    `producer`가 `"mlightcad"|"ezdxf"|"acad-ts"|"fixtures-gen"` 중 하나라고 적었지만, 실제
+    스키마(`packages/schema/src/ndj/document.schema.json` `$defs/producer`)는 `{name, version}`
+    객체이고 `name`은 `viewer.mlightcad`/`engine.ezdxf`/`acad-ts`/`libredwg-web` 중 하나로 닫혀
+    있어 `"fixtures-gen"`을 쓸 수 없다. `fixtures_gen.stats.producer_info()`는 `name`을
+    `"engine.ezdxf"`로(엔진과 동일 -- 둘 다 결국 ezdxf 기반 판독기다), `version`을
+    `f"fixtures-gen/{버전}+ezdxf/{버전}"`으로 써서 스키마를 통과시키면서 출처를 구분한다.
+    F01~F10 교차검증 테스트(`engine/tests/ingest/test_engine_crosscheck.py`)는 애초에
+    `producer`를 비교 대상에서 제외한다(엔진과 생성기가 서로 다른 producer인 것 자체가
+    맞는 설계이므로). packages/schema에 `"fixtures-gen"` enum 값을 추가하는 편이 근본
+    해결책이라 W2-03 보고서의 "Shared-file patch"로 제안한다.
+12. **(W2-03) truth 형식을 스키마 형식으로 교체**: `fixtures/truth/F##.json`이 이제
+    `LayerStatsDocument` 그 자체이고(스키마가 닫혀 있어 부가 필드를 못 담는다), 예전에
+    `primary`/`variants`/`extra`에 있던 모든 것은 `fixtures/truth/F##.extra.json`으로
+    옮겼다. `F10`은 파일이 둘(grid+host)이라 `F10_grid.json`/`F10_host.json` + 공용
+    `F10.extra.json`으로 나눴다 (스키마가 `file_sha256` 하나만 허용하므로 한 문서에 두 파일의
+    통계를 담을 수 없다). 위 "truth JSON 형식" 절 참고.
+13. **(W2-03) `length_sum_mm`에 ELLIPSE를 추가하고 POLYLINE은 2D만 잰다.** 계약
+    (`docs/contracts/stats-definition.md`)이 명시적으로 `LINE, LWPOLYLINE, POLYLINE(2D), ARC,
+    CIRCLE, ELLIPSE, SPLINE`이라 적어, ELLIPSE 누락(이전 `stats.py`는 ELLIPSE 처리가 없었다 --
+    F01의 ELLIPSE 2개가 길이 0으로 집계됐었다)을 고치고 3D POLYLINE은 계약의 "(2D)" 표기를
+    문자 그대로 따라 제외했다(현재 픽스처는 3D POLYLINE을 쓰지 않아 수치 영향은 없다).
+    ELLIPSE는 SPLINE과 같은 방식(`flattening(0.01)`)으로 근사한다.
+14. **(W2-03) ATTRIB는 `insert.attribs`로 수집해 자신의 레이어에 귀속시킨다.** `count_by_type`에서는
+    제외하고(계약: "ATTRIB·SEQEND·VERTEX는 세지 않는다") `text_count`/`text_hash`에는 포함한다.
+    `text_hash` 알고리즘도 계약대로 바꿨다: 텍스트마다 NFC 정규화 후 문자열 자체를 코드포인트
+    오름차순 정렬, `\n`으로 결합, `sha1` 앞 16 hex (이전 구현은 텍스트별로 먼저 해시하고 그
+    해시 문자열들을 이어붙여 다시 해시했다 -- 계약과 다른 방식이었다).
 
 ## 테스트
 

@@ -1,659 +1,154 @@
 {
-  "extra": {
-    "beams": [
-      {
-        "from": [
-          8000.0,
-          8000.0
-        ],
-        "kind": "girder",
-        "tag": "G1",
-        "to": [
-          16400.0,
-          8000.0
-        ]
-      },
-      {
-        "from": [
-          16400.0,
-          8000.0
-        ],
-        "kind": "girder",
-        "tag": "G1",
-        "to": [
-          24800.0,
-          8000.0
-        ]
-      },
-      {
-        "from": [
-          24800.0,
-          8000.0
-        ],
-        "kind": "girder",
-        "tag": "G1",
-        "to": [
-          33200.0,
-          8000.0
-        ]
-      },
-      {
-        "from": [
-          8000.0,
-          15200.0
-        ],
-        "kind": "girder",
-        "tag": "G2",
-        "to": [
-          16400.0,
-          15200.0
-        ]
-      },
-      {
-        "from": [
-          16400.0,
-          15200.0
-        ],
-        "kind": "girder",
-        "tag": "G2",
-        "to": [
-          24800.0,
-          15200.0
-        ]
-      },
-      {
-        "from": [
-          24800.0,
-          15200.0
-        ],
-        "kind": "girder",
-        "tag": "G2",
-        "to": [
-          33200.0,
-          15200.0
-        ]
-      },
-      {
-        "from": [
-          8000.0,
-          22400.0
-        ],
-        "kind": "girder",
-        "tag": "G3",
-        "to": [
-          16400.0,
-          22400.0
-        ]
-      },
-      {
-        "from": [
-          16400.0,
-          22400.0
-        ],
-        "kind": "girder",
-        "tag": "G3",
-        "to": [
-          24800.0,
-          22400.0
-        ]
-      },
-      {
-        "from": [
-          24800.0,
-          22400.0
-        ],
-        "kind": "girder",
-        "tag": "G3",
-        "to": [
-          33200.0,
-          22400.0
-        ]
-      },
-      {
-        "from": [
-          8000.0,
-          8000.0
-        ],
-        "kind": "beam",
-        "tag": "B1",
-        "to": [
-          8000.0,
-          15200.0
-        ]
-      },
-      {
-        "from": [
-          8000.0,
-          15200.0
-        ],
-        "kind": "beam",
-        "tag": "B1",
-        "to": [
-          8000.0,
-          22400.0
-        ]
-      },
-      {
-        "from": [
-          16400.0,
-          8000.0
-        ],
-        "kind": "beam",
-        "tag": "B2",
-        "to": [
-          16400.0,
-          15200.0
-        ]
-      },
-      {
-        "from": [
-          16400.0,
-          15200.0
-        ],
-        "kind": "beam",
-        "tag": "B2",
-        "to": [
-          16400.0,
-          22400.0
-        ]
-      },
-      {
-        "from": [
-          24800.0,
-          8000.0
-        ],
-        "kind": "beam",
-        "tag": "B3",
-        "to": [
-          24800.0,
-          15200.0
-        ]
-      },
-      {
-        "from": [
-          24800.0,
-          15200.0
-        ],
-        "kind": "beam",
-        "tag": "B3",
-        "to": [
-          24800.0,
-          22400.0
-        ]
-      },
-      {
-        "from": [
-          33200.0,
-          8000.0
-        ],
-        "kind": "beam",
-        "tag": "B4",
-        "to": [
-          33200.0,
-          15200.0
-        ]
-      },
-      {
-        "from": [
-          33200.0,
-          15200.0
-        ],
-        "kind": "beam",
-        "tag": "B4",
-        "to": [
-          33200.0,
-          22400.0
-        ]
-      }
-    ],
-    "columns": [
-      {
-        "center": [
-          8000.0,
-          8000.0
-        ],
-        "grid": [
-          "X1",
-          "Y1"
-        ],
-        "size": [
-          600.0,
-          600.0
-        ],
-        "tag": "C1"
-      },
-      {
-        "center": [
-          8000.0,
-          15200.0
-        ],
-        "grid": [
-          "X1",
-          "Y2"
-        ],
-        "size": [
-          600.0,
-          600.0
-        ],
-        "tag": "C2"
-      },
-      {
-        "center": [
-          8000.0,
-          22400.0
-        ],
-        "grid": [
-          "X1",
-          "Y3"
-        ],
-        "size": [
-          600.0,
-          600.0
-        ],
-        "tag": "C1"
-      },
-      {
-        "center": [
-          16400.0,
-          8000.0
-        ],
-        "grid": [
-          "X2",
-          "Y1"
-        ],
-        "size": [
-          600.0,
-          600.0
-        ],
-        "tag": "C2"
-      },
-      {
-        "center": [
-          16400.0,
-          15200.0
-        ],
-        "grid": [
-          "X2",
-          "Y2"
-        ],
-        "size": [
-          600.0,
-          600.0
-        ],
-        "tag": "C2"
-      },
-      {
-        "center": [
-          16400.0,
-          22400.0
-        ],
-        "grid": [
-          "X2",
-          "Y3"
-        ],
-        "size": [
-          600.0,
-          600.0
-        ],
-        "tag": "C2"
-      },
-      {
-        "center": [
-          24800.0,
-          8000.0
-        ],
-        "grid": [
-          "X3",
-          "Y1"
-        ],
-        "size": [
-          600.0,
-          600.0
-        ],
-        "tag": "C2"
-      },
-      {
-        "center": [
-          24800.0,
-          15200.0
-        ],
-        "grid": [
-          "X3",
-          "Y2"
-        ],
-        "size": [
-          600.0,
-          600.0
-        ],
-        "tag": "C2"
-      },
-      {
-        "center": [
-          24800.0,
-          22400.0
-        ],
-        "grid": [
-          "X3",
-          "Y3"
-        ],
-        "size": [
-          600.0,
-          600.0
-        ],
-        "tag": "C2"
-      },
-      {
-        "center": [
-          33200.0,
-          8000.0
-        ],
-        "grid": [
-          "X4",
-          "Y1"
-        ],
-        "size": [
-          600.0,
-          600.0
-        ],
-        "tag": "C1"
-      },
-      {
-        "center": [
-          33200.0,
-          15200.0
-        ],
-        "grid": [
-          "X4",
-          "Y2"
-        ],
-        "size": [
-          600.0,
-          600.0
-        ],
-        "tag": "C2"
-      },
-      {
-        "center": [
-          33200.0,
-          22400.0
-        ],
-        "grid": [
-          "X4",
-          "Y3"
-        ],
-        "size": [
-          600.0,
-          600.0
-        ],
-        "tag": "C1"
-      }
-    ],
-    "grid": {
-      "lines": [
-        {
-          "axis": "X",
-          "end": [
+  "buckets": [
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            33576.309686,
+            22980.0
+          ],
+          "min": [
             8000.0,
-            22700.0
-          ],
-          "id": "X1",
-          "position": 8000.0,
-          "start": [
-            8000.0,
-            7700.0
+            8078.253752
           ]
         },
-        {
-          "axis": "X",
-          "end": [
-            16400.0,
-            22700.0
-          ],
-          "id": "X2",
-          "position": 16400.0,
-          "start": [
-            16400.0,
-            7700.0
-          ]
-        },
-        {
-          "axis": "X",
-          "end": [
-            24800.0,
-            22700.0
-          ],
-          "id": "X3",
-          "position": 24800.0,
-          "start": [
-            24800.0,
-            7700.0
-          ]
-        },
-        {
-          "axis": "X",
-          "end": [
-            33200.0,
-            22700.0
-          ],
-          "id": "X4",
-          "position": 33200.0,
-          "start": [
-            33200.0,
-            7700.0
-          ]
-        },
-        {
-          "axis": "Y",
-          "end": [
-            33500.0,
-            8000.0
-          ],
-          "id": "Y1",
-          "position": 8000.0,
-          "start": [
-            7700.0,
-            8000.0
-          ]
-        },
-        {
-          "axis": "Y",
-          "end": [
-            33500.0,
-            15200.0
-          ],
-          "id": "Y2",
-          "position": 15200.0,
-          "start": [
-            7700.0,
-            15200.0
-          ]
-        },
-        {
-          "axis": "Y",
-          "end": [
-            33500.0,
-            22400.0
-          ],
-          "id": "Y3",
-          "position": 22400.0,
-          "start": [
-            7700.0,
-            22400.0
-          ]
-        }
-      ],
-      "x_spacing": 8400.0,
-      "y_spacing": 7200.0
-    },
-    "slab": {
-      "location": [
-        20600.0,
-        15200.0
-      ],
-      "tag": "S1",
-      "thickness_mm": 150
-    },
-    "title_block": {
-      "DWGNAME": "2층 구조평면도",
-      "DWGNO": "S-101",
-      "SCALE": "1/100"
-    }
-  },
-  "fixture": "F06",
-  "primary": {
-    "dxf_version": "AC1032",
-    "encoding": "cp1252",
-    "file": "F06.dxf",
-    "sha256": "77f8c370d27bac0d90cea2b3698df5dde359e4d5252bc9cd80131c16c38280b0",
-    "size_bytes": 73950,
-    "stats": {
-      "by_space": {
-        "Model": {
-          "by_layer": {
-            "A-TEXT": {
-              "bbox": [
-                8000.0,
-                8078.253752,
-                33576.309686,
-                22980.0
-              ],
-              "count_by_type": {
-                "TEXT": 30
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {},
-              "length_sum": 0.0,
-              "text_count": 30,
-              "text_hash": "dd71768509042f6c1b27505256388cfbe664c724"
-            },
-            "S-BEAM": {
-              "bbox": [
-                8000.0,
-                8000.0,
-                33200.0,
-                22400.0
-              ],
-              "count_by_type": {
-                "LINE": 17
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {},
-              "length_sum": 133200.0,
-              "text_count": 0,
-              "text_hash": null
-            },
-            "S-COL": {
-              "bbox": [
-                7700.0,
-                7700.0,
-                33500.0,
-                22700.0
-              ],
-              "count_by_type": {
-                "HATCH": 12,
-                "LWPOLYLINE": 12
-              },
-              "hatch_area_sum": 4320000.0,
-              "insert_by_block": {},
-              "length_sum": 28800.0,
-              "text_count": 0,
-              "text_hash": null
-            },
-            "X-GRID": {
-              "bbox": [
-                6600.0,
-                7600.0,
-                33600.0,
-                23800.0
-              ],
-              "count_by_type": {
-                "INSERT": 7,
-                "LINE": 7
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {
-                "GRID-BUBBLE": 7
-              },
-              "length_sum": 137400.0,
-              "text_count": 0,
-              "text_hash": null
-            },
-            "X-TITLE": {
-              "bbox": [
-                0.0,
-                -194.815825,
-                84100.0,
-                59400.0
-              ],
-              "count_by_type": {
-                "INSERT": 1
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {
-                "X-TITLE": 1
-              },
-              "length_sum": 0.0,
-              "text_count": 0,
-              "text_hash": null
-            }
-          },
-          "totals": {
-            "bbox": [
-              0.0,
-              -194.815825,
-              84100.0,
-              59400.0
-            ],
-            "count_by_type": {
-              "HATCH": 12,
-              "INSERT": 8,
-              "LINE": 24,
-              "LWPOLYLINE": 12,
-              "TEXT": 30
-            },
-            "hatch_area_sum": 4320000.0,
-            "insert_by_block": {
-              "GRID-BUBBLE": 7,
-              "X-TITLE": 1
-            },
-            "length_sum": 299400.0,
-            "text_count": 30,
-            "text_hash": "dd71768509042f6c1b27505256388cfbe664c724"
-          }
-        }
-      },
-      "totals": {
-        "bbox": [
-          0.0,
-          -194.815825,
-          84100.0,
-          59400.0
-        ],
         "count_by_type": {
-          "HATCH": 12,
-          "INSERT": 8,
-          "LINE": 24,
-          "LWPOLYLINE": 12,
           "TEXT": 30
         },
-        "hatch_area_sum": 4320000.0,
+        "entity_count": 30,
+        "hatch_area_sum_mm2": 0.0,
+        "insert_by_block": {},
+        "length_sum_mm": 0.0,
+        "text_count": 30,
+        "text_hash": "d67c6181fd2e202a"
+      },
+      "layer": "A-TEXT",
+      "space": "MODEL"
+    },
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            33200.0,
+            22400.0
+          ],
+          "min": [
+            8000.0,
+            8000.0
+          ]
+        },
+        "count_by_type": {
+          "LINE": 17
+        },
+        "entity_count": 17,
+        "hatch_area_sum_mm2": 0.0,
+        "insert_by_block": {},
+        "length_sum_mm": 133200.0,
+        "text_count": 0,
+        "text_hash": "da39a3ee5e6b4b0d"
+      },
+      "layer": "S-BEAM",
+      "space": "MODEL"
+    },
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            33500.0,
+            22700.0
+          ],
+          "min": [
+            7700.0,
+            7700.0
+          ]
+        },
+        "count_by_type": {
+          "HATCH": 12,
+          "LWPOLYLINE": 12
+        },
+        "entity_count": 24,
+        "hatch_area_sum_mm2": 4320000.0,
+        "insert_by_block": {},
+        "length_sum_mm": 28800.0,
+        "text_count": 0,
+        "text_hash": "da39a3ee5e6b4b0d"
+      },
+      "layer": "S-COL",
+      "space": "MODEL"
+    },
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            33600.0,
+            23800.0
+          ],
+          "min": [
+            6600.0,
+            7600.0
+          ]
+        },
+        "count_by_type": {
+          "INSERT": 7,
+          "LINE": 7
+        },
+        "entity_count": 14,
+        "hatch_area_sum_mm2": 0.0,
         "insert_by_block": {
-          "GRID-BUBBLE": 7,
+          "GRID-BUBBLE": 7
+        },
+        "length_sum_mm": 137400.0,
+        "text_count": 7,
+        "text_hash": "bb3ddd5a991d04fd"
+      },
+      "layer": "X-GRID",
+      "space": "MODEL"
+    },
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            84100.0,
+            59400.0
+          ],
+          "min": [
+            0.0,
+            -194.815825
+          ]
+        },
+        "count_by_type": {
+          "INSERT": 1
+        },
+        "entity_count": 1,
+        "hatch_area_sum_mm2": 0.0,
+        "insert_by_block": {
           "X-TITLE": 1
         },
-        "length_sum": 299400.0,
-        "text_count": 30,
-        "text_hash": "dd71768509042f6c1b27505256388cfbe664c724"
-      }
+        "length_sum_mm": 0.0,
+        "text_count": 3,
+        "text_hash": "b10f4a889d563cff"
+      },
+      "layer": "X-TITLE",
+      "space": "MODEL"
     }
+  ],
+  "file_sha256": "2706059e78972d12e4166884310dab70157ad90210f5a9f800e5f7578bdff403",
+  "producer": {
+    "name": "engine.ezdxf",
+    "version": "fixtures-gen/0.1.0+ezdxf/1.4.4"
   },
+  "schema_version": "0.1",
   "totals": {
-    "bbox": [
-      0.0,
-      -194.815825,
-      84100.0,
-      59400.0
-    ],
+    "bbox": {
+      "max": [
+        84100.0,
+        59400.0
+      ],
+      "min": [
+        0.0,
+        -194.815825
+      ]
+    },
     "count_by_type": {
       "HATCH": 12,
       "INSERT": 8,
@@ -661,163 +156,14 @@
       "LWPOLYLINE": 12,
       "TEXT": 30
     },
-    "hatch_area_sum": 4320000.0,
+    "entity_count": 86,
+    "hatch_area_sum_mm2": 4320000.0,
     "insert_by_block": {
       "GRID-BUBBLE": 7,
       "X-TITLE": 1
     },
-    "length_sum": 299400.0,
-    "text_count": 30,
-    "text_hash": "dd71768509042f6c1b27505256388cfbe664c724"
-  },
-  "variants": {
-    "r2000_cp949": {
-      "dxf_version": "AC1015",
-      "encoding": "cp949",
-      "file": "F06_r2000_cp949.dxf",
-      "omitted": [],
-      "sha256": "7aed2c906f01edf333805fa62c6d252c576260dff6985d82102452c6abe302e9",
-      "size_bytes": 52868,
-      "stats": {
-        "by_space": {
-          "Model": {
-            "by_layer": {
-              "A-TEXT": {
-                "bbox": [
-                  8000.0,
-                  8078.253752,
-                  33576.309686,
-                  22980.0
-                ],
-                "count_by_type": {
-                  "TEXT": 30
-                },
-                "hatch_area_sum": 0.0,
-                "insert_by_block": {},
-                "length_sum": 0.0,
-                "text_count": 30,
-                "text_hash": "dd71768509042f6c1b27505256388cfbe664c724"
-              },
-              "S-BEAM": {
-                "bbox": [
-                  8000.0,
-                  8000.0,
-                  33200.0,
-                  22400.0
-                ],
-                "count_by_type": {
-                  "LINE": 17
-                },
-                "hatch_area_sum": 0.0,
-                "insert_by_block": {},
-                "length_sum": 133200.0,
-                "text_count": 0,
-                "text_hash": null
-              },
-              "S-COL": {
-                "bbox": [
-                  7700.0,
-                  7700.0,
-                  33500.0,
-                  22700.0
-                ],
-                "count_by_type": {
-                  "HATCH": 12,
-                  "LWPOLYLINE": 12
-                },
-                "hatch_area_sum": 4320000.0,
-                "insert_by_block": {},
-                "length_sum": 28800.0,
-                "text_count": 0,
-                "text_hash": null
-              },
-              "X-GRID": {
-                "bbox": [
-                  6600.0,
-                  7600.0,
-                  33600.0,
-                  23800.0
-                ],
-                "count_by_type": {
-                  "INSERT": 7,
-                  "LINE": 7
-                },
-                "hatch_area_sum": 0.0,
-                "insert_by_block": {
-                  "GRID-BUBBLE": 7
-                },
-                "length_sum": 137400.0,
-                "text_count": 0,
-                "text_hash": null
-              },
-              "X-TITLE": {
-                "bbox": [
-                  0.0,
-                  -194.815825,
-                  84100.0,
-                  59400.0
-                ],
-                "count_by_type": {
-                  "INSERT": 1
-                },
-                "hatch_area_sum": 0.0,
-                "insert_by_block": {
-                  "X-TITLE": 1
-                },
-                "length_sum": 0.0,
-                "text_count": 0,
-                "text_hash": null
-              }
-            },
-            "totals": {
-              "bbox": [
-                0.0,
-                -194.815825,
-                84100.0,
-                59400.0
-              ],
-              "count_by_type": {
-                "HATCH": 12,
-                "INSERT": 8,
-                "LINE": 24,
-                "LWPOLYLINE": 12,
-                "TEXT": 30
-              },
-              "hatch_area_sum": 4320000.0,
-              "insert_by_block": {
-                "GRID-BUBBLE": 7,
-                "X-TITLE": 1
-              },
-              "length_sum": 299400.0,
-              "text_count": 30,
-              "text_hash": "dd71768509042f6c1b27505256388cfbe664c724"
-            }
-          }
-        },
-        "totals": {
-          "bbox": [
-            0.0,
-            -194.815825,
-            84100.0,
-            59400.0
-          ],
-          "count_by_type": {
-            "HATCH": 12,
-            "INSERT": 8,
-            "LINE": 24,
-            "LWPOLYLINE": 12,
-            "TEXT": 30
-          },
-          "hatch_area_sum": 4320000.0,
-          "insert_by_block": {
-            "GRID-BUBBLE": 7,
-            "X-TITLE": 1
-          },
-          "length_sum": 299400.0,
-          "text_count": 30,
-          "text_hash": "dd71768509042f6c1b27505256388cfbe664c724"
-        }
-      }
-    }
+    "length_sum_mm": 299400.0,
+    "text_count": 40,
+    "text_hash": "125bac30a2dbb6b8"
   }
 }

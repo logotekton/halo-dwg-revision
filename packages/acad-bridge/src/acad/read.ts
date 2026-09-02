@@ -19,7 +19,7 @@ export interface ReadResult {
 }
 
 function notificationDrop(e: NotificationEventArgs): DropEntry {
-  const label = NotificationType[e.notificationType] ?? String(e.notificationType);
+  const label = NotificationType[e.notificationType];
   const exceptionSuffix = e.exception ? `: ${e.exception.message}` : "";
   return { reason: "read-notification", message: `[${label}] ${e.message}${exceptionSuffix}` };
 }

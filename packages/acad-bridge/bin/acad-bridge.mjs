@@ -13,7 +13,7 @@ import {
   NotificationType
 } from "@node-projects/acad-ts";
 function notificationDrop(e) {
-  const label = NotificationType[e.notificationType] ?? String(e.notificationType);
+  const label = NotificationType[e.notificationType];
   const exceptionSuffix = e.exception ? `: ${e.exception.message}` : "";
   return { reason: "read-notification", message: `[${label}] ${e.message}${exceptionSuffix}` };
 }
@@ -209,7 +209,7 @@ function runDwg2Dxf(argv) {
 `);
     return 1;
   }
-  const version = parseVersionName(values.version ?? DEFAULT_DWG2DXF_VERSION);
+  const version = parseVersionName(values.version);
   const { doc, drops: readDrops } = readDwgFile(input);
   if (!doc.header) throw new Error(`${input}: document has no header`);
   doc.header.version = version;
@@ -236,7 +236,7 @@ function runDxf2Dwg(argv) {
 `);
     return 1;
   }
-  const version = parseVersionName(values.version ?? DEFAULT_DXF2DWG_VERSION);
+  const version = parseVersionName(values.version);
   const { doc, drops: readDrops } = readDxfFile(input);
   if (!doc.header) throw new Error(`${input}: document has no header`);
   doc.header.version = version;

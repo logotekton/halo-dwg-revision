@@ -20,7 +20,7 @@ export function runDxf2Dwg(argv: string[]): number {
     process.stderr.write(`${USAGE}\n`);
     return 1;
   }
-  const version = parseVersionName(values.version ?? DEFAULT_DXF2DWG_VERSION);
+  const version = parseVersionName(values.version);
 
   const { doc, drops: readDrops } = readDxfFile(input);
   if (!doc.header) throw new Error(`${input}: document has no header`);

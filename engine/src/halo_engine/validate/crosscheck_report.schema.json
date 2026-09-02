@@ -1,0 +1,300 @@
+{
+  "$defs": {
+    "DiffField": {
+      "description": "The compared measure a :class:`Difference` is about.\n\nOne member per row of ``docs/contracts/stats-definition.md`` \"비교 임계\",\nplus ``bucket`` for a ``(space, layer)`` bucket that exists on one side\nonly (always ``RED``: a missing bucket is never a tolerance question).",
+      "enum": [
+        "bucket",
+        "count_by_type",
+        "insert_by_block",
+        "length_sum_mm",
+        "hatch_area_sum_mm2",
+        "text_count",
+        "text_hash",
+        "bbox"
+      ],
+      "title": "DiffField",
+      "type": "string"
+    },
+    "Difference": {
+      "additionalProperties": false,
+      "description": "One measured disagreement inside one bucket.",
+      "properties": {
+        "absolute_delta": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Largest absolute corner delta in mm for `bbox`; null otherwise.",
+          "title": "Absolute Delta"
+        },
+        "detail": {
+          "description": "Human-readable cause, e.g. `count_by_type.LINE 24→22`. Rendered verbatim into the markdown report.",
+          "title": "Detail",
+          "type": "string"
+        },
+        "entity_types": {
+          "description": "DXF record names present in this bucket (union of both sides, plus ATTRIB when the bucket's text_count exceeds its TEXT+MTEXT count). This is what a whitelist entry's `entity_type` matches against.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Entity Types",
+          "type": "array"
+        },
+        "field": {
+          "$ref": "#/$defs/DiffField",
+          "description": "Which measure disagrees."
+        },
+        "other_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The other document's value, as text.",
+          "title": "Other Value"
+        },
+        "reference_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The reference document's value, as text.",
+          "title": "Reference Value"
+        },
+        "relative_delta": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "|a-b| / max(|a|,|b|) for the numeric measures; null otherwise.",
+          "title": "Relative Delta"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity",
+          "description": "RED unless a whitelist entry explains it."
+        },
+        "whitelist_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Id of the whitelist entry that downgraded this difference (e.g. `W03`).",
+          "title": "Whitelist Id"
+        },
+        "whitelist_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Reason quoted from the whitelist entry that downgraded this to AMBER.",
+          "title": "Whitelist Reason"
+        }
+      },
+      "required": [
+        "field",
+        "severity",
+        "detail"
+      ],
+      "title": "Difference",
+      "type": "object"
+    },
+    "LayerResult": {
+      "additionalProperties": false,
+      "description": "Verdict for one ``(space, layer)`` bucket.",
+      "properties": {
+        "differences": {
+          "items": {
+            "$ref": "#/$defs/Difference"
+          },
+          "title": "Differences",
+          "type": "array"
+        },
+        "layer": {
+          "description": "Layer name, or `(totals)` for the document totals row.",
+          "title": "Layer",
+          "type": "string"
+        },
+        "space": {
+          "description": "`MODEL` or `PAPER:<layout>`, or `(all)` for the totals row.",
+          "title": "Space",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/Severity"
+        }
+      },
+      "required": [
+        "layer",
+        "space",
+        "status"
+      ],
+      "title": "LayerResult",
+      "type": "object"
+    },
+    "ProducerInfo": {
+      "additionalProperties": false,
+      "description": "``producer`` of the compared ``LayerStatsDocument`` (schema `$defs/producer`).",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "ProducerInfo",
+      "type": "object"
+    },
+    "Severity": {
+      "description": "Traffic-light verdict of ADR-0002 6.",
+      "enum": [
+        "GREEN",
+        "AMBER",
+        "RED"
+      ],
+      "title": "Severity",
+      "type": "string"
+    }
+  },
+  "$id": "https://schema.halo-cad.internal/v0/validate/crosscheck-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Full comparison of two ``LayerStatsDocument``s.\n\nStored as-is on ``drawing_file.parser_crosscheck``.",
+  "properties": {
+    "amber_layers": {
+      "description": "Sorted layer names whose worst difference is AMBER.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Amber Layers",
+      "type": "array"
+    },
+    "counts": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "description": "Layer counts by status: keys `GREEN`, `AMBER`, `RED`.",
+      "title": "Counts",
+      "type": "object"
+    },
+    "file_sha256": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "sha256 the two documents agree on, or null when they disagree.",
+      "title": "File Sha256"
+    },
+    "file_sha256_mismatch": {
+      "default": false,
+      "description": "True when the two documents were computed from different bytes (DWG vs. its DXF conversion). Never fatal on its own — the comparison still runs (brief W2-04, Defaults for ambiguity).",
+      "title": "File Sha256 Mismatch",
+      "type": "boolean"
+    },
+    "layers": {
+      "description": "One entry per bucket, ordered by (layer, space).",
+      "items": {
+        "$ref": "#/$defs/LayerResult"
+      },
+      "title": "Layers",
+      "type": "array"
+    },
+    "other": {
+      "$ref": "#/$defs/ProducerInfo"
+    },
+    "red_layers": {
+      "description": "Sorted, deduplicated layer names carrying at least one RED difference. Confidence routing input (ADR-0002 6: 적색 레이어에 근거를 둔 항목은 신뢰도를 감점한다).",
+      "items": {
+        "type": "string"
+      },
+      "title": "Red Layers",
+      "type": "array"
+    },
+    "reference": {
+      "$ref": "#/$defs/ProducerInfo"
+    },
+    "schema_version": {
+      "description": "Version of this report shape, not of the inputs.",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/Severity",
+      "description": "Worst status across every layer and the totals row."
+    },
+    "totals": {
+      "$ref": "#/$defs/LayerResult",
+      "description": "The same comparison applied to `totals`."
+    },
+    "warnings": {
+      "description": "Non-fatal notes, e.g. the sha256 mismatch.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "whitelist_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Whitelist file used, if any (as given on the command line).",
+      "title": "Whitelist Path"
+    }
+  },
+  "required": [
+    "schema_version",
+    "status",
+    "reference",
+    "other",
+    "totals"
+  ],
+  "title": "CrosscheckReport",
+  "type": "object"
+}

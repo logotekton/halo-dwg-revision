@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from halo_engine import __version__
-from halo_engine.api.routers import system
+from halo_engine.api.routers import crosscheck, system
 from halo_engine.config import Settings
 
 # Electron packaged app origin + the two Vite dev-server origins (docs/PLAN.md §3.7).
@@ -64,5 +64,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
 
     app.include_router(system.router, prefix="/api/v1/system", tags=["system"])
+    app.include_router(crosscheck.router, prefix="/api/v1/files", tags=["files"])
 
     return app

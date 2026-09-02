@@ -1,0 +1,131 @@
+# 파서 교차검증 화이트리스트 — 알려진 파서 격차 (W2-04, ADR-0002 6)
+#
+# 여기 실린 차이만 RED → AMBER로 낮춘다. 각 항목은 반드시 `reason`을 갖는다
+# (없으면 로드 시 `WhitelistError`). 리포트에는 이 `reason`이 그대로 인용된다.
+#
+# 절대 금지 — 다음 격차는 화이트리스트로 덮지 않는다 (브리프 W2-04 Constraints:
+# "카운트 격차는 화이트리스트 금지(계약 위반은 해당 태스크에 패치 제안)"):
+#   * `count_by_type`  — 엔티티 수 자체가 다르다
+#   * `text_count`     — 텍스트 개수가 다르다
+#   * `bucket`         — 한쪽에만 있는 (space, layer) 버킷
+#   * `insert_by_block` 중 **INSERT 총개수가 다른 경우** (블록 이름만 다른 경우는 허용,
+#     `crosscheck._insert_totals_agree`)
+# 로더가 앞 세 필드를 `field:`에 쓰는 항목을 거부하고, 네 번째는 비교기가 판정한다.
+#
+# 항목 형식: {id?, producer_pair, field?, entity_type?, reason}
+#   id            : 리포트 표에 인용되는 짧은 식별자. 생략하면 `W01`, `W02`… 순번.
+#   producer_pair : 두 producer 이름(순서 무관). `"*"`는 아무 producer나 뜻한다.
+#   field         : `count_by_type` | `insert_by_block` | `length_sum_mm` |
+#                   `hatch_area_sum_mm2` | `text_count` | `text_hash` | `bbox` | `bucket`
+#   entity_type   : 문자열 또는 문자열 배열. 버킷에 이 타입이 하나라도 있으면 매칭된다
+#                   (양쪽 `count_by_type` 키의 합집합 + text_count > TEXT+MTEXT면 `ATTRIB`).
+#   최소한 field 또는 entity_type 중 하나는 있어야 한다.
+#
+# producer 이름은 `packages/schema/src/ndj/document.schema.json` `$defs/producer`의
+# 닫힌 열거값이다: engine.ezdxf / viewer.mlightcad / acad-ts / libredwg-web.
+
+version: 1
+
+entries:
+  # ---------------------------------------------------------------- 곡선 길이
+  - id: W01-mlightcad-spline-length
+    producer_pair: [viewer.mlightcad, engine.ezdxf]
+    field: length_sum_mm
+    entity_type: [SPLINE]
+    reason: >-
+      mlightcad 1.14.3의 SPLINE 길이는 계약이 요구하는 flattening(0.01) 급 근사가
+      아니라 더 성긴 근사여서 F01의 SPLINE 버킷에서 ezdxf 대비 약 10% 크다
+      (docs/contracts/stats-definition.md "통합에서 확정된 사항" 알려진 격차 (1)).
+      후속: cad-core가 NURBS를 직접 평탄화(W3-02 또는 별도 태스크).
+
+  - id: W02-mlightcad-acad-curve-length
+    producer_pair: [viewer.mlightcad, acad-ts]
+    field: length_sum_mm
+    entity_type: [SPLINE, ELLIPSE]
+    reason: >-
+      같은 SPLINE 근사 격차의 반대편 조합. mlightcad는 계약보다 성기게(F01에서
+      +10%), acad-ts는 계약보다 촘촘하지 않게(-3%) 평탄화해 둘 사이 편차가 가장
+      크다(약 13%). 두 구현 중 어느 쪽도 ezdxf flattening(0.01)을 재현하지 않는다.
+
+  - id: W03-acad-curve-length
+    producer_pair: [acad-ts, engine.ezdxf]
+    field: length_sum_mm
+    entity_type: [SPLINE, ELLIPSE]
+    reason: >-
+      acad-ts는 SPLINE/ELLIPSE를 자체 polygonalVertexes 정밀도로 평탄화한다
+      (packages/acad-bridge/src/acad/length.ts의 flatteningPrecision). F01의 SPLINE
+      버킷에서 ezdxf flattening(0.01) 대비 약 3.3% 짧다. packages/acad-bridge/README.md
+      "stats: schema and contract notes" 마지막 항목이 이 값을 조일지 화이트리스트로
+      둘지 W2-04/G1에 넘겼고, 여기서 화이트리스트로 둔다(카운트 격차가 아니고,
+      정밀도 상향은 acad-bridge 소유 태스크의 패치 사항이다).
+
+  # ------------------------------------------------------------------- bbox
+  # 계약의 bbox 임계(±1mm)는 좌표가 파일에 그대로 적힌 순수 기하에만 성립한다.
+  # 폰트 메트릭(TEXT/MTEXT/ATTRIB), 블록 전개(INSERT), 치수·지시선 렌더 블록
+  # (DIMENSION/LEADER/MULTILEADER), 곡선 근사(SPLINE)에서 나오는 extents는 파서마다
+  # 다르다 — stats-definition.md "통합에서 확정된 사항" 알려진 격차 (2).
+  - id: W04-mlightcad-derived-bbox
+    producer_pair: [viewer.mlightcad, engine.ezdxf]
+    field: bbox
+    entity_type: [TEXT, MTEXT, ATTRIB, INSERT, DIMENSION, LEADER, MULTILEADER, SPLINE]
+    reason: >-
+      파생 extents 격차. mlightcad는 자체 폰트 메트릭과 블록 전개로 extents를
+      계산하고 ezdxf는 ezdxf.bbox로 계산해 텍스트·블록·치수·스플라인이 든 버킷에서
+      수십~수백 mm 차이가 난다(packages/cad-core/README.md "알려진 한계" 3,
+      stats-definition.md 알려진 격차 (2)). 순수 기하만 든 버킷은 ±1mm 안에서 맞는다.
+
+  - id: W05-acad-derived-bbox
+    producer_pair: [acad-ts, engine.ezdxf]
+    field: bbox
+    entity_type: [TEXT, MTEXT, ATTRIB, INSERT, DIMENSION, LEADER, MULTILEADER, SPLINE]
+    reason: >-
+      같은 파생 extents 격차. acad-ts는 여기에 더해 getBoundingBox()가 던지는 엔티티를
+      합집합에서 빼고 *.drops.json에 기록하므로(packages/acad-bridge/README.md
+      "Known acad-ts gaps" 2) 텍스트만 있는 버킷은 bbox 자체가 비기도 한다.
+
+  - id: W06-mlightcad-acad-derived-bbox
+    producer_pair: [viewer.mlightcad, acad-ts]
+    field: bbox
+    entity_type: [TEXT, MTEXT, ATTRIB, INSERT, DIMENSION, LEADER, MULTILEADER, SPLINE]
+    reason: >-
+      위 두 항목과 같은 파생 extents 격차의 세 번째 조합. 두 파서 모두 ezdxf와 다르고
+      서로도 다르다.
+
+  - id: W07-acad-polyline-bbox
+    producer_pair: ["*", acad-ts]
+    field: bbox
+    entity_type: [POLYLINE]
+    reason: >-
+      acad-ts의 SeqendCollection이 종결자(SEQEND/VERTEX)를 원소로 흘려 보내
+      Polyline2D.getBoundingBox()가 던진다(packages/acad-bridge/README.md
+      "Known acad-ts gaps" 2). acad-bridge가 try/catch로 감싸 그 엔티티를 bbox
+      합집합에서 제외하고 드롭으로 기록하므로 구식 2D POLYLINE이 든 버킷(F01
+      GEOM-CTR)의 bbox가 좁게 나온다. 카운트·길이는 영향받지 않는다.
+
+  # --------------------------------------------------------- 텍스트 해시/블록명
+  - id: W08-acad-trailing-a0-text
+    producer_pair: ["*", acad-ts]
+    field: text_hash
+    entity_type: [TEXT, MTEXT, ATTRIB]
+    reason: >-
+      acad-ts 3.1.0 DXF 리더가 텍스트 값의 **후행 0xA0 바이트를 잘라낸다**(cp1252에서
+      NBSP라 공백으로 보고 트림하는 것으로 보인다). UTF-8 한글의 마지막 바이트가 0xA0인
+      글자(예: '고' = EA B3 A0)로 끝나는 문자열은 바이트열이 잘려 유효한 UTF-8이 아니게
+      되고, acad-bridge의 디코드 복구(src/acad/decode-fix.ts, main 1ca713a)는 치환문자가
+      나오면 복구를 포기하도록 설계돼 있어 모지바케가 남는다. F01~F10에서 남은 사례는
+      F08 A-TEXT의 '층고' 하나뿐이며(실측: 'ì¸µê³' = EC B8 B5 EA B3, 5바이트), 그 외
+      한글 픽스처(F03/F06/F07/F09/F10_grid)의 text_hash는 세 파서가 정확히 일치한다.
+      text_count는 항상 일치하므로 카운트 격차가 아니다. 근본 해결은 acad-ts 상류 수정
+      (보고서 "Questions for gate"/"Follow-ups").
+
+  - id: W09-acad-unresolved-block
+    producer_pair: ["*", acad-ts]
+    field: insert_by_block
+    entity_type: [INSERT]
+    reason: >-
+      블록과 레이어가 같은 이름을 쓰면(F06/F10_grid의 X-TITLE 도곽) acad-ts의
+      DxfReader가 INSERT의 블록 참조를 null로 남겨 acad-bridge가 블록명을
+      "<unresolved>"로 기록한다(packages/acad-bridge/README.md "Known acad-ts gaps" 1).
+      INSERT **총개수는 양쪽이 같다** — 이름만 못 푼 것이라 비교기가 총개수 일치를
+      확인한 경우에만 이 항목이 적용된다(총개수가 다르면 카운트 격차로 RED 유지).
+      근본 해결은 acad-bridge 쪽 패치(보고서 "Shared-file patch") 또는 acad-ts 상류 수정.

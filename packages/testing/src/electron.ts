@@ -1,6 +1,10 @@
 import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { _electron as electron, type ElectronApplication, type Page } from '@playwright/test'
+// The `electron` package's default export is the path to its native binary
+// (a `string`) -- that's only true when required *outside* a running
+// Electron process, which is exactly this Node-only Playwright context.
+import electronExecutablePath from 'electron'
 
 // packages/testing/src/electron.ts -> repo root is three levels up. This
 // package builds as CommonJS (no "type": "module" in package.json, matching
@@ -31,7 +35,7 @@ export interface HaloElectronApp {
 }
 
 /**
- * Resolves the Electron executable via `require('electron')`. Per
+ * Resolves the Electron executable via the `electron` package. Per
  * docs/briefs/W2-07.md "Defaults for ambiguity": ideally this would resolve
  * `apps/desktop`'s own `electron` devDependency, but the workspace's
  * `node-linker=isolated` (.npmrc) keeps each package's node_modules
@@ -40,10 +44,12 @@ export interface HaloElectronApp {
  * the task report's Decisions).
  */
 function resolveElectronExecutable(): string {
-  // The `electron` package's main export is the path to its native binary
-  // (a string), not JS API bindings -- that's only true inside a running
-  // Electron process.
-  return require('electron') as unknown as string
+  // The `electron` package's own `types` field points at the full
+  // in-Electron API surface (electron.d.ts), not its actual runtime export
+  // outside Electron (a plain `string`, the binary path) -- a known
+  // mismatch in the package itself, not a mistake here. `unknown` is the
+  // real bridge between those two incompatible static types.
+  return electronExecutablePath as unknown as string
 }
 
 function assertBuildOutputsExist(): void {

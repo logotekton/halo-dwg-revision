@@ -14,6 +14,11 @@ interface HaloFixtures {
  * 비디오 없이 스크린샷만, 콘솔 메시지를 첨부."
  */
 export const test = base.extend<HaloFixtures>({
+  // Playwright's fixture API parses this parameter's destructuring pattern
+  // to determine fixture dependencies; `haloApp` has none, and `{}` is
+  // Playwright's own documented idiom for that (not a mistake to "fix" by
+  // removing it).
+  // eslint-disable-next-line no-empty-pattern
   haloApp: async ({}, use) => {
     const halo = await launchHalo()
     await use(halo)

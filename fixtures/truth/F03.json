@@ -1,0 +1,168 @@
+{
+  "extra": {
+    "mtext_count_expected": 10,
+    "special_characters": [
+      "%%d",
+      "Ø",
+      "㎡"
+    ],
+    "styles": [
+      "KOR-BIG",
+      "KOR-TTF"
+    ],
+    "text_count_expected": 20
+  },
+  "fixture": "F03",
+  "primary": {
+    "dxf_version": "AC1032",
+    "encoding": "cp1252",
+    "file": "F03.dxf",
+    "sha256": "9c712ca601090b664ac8c092959ad222381dc4e1f2f359717e67d156a9108c6f",
+    "size_bytes": 60372,
+    "stats": {
+      "by_space": {
+        "Model": {
+          "by_layer": {
+            "A-TEXT": {
+              "bbox": [
+                -675.079571,
+                -12024.313915,
+                12800.0,
+                197.565442
+              ],
+              "count_by_type": {
+                "MTEXT": 10,
+                "TEXT": 20
+              },
+              "hatch_area_sum": 0.0,
+              "insert_by_block": {},
+              "length_sum": 0.0,
+              "text_count": 30,
+              "text_hash": "3abd8242e0121f8f28a591f689634ec00d59e05b"
+            }
+          },
+          "totals": {
+            "bbox": [
+              -675.079571,
+              -12024.313915,
+              12800.0,
+              197.565442
+            ],
+            "count_by_type": {
+              "MTEXT": 10,
+              "TEXT": 20
+            },
+            "hatch_area_sum": 0.0,
+            "insert_by_block": {},
+            "length_sum": 0.0,
+            "text_count": 30,
+            "text_hash": "3abd8242e0121f8f28a591f689634ec00d59e05b"
+          }
+        }
+      },
+      "totals": {
+        "bbox": [
+          -675.079571,
+          -12024.313915,
+          12800.0,
+          197.565442
+        ],
+        "count_by_type": {
+          "MTEXT": 10,
+          "TEXT": 20
+        },
+        "hatch_area_sum": 0.0,
+        "insert_by_block": {},
+        "length_sum": 0.0,
+        "text_count": 30,
+        "text_hash": "3abd8242e0121f8f28a591f689634ec00d59e05b"
+      }
+    }
+  },
+  "totals": {
+    "bbox": [
+      -675.079571,
+      -12024.313915,
+      12800.0,
+      197.565442
+    ],
+    "count_by_type": {
+      "MTEXT": 10,
+      "TEXT": 20
+    },
+    "hatch_area_sum": 0.0,
+    "insert_by_block": {},
+    "length_sum": 0.0,
+    "text_count": 30,
+    "text_hash": "3abd8242e0121f8f28a591f689634ec00d59e05b"
+  },
+  "variants": {
+    "r2000_cp949": {
+      "dxf_version": "AC1015",
+      "encoding": "cp949",
+      "file": "F03_r2000_cp949.dxf",
+      "omitted": [],
+      "sha256": "36b70b4a90d7f95b870e3e4182de92594efebf36e90e9a54b469879d840dd31b",
+      "size_bytes": 39706,
+      "stats": {
+        "by_space": {
+          "Model": {
+            "by_layer": {
+              "A-TEXT": {
+                "bbox": [
+                  -675.079571,
+                  -12024.313915,
+                  12800.0,
+                  197.565442
+                ],
+                "count_by_type": {
+                  "MTEXT": 10,
+                  "TEXT": 20
+                },
+                "hatch_area_sum": 0.0,
+                "insert_by_block": {},
+                "length_sum": 0.0,
+                "text_count": 30,
+                "text_hash": "3abd8242e0121f8f28a591f689634ec00d59e05b"
+              }
+            },
+            "totals": {
+              "bbox": [
+                -675.079571,
+                -12024.313915,
+                12800.0,
+                197.565442
+              ],
+              "count_by_type": {
+                "MTEXT": 10,
+                "TEXT": 20
+              },
+              "hatch_area_sum": 0.0,
+              "insert_by_block": {},
+              "length_sum": 0.0,
+              "text_count": 30,
+              "text_hash": "3abd8242e0121f8f28a591f689634ec00d59e05b"
+            }
+          }
+        },
+        "totals": {
+          "bbox": [
+            -675.079571,
+            -12024.313915,
+            12800.0,
+            197.565442
+          ],
+          "count_by_type": {
+            "MTEXT": 10,
+            "TEXT": 20
+          },
+          "hatch_area_sum": 0.0,
+          "insert_by_block": {},
+          "length_sum": 0.0,
+          "text_count": 30,
+          "text_hash": "3abd8242e0121f8f28a591f689634ec00d59e05b"
+        }
+      }
+    }
+  }
+}

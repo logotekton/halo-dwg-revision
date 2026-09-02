@@ -1,2 +1,4 @@
 [tool.uv.workspace]
 members = ["engine"]
+# Independent uv projects that live inside the repo but are not engine members.
+exclude = ["fixtures/gen", "packages/schema/gen/python", "spikes/*"]

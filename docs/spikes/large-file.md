@@ -59,6 +59,72 @@
 
 ## 3. 측정표
 
+시간은 프로세스 전체 wall time(`/usr/bin/time -l`의 `real`)이고, 브라우저는 파싱+`dxfOut()` 구간이다.
+피크 RSS는 프로세스(브라우저는 Chromium 프로세스 트리)의 최댓값이다. **실패도 값으로 적는다.**
+
+### 3.1 소형 픽스처 (F03·F06·F10_grid, 3회 중앙값, 24 GB·기본 힙)
+
+| 파일 | 경로 | 시간 | 피크 RSS | 결과 |
+|---|---|---:|---:|---|
+| F03.dxf (60 KB) | acad (stats) | 0.2 s | 117 MB | ok · truth 완전 일치 |
+| F03.dxf | dxfout | 0.1 s | 73 MB | ok · truth 완전 일치 |
+| F03.dxf | engine (ezdxf) | 0.4 s | 239 MB | ok · truth 완전 일치 |
+| F03.dxf | browser | 0.04 s | 355 MB | ok · truth 완전 일치 |
+| F03.dwg (15 KB) | acad (dwg2dxf) | 0.2 s | 116 MB | 변환 ok, **엔진이 산출물 읽기 실패**(`ZeroDivisionError`) |
+| F03.dwg | dxfout | 0.03 s | 60 MB | **실패**: `Worker is not defined` (Node에 Web Worker 없음) |
+| F03.dwg | browser | 0.3 s | 446 MB | 변환 ok, **엔진이 산출물 읽기 실패**(`ZeroDivisionError`, §4.3) |
+| F06.dwg (15 KB) | acad (dwg2dxf) | 0.2 s | 118 MB | 변환 ok, **엔진 읽기 실패**(`AttributeError`) |
+| F06.dwg | browser | 0.4 s | 452 MB | ok · SEQEND 7 여분, ATTRIB 10 유실, 해치 부호 |
+| F06.dxf (74 KB) | acad (stats) | 0.2 s | 118 MB | ok · `insert_by_block`이 `<unresolved>` |
+| F06.dxf | dxfout | 0.1 s | 74 MB | ok · SEQEND 8 여분, ATTRIB 10 유실, 해치 부호 |
+| F06.dxf | engine | 0.3 s | 172 MB | ok · truth 완전 일치 |
+| F06.dxf | browser | 0.04 s | 354 MB | ok · dxfout와 동일 |
+| F10_grid.dwg | acad (dwg2dxf) | 0.2 s | 117 MB | 변환 ok, **엔진 읽기 실패**(`AttributeError`) |
+| F10_grid.dwg | browser | 0.2 s | 445 MB | ok · INSERT 5/6, ATTRIB 7 유실 |
+| F10_grid.dxf | acad (stats) | 0.2 s | 117 MB | ok · `<unresolved>` |
+| F10_grid.dxf | dxfout | 0.1 s | 73 MB | ok · SEQEND 6 여분, ATTRIB 7 유실 |
+| F10_grid.dxf | engine | 0.3 s | 172 MB | ok · truth 완전 일치 |
+
+브라우저 기준선(빈 bench 페이지 + 워커 등록만): **Chromium 프로세스 트리 약 348 MB.**
+즉 위 브라우저 행의 "순수 도면 비용"은 RSS − 348 MB다(F06.dwg ≈ 104 MB).
+
+### 3.2 F11 — 200 006 엔티티 (DXF 41.4 MB / DWG 5.3 MB)
+
+| 파일 | 경로 | 힙 | 시간 | 피크 RSS | 결과 |
+|---|---|---|---:|---:|---|
+| F11.dxf | acad (stats) | 기본 | 3.3 s | 1 206 MB | ok · `<unresolved>` 1건 |
+| F11.dxf | acad (stats) | 2048 MB | 3.2 s | 1 202 MB | ok |
+| F11.dxf | acad (stats) | 1024 MB | 3.3 s | 1 120 MB | ok |
+| F11.dxf | dxfout | 기본 | 1.5 s (파싱 763 ms + `dxfOut` 622 ms) | 1 440 MB | ok · 48.4 MB 출력 |
+| F11.dxf | dxfout | 2048 MB | 1.5 s | 1 389 MB | ok |
+| F11.dxf | dxfout | 1024 MB | 1.6 s | 1 257 MB | ok |
+| F11.dxf | engine (ezdxf) | — | 15.5 s | 580 MB | ok · truth 완전 일치 |
+| F11.dxf | browser | Chromium 기본 | 1.2 s | 1 433 MB | ok · 48.4 MB 출력 |
+| F11.dwg | acad (dwg2dxf) | 기본 | 15.7 s | 2 271 MB | 변환 ok(60 MB DXF), **엔진 읽기 실패** |
+| F11.dwg | dxfout | 기본 | 0.03 s | 70 MB | **실패**: `Worker is not defined` |
+| F11.dwg | browser | Chromium 기본 | 0.8 s | 704 MB | **조용한 손실: 200 006개 중 85개만 읽힘**(§4.4) |
+| F11.dxf → DWG | acad (`dxf2dwg`, 픽스처 생성용) | 16 GB | **358 s** | 1 251 MB | ok(5.3 MB DWG). 쓰기가 읽기보다 23배 느리다 |
+
+- **1024 MB old-space 상한에서도 두 Node 경로 모두 20만 엔티티를 처리한다.** 즉 16 GB 기기(기본 힙이 이 Mac의
+  4 288 MB보다 작다)에서도 20만 엔티티 DXF는 문제가 아니다.
+- ezdxf는 **가장 느리지만 가장 가볍다**(580 MB, 2.9 KB/엔티티). JS 쪽은 6–7 KB/엔티티다.
+
+### 3.3 F12 — 1 000 026 엔티티 (DXF 209.3 MB, DWG 없음)
+
+| 파일 | 경로 | 힙 | 시간 | 피크 RSS | 결과 |
+|---|---|---|---:|---:|---|
+| F12.dxf | acad (stats) | 기본(4 288 MB) | — | 4 038 MB | **실패: `RangeError: Maximum call stack size exceeded`** (17.2 s 만에) |
+| F12.dxf | acad (stats) | **16 384 MB** | — | 4 850 MB | **같은 실패.** 메모리를 4배 줘도 동일 → 힙이 아니라 **재귀 깊이 한계** |
+| F12.dxf | dxfout | 기본 | 8.3 s (파싱 3 658 ms + `dxfOut` 4 056 ms) | 4 635 MB | ok · 244.6 MB 출력, 1 000 026 엔티티 전부 |
+| F12.dxf | engine (ezdxf) | — | 74.0 s | 2 371 MB | ok · truth 완전 일치 |
+| F12.dxf | browser | Chromium 기본 | (아래) | (아래) | (아래) |
+| F12.dxf → DWG | acad (`dxf2dwg`) | — | — | — | **미생성.** F11(20만)의 DXF→DWG가 이미 358 s였고, DXF 읽기 자체가 위처럼 실패하므로 시도하지 않았다 |
+
+- **1M 엔티티에서 acad-ts는 메모리가 아니라 스택에서 죽는다.** 20만은 통과, 100만은 힙과 무관하게 실패.
+  두 값 사이 어딘가에 고정된 상한이 있고 사용자가 RAM으로 해결할 수 없다.
+- `dxfOut()`은 100만 엔티티를 기본 힙 안에서 통과하지만 RSS 4.6 GB다 —
+  **16 GB 기기에서 이 크기는 위험 구간**(브라우저 렌더러 힙 상한이 4 GB 근처).
+
 <!-- 3-tables -->
 
 ## 4. 변환 충실도
@@ -116,6 +182,49 @@
 그 외는 정확하다 — 특히 **`insert_by_block`이 truth와 일치**한다(`{GRID-BUBBLE: 7, X-TITLE: 1}`).
 mlightcad에는 acad-ts의 "블록명=레이어명" 결함이 **없다.**
 한글 텍스트(F03: `거실`, `실명: 거실\P면적: 23.4㎡`)는 DXF 입력 경로에서 `text_hash`까지 **완전 일치**한다.
+
+### 4.3 DWG 픽스처는 acad-ts가 쓴 것이라 "DWG 읽기" 비교의 기준으로 쓸 수 없다
+
+`fixtures/generated/*.dwg`는 전부 W2-05의 `acad-bridge dxf2dwg` 산출물이다. 그 쓰기 과정에서
+이미 손실·오염이 생긴다는 것이 이 태스크에서 드러났다.
+
+- F06.dwg에는 `X-TITLE` INSERT와 그 ATTRIB 3개가 **애초에 없다**(§4.1 결함 4).
+  두 리더 모두 INSERT 7개만 본다: acad-ts self-view 85 엔티티, libredwg+`dxfOut` 85 엔티티(+SEQEND).
+  즉 **libredwg-web + `dxfOut()`은 그 DWG에 있는 것을 하나도 잃지 않는다.** truth와의 차이는 전부
+  (a) 쓰기 때 이미 없어진 것 + (b) §4.2의 플래그 두 개다.
+
+  | F06 | truth | acad-ts가 그 DWG를 읽은 값 | libredwg + `dxfOut` → ezdxf |
+  |---|---:|---:|---:|
+  | `entity_count` | 86 | 85 | 92 (= 85 + 고아 SEQEND 7) |
+  | `count_by_type.INSERT` | 8 | 7 | 7 |
+  | `insert_by_block` | `{GRID-BUBBLE:7, X-TITLE:1}` | `{GRID-BUBBLE:7}` | `{GRID-BUBBLE:7}` |
+  | `length_sum_mm` | 299 400 | 299 400 | 299 400 |
+  | `hatch_area_sum_mm2` | 4 320 000 | 4 320 000 | −4 320 000 |
+  | `text_count` | 40 | 37 | 30 (ATTRIB 7개가 고아) |
+
+- F03.dwg의 MTEXT는 x축 벡터가 `(0,0,0)`이다. 원본 `F03.dxf`에는 그룹 11 자체가 없다.
+  **서로 독립인 두 리더(acad-ts, libredwg)가 똑같이 `(0,0,0)`을 돌려준다** → 값은 DWG 안에 있고,
+  acad-ts의 DWG 쓰기가 만든 것이다. 그래서 두 경로 모두 산출 DXF에서 엔진이 `ZeroDivisionError`로 죽는다.
+
+**따라서 "DWG → DXF 변환 품질"의 최종 판정은 제3자가 만든 실제 DWG가 있어야 한다.** (G0 질문)
+
+### 4.4 libredwg-web이 F11.dwg에서 20만 엔티티 중 85개만 조용히 반환한다
+
+| | 값 |
+|---|---|
+| 입력 | `F11.dwg` 5.3 MB (acad-ts가 쓴 것), 원본 DXF 기준 200 006 엔티티 |
+| acad-ts가 같은 DWG를 읽으면 | 200 005 엔티티 |
+| libredwg-web 워커가 읽으면 | **85 엔티티** (F06 한 타일 분량) |
+| 파싱 시간 | 775 ms, 피크 RSS 704 MB |
+| `AcDbDatabase.lastOpenError` | **`null`** (오류 없음) |
+| 3초 대기 후 재집계 | 여전히 85 (data-model의 비동기 배치 변환이 아직 진행 중이라서가 아니다) |
+
+둘 중 하나다: (i) acad-ts의 DWG 쓰기가 libredwg만 엄격히 검사하는 부분을 망가뜨렸거나,
+(ii) libredwg-web이 이 파일을 조용히 잘라 읽는다. **가진 픽스처로는 판별할 수 없다**(§4.3).
+
+어느 쪽이든 결론 하나는 확정이다: **변환기가 "성공"을 반환해도 믿으면 안 된다.**
+ADR-0002 §6의 stats 교차검증은 "레이어별 녹/황/적 표시"가 아니라 **임포트를 막는 게이트**여야 한다.
+`entity_count`가 예상과 자릿수로 다르면 그 변환은 실패로 처리한다(§5.2).
 
 <!-- 4-fidelity -->
 

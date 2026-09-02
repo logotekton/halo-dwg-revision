@@ -49,3 +49,4 @@ test-results/
 .claude/settings.local.json
 fixtures/**/F11*.drops.json
 fixtures/**/F12*.drops.json
+samples/_reports/

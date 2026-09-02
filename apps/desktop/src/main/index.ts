@@ -1,8 +1,7 @@
 import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import { app, BrowserWindow, protocol } from 'electron'
 import { registerIpcHandlers } from './ipc'
-import { getMimeType, resolveAssetPath } from './protocol'
+import { getMimeType, resolveAssetPath, resolveWebDistDir } from './protocol'
 import { APP_SCHEME, createMainWindow } from './window'
 
 // Custom scheme must be registered as privileged before app 'ready' (Electron
@@ -22,9 +21,11 @@ protocol.registerSchemesAsPrivileged([
 ])
 
 function webDistDir(): string {
-  // Unpacked layout (dev build + `electron .`, and today's packaging):
-  // apps/desktop/{package.json,out/} next to apps/web/dist.
-  return join(app.getAppPath(), '..', 'web', 'dist')
+  return resolveWebDistDir({
+    isPackaged: app.isPackaged,
+    appPath: app.getAppPath(),
+    resourcesPath: process.resourcesPath,
+  })
 }
 
 function registerAppProtocol(): void {

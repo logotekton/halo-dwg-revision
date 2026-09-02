@@ -1,0 +1,68 @@
+# electron-builder config for Halo CAD (W2-08 packaging spike, macOS arm64
+# only -- Intel/Windows are out of scope, see docs/briefs/W2-08.md "Defaults
+# for ambiguity"). Invoked via `pnpm --filter @halo-cad/desktop build:app`,
+# which is step 3 of `tools/package.sh` (sidecar build -> `pnpm build` ->
+# electron-builder), always with cwd = apps/desktop -- every relative path
+# below is resolved from there.
+#
+# Resource layout matches docs/contracts/wave-2.md "패키징":
+#   engine/dist/halo-engine/  -> <resources>/engine/  (PyInstaller onedir sidecar)
+#   apps/web/dist/            -> <resources>/web/     (flat, no nested dist/)
+# `apps/desktop/src/main/protocol.ts`'s `resolveWebDistDir()` encodes the
+# matching `app.isPackaged` read side of this contract.
+
+appId: kr.co.daemyung.halocad
+productName: Halo CAD
+copyright: Copyright (c) 대명건설
+
+directories:
+  buildResources: build
+  # Repo-root `dist/` (gitignored), not apps/desktop/dist -- keeps packaging
+  # output out of every package's own directory, alongside engine/dist/.
+  output: ../../dist
+
+# Only the electron-vite output + package.json (for the `main` entry point
+# and app metadata) -- main/preload have no runtime "dependencies" (see
+# electron.vite.config.ts: build.externalizeDeps only ever externalizes
+# `electron` itself, which Electron supplies natively), so node_modules is
+# deliberately not included.
+files:
+  - out/**/*
+  - package.json
+  - '!**/*.map'
+
+asar: true
+
+extraResources:
+  - from: ../../engine/dist/halo-engine
+    to: engine
+  - from: ../web/dist
+    to: web
+
+mac:
+  icon: build/icon.icns
+  category: public.app-category.developer-tools
+  target:
+    - target: dmg
+      arch: [arm64]
+    - target: zip
+      arch: [arm64]
+  # No Apple Developer identity / notarization in this environment (CLT
+  # only). Ad-hoc signing (identity: null) + hardenedRuntime: false is the
+  # documented state for this stage -- see docs/dev/packaging.md "Gatekeeper".
+  hardenedRuntime: false
+  identity: null
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    # Prevent Electron's default Info.plist from claiming the app talks to
+    # the network for arbitrary purposes beyond 127.0.0.1 (CLAUDE.md 9).
+    NSHighResolutionCapable: true
+
+dmg:
+  artifactName: '${productName}-${version}-${arch}.${ext}'
+
+# electron-builder's default mac zip artifactName already matches the
+# contract's `Halo CAD-<version>-arm64-mac.zip` (arch + platform suffix), so
+# no override is needed here -- see docs/dev/packaging.md for the verified
+# artifact names from an actual build.

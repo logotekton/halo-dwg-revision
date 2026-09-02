@@ -322,7 +322,7 @@ export function nurbsFromControlPoints(spec: {
   const knots =
     spec.knots.length === count + order ? [...spec.knots] : clampedUniformKnots(count, order);
   const weights =
-    spec.weights && spec.weights.length === count && spec.weights.some((value) => value !== 1)
+    spec.weights?.length === count && spec.weights.some((value) => value !== 1)
       ? [...spec.weights]
       : undefined;
   return { degree, controlPoints: spec.controlPoints, knots, ...(weights ? { weights } : {}) };

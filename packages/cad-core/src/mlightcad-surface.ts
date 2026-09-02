@@ -11,9 +11,23 @@
  * `docs/spikes/mlightcad-api.md`.
  */
 
-import type { AcApDocManagerOptions } from '@mlightcad/cad-simple-viewer';
+import type * as MlightcadViewer from '@mlightcad/cad-simple-viewer';
+import type {
+  AcApDocManager,
+  AcApDocManagerOptions,
+  AcApDocument,
+  AcTrView2d,
+} from '@mlightcad/cad-simple-viewer';
+import type * as MlightcadMTextRenderer from '@mlightcad/mtext-renderer';
+import type * as MlightcadThreeRenderer from '@mlightcad/three-renderer';
 import {
+  AcCmColor,
+  AcCmColorMethod,
   AcDbCodePage,
+  AcGeBox2d,
+  AcGeMatrix3d,
+  AcGePoint2d,
+  AcGePoint3d,
   AcDb2dPolyline,
   AcDb3PointAngularDimension,
   AcDbAlignedDimension,
@@ -25,6 +39,7 @@ import {
   AcDbCircle,
   AcDbCurve,
   AcDbDatabase,
+  AcDbDatabaseConverterManager,
   AcDbDiametricDimension,
   AcDbDimension,
   AcDbEllipse,
@@ -54,6 +69,15 @@ import {
   scanSplineFitData,
 } from './curve-length';
 import type { SplineFitData } from './curve-length';
+import type { CadOpenMode, ViewBox, ViewPoint } from './host/types';
+import type {
+  ViewDocumentEvent,
+  ViewEditService,
+  ViewOverlayEntity,
+  ViewProgressEvent,
+  ViewSurface,
+  ViewSurfaceOptions,
+} from './host/view-surface';
 import type {
   CadBlock,
   CadDocumentHandle,
@@ -845,6 +869,25 @@ class SurfaceDocument implements CadDocumentHandle {
     return [...model, ...paper.map((entry) => entry.view)];
   }
 
+  /**
+   * `AcDbDatabase.dxfOut()` — the default DWG→DXF converter of ADR-0002
+   * (개정 2026-09-02 §1). ASCII output, so the caller can hand it straight to
+   * `postProcessDxfOut()`.
+   *
+   * The signature's first argument is an ObjectARX compatibility leftover and
+   * is ignored by the implementation (spike C.7); the file is written by the
+   * caller, not here, because this package never touches the file system.
+   */
+  writeDxf(options: { version?: string; precision?: number } = {}): string {
+    const result: unknown = this.db().dxfOut(
+      'out.dxf',
+      options.precision ?? 6,
+      options.version ?? 'AC1032'
+    );
+    if (typeof result === 'string') return result;
+    throw new Error('cad-core: dxfOut did not return ASCII DXF text');
+  }
+
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
@@ -871,6 +914,53 @@ function* iterateSpace(
 
 export function disposeDocument(document: CadDocumentHandle): void {
   if (document instanceof SurfaceDocument) document.dispose();
+}
+
+/**
+ * Serialises an open document back to DXF text with `dxfOut()`.
+ *
+ * Throws for a handle this module did not create — the facade never lets a
+ * caller reach the underlying database, so there is no other way in.
+ */
+export function writeDxfText(
+  document: CadDocumentHandle,
+  options: { version?: string; precision?: number } = {}
+): string {
+  if (!(document instanceof SurfaceDocument)) {
+    throw new Error('cad-core: exportDxf needs a handle returned by openDxf/CadHost');
+  }
+  return document.writeDxf(options);
+}
+
+/**
+ * Opens DWG bytes. Requires `registerLibreDwgConverter()` from
+ * `@halo-cad/dwg-io-gpl` to have run in this realm and therefore a browser-like
+ * context with `Worker` (ADR-0002 개정 §2): the converter forces
+ * `useWorker: true` and Node has no `Worker` global.
+ *
+ * The buffer is copied first — the DWG path transfers the input into the
+ * parser worker and leaves the caller's `ArrayBuffer` detached (spike C.7).
+ */
+export async function openDwgDatabase(
+  bytes: ArrayBuffer,
+  options: { fileSha256?: string } = {}
+): Promise<CadDocumentHandle> {
+  const copy = bytes.slice(0);
+  const database = new AcDbDatabase();
+  await database.read(copy, { readOnly: false }, AcDbFileType.DWG);
+  const version: unknown = database.version;
+  const dwgVersion =
+    typeof version === 'object' && version !== null && 'name' in version
+      ? String(version.name)
+      : 'AC1032';
+  const header: CadHeader = {
+    dwgVersion,
+    codepageDeclared: null,
+    codepageEffective: UNICODE_DWG_VERSIONS.has(dwgVersion) ? 'UTF-8' : 'unknown',
+    codepageOverrideByUser: false,
+    insunits: database.insunits,
+  };
+  return new SurfaceDocument(database, header, options.fileSha256);
 }
 
 /**
@@ -910,4 +1000,636 @@ export async function openDxfDatabase(
     insunits: database.insunits,
   };
   return new SurfaceDocument(database, header, options.fileSha256, splineFits);
+}
+
+// ---------------------------------------------------------------------------
+// view surface (W3-02)
+// ---------------------------------------------------------------------------
+
+/**
+ * The viewer packages are loaded lazily, on the first `createViewSurface()`.
+ *
+ * `@mlightcad/cad-simple-viewer` reaches for `document` and WebGL at import
+ * time, so a static import would break every Node consumer of this package —
+ * vitest, `tools/crosscheck/mlightcad-stats.mjs` and the desktop main process
+ * all import `openDxf` from the same entry point (spike C.11).
+ */
+interface ViewerModules {
+  viewer: ViewerModule;
+  three: ThreeRendererModule;
+  fonts: MTextRendererModule;
+}
+
+type ViewerModule = typeof MlightcadViewer;
+type ThreeRendererModule = typeof MlightcadThreeRenderer;
+type MTextRendererModule = typeof MlightcadMTextRenderer;
+
+let viewerModules: Promise<ViewerModules> | null = null;
+
+async function loadViewerModules(): Promise<ViewerModules> {
+  viewerModules ??= (async (): Promise<ViewerModules> => {
+    const [viewer, three, fonts] = await Promise.all([
+      import('@mlightcad/cad-simple-viewer'),
+      import('@mlightcad/three-renderer'),
+      import('@mlightcad/mtext-renderer'),
+    ]);
+    return { viewer, three, fonts };
+  })();
+  return viewerModules;
+}
+
+/** `AcEdOpenMode` values, kept as numbers so the enum does not cross the seam. */
+const OPEN_MODE: Readonly<Record<CadOpenMode, number>> = { read: 0, review: 4, write: 8 };
+
+/**
+ * Worker file names, mirrored from `AcApWorkerAssets` (spike §A).
+ *
+ * `@halo-cad/dwg-io-gpl` exports the same three constants, but importing that
+ * package here would pull a GPL dependency into cad-core (CLAUDE.md rule 3), so
+ * the two names the viewer needs are repeated instead. `packages/dwg-io-gpl`'s
+ * asset copier is what puts the files on disk under the same names.
+ */
+const LIBREDWG_PARSER_WORKER_FILE = 'libredwg-parser-worker.js';
+const MTEXT_RENDERER_WORKER_FILE = 'mtext-renderer-worker.js';
+
+/** Default Korean fallback chain (spike B.2/B.3); W3-05 owns the manifest. */
+const DEFAULT_FONT_CHAIN = ['whgtxt', 'hztxt', 'simsun', 'simplex'];
+
+/** `addTransientEntity()` is fire-and-forget; poll the scene for this long. */
+const TRANSIENT_POLL_TIMEOUT_MS = 5_000;
+const TRANSIENT_POLL_INTERVAL_MS = 20;
+
+function box2d(box: ViewBox): AcGeBox2d {
+  return new AcGeBox2d({ x: box.min.x, y: box.min.y }, { x: box.max.x, y: box.max.y });
+}
+
+function colorOfSpec(color: number | string): AcCmColor {
+  if (typeof color === 'number') {
+    const value = new AcCmColor(AcCmColorMethod.ByACI);
+    value.colorIndex = color;
+    return value;
+  }
+  return new AcCmColor(AcCmColorMethod.ByColor).setRGBFromCss(color);
+}
+
+function overlayEntity(spec: ViewOverlayEntity): AcDbEntity {
+  switch (spec.kind) {
+    case 'line':
+      return new AcDbLine(
+        new AcGePoint3d(spec.start.x, spec.start.y, 0),
+        new AcGePoint3d(spec.end.x, spec.end.y, 0)
+      );
+    case 'polyline': {
+      const polyline = new AcDbPolyline();
+      spec.points.forEach((point, index) => {
+        polyline.addVertexAt(index, new AcGePoint2d(point.x, point.y));
+      });
+      polyline.closed = spec.closed;
+      return polyline;
+    }
+    case 'circle':
+      return new AcDbCircle(new AcGePoint3d(spec.center.x, spec.center.y, 0), spec.radiusMm);
+    case 'text': {
+      const text = new AcDbText();
+      text.textString = spec.text;
+      text.position = new AcGePoint3d(spec.position.x, spec.position.y, 0);
+      text.height = spec.heightMm;
+      return text;
+    }
+  }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Mounts `AcApDocManager` on a DOM container and projects it onto
+ * {@link ViewSurface}.
+ *
+ * Everything version-fragile about the viewer is inside this function: the
+ * twelve `AcTrView2d` methods the facade uses, the two `FontManager`s, the
+ * five singletons `dispose()` has to unwind, and the event names.
+ */
+export async function createViewSurface(options: ViewSurfaceOptions): Promise<ViewSurface> {
+  const { viewer, three, fonts } = await loadViewerModules();
+  const assetsBaseUrl = options.assetsBaseUrl.replace(/\/+$/, '');
+  const workerBaseUrl = `${assetsBaseUrl}/workers`;
+
+  // GPL boundary: the caller injects the registration from
+  // `@halo-cad/dwg-io-gpl`; this package never imports libredwg (CLAUDE.md 3).
+  options.registerDwgConverter?.(workerBaseUrl);
+
+  const managerOptions: AcApDocManagerOptions = {
+    container: options.container,
+    autoResize: true,
+    // `resolveFontsBaseUrl()` appends `/fonts/`; without this the viewer would
+    // fetch from jsdelivr, which CLAUDE.md rule 9 forbids at runtime.
+    baseUrl: assetsBaseUrl,
+    webworkerFileUrls: {
+      mtextRender: `${workerBaseUrl}/${MTEXT_RENDERER_WORKER_FILE}`,
+      dwgParser: `${workerBaseUrl}/${LIBREDWG_PARSER_WORKER_FILE}`,
+    },
+    checkWorkersOnInit: options.checkWorkers,
+    builtinOpenFileDialog: false,
+  };
+  const manager = viewer.AcApDocManager.createInstance(managerOptions);
+  if (!manager) throw new Error('cad-core: AcApDocManager.createInstance returned undefined');
+
+  const view = (): AcTrView2d => manager.curView;
+  const documentByName = (name: string): AcApDocument | undefined =>
+    manager.documents.find((candidate) => candidate.fileName === name);
+
+  const surface = new MlightcadViewSurface(manager, viewer, three, fonts, view, documentByName);
+  await surface.setFontChain(options.fontChain ?? DEFAULT_FONT_CHAIN);
+  return surface;
+}
+
+class MlightcadViewSurface implements ViewSurface {
+  private readonly cleanups: (() => void)[] = [];
+  private readonly documentListeners = new Set<(event: ViewDocumentEvent) => void>();
+  private readonly selectionListeners = new Set<(handles: CadHandle[]) => void>();
+  private readonly entityListeners = new Set<
+    (handles: CadHandle[], kind: 'append' | 'modify' | 'erase') => void
+  >();
+  private lastError: string | null = null;
+
+  constructor(
+    private readonly manager: AcApDocManager,
+    private readonly viewer: ViewerModules['viewer'],
+    private readonly three: ViewerModules['three'],
+    private readonly fonts: ViewerModules['fonts'],
+    private readonly view: () => AcTrView2d,
+    private readonly documentByName: (name: string) => AcApDocument | undefined
+  ) {
+    this.wireDocumentEvents();
+    this.wireSelectionEvents();
+  }
+
+  private wireDocumentEvents(): void {
+    const events = this.manager.events;
+    const bind = (
+      manager: { addEventListener(fn: (payload: { doc: AcApDocument }) => void): void;
+        removeEventListener(fn: (payload: { doc: AcApDocument }) => void): void },
+      kind: ViewDocumentEvent['kind']
+    ): void => {
+      const listener = (payload: { doc: AcApDocument }): void => {
+        const event: ViewDocumentEvent = { name: payload.doc.fileName, kind };
+        for (const callback of this.documentListeners) callback(event);
+      };
+      manager.addEventListener(listener);
+      this.cleanups.push(() => {
+        manager.removeEventListener(listener);
+      });
+    };
+    bind(events.documentToBeOpened, 'toBeOpened');
+    bind(events.documentCreated, 'created');
+    bind(events.documentActivated, 'activated');
+    bind(events.documentToBeDestroyed, 'toBeDestroyed');
+    bind(events.documentDestroyed, 'destroyed');
+  }
+
+  /**
+   * The selection set is per view and survives document switches, so listening
+   * once on `curView` is enough; both events report the *whole* selection so
+   * the facade never has to diff.
+   */
+  private wireSelectionEvents(): void {
+    const selectionSet = this.view().selectionSet;
+    const notify = (): void => {
+      const handles = [...selectionSet.ids];
+      for (const callback of this.selectionListeners) callback(handles);
+    };
+    selectionSet.events.selectionAdded.addEventListener(notify);
+    selectionSet.events.selectionRemoved.addEventListener(notify);
+    this.cleanups.push(() => {
+      selectionSet.events.selectionAdded.removeEventListener(notify);
+      selectionSet.events.selectionRemoved.removeEventListener(notify);
+    });
+  }
+
+  async workersReady(): Promise<boolean> {
+    return this.manager.areWorkersReady();
+  }
+
+  async open(name: string, bytes: ArrayBuffer, mode: CadOpenMode): Promise<boolean> {
+    // The DWG path transfers the buffer into the parser worker and detaches
+    // the caller's copy (spike C.7), so hand the viewer a copy of our own.
+    const copy = bytes.slice(0);
+    const database = this.manager.curDocument.database;
+    const detach = this.wireDatabaseEvents(database);
+    try {
+      return await this.manager.openDocument(name, copy, { mode: OPEN_MODE[mode] });
+    } finally {
+      detach();
+      this.wireDatabaseEvents(this.manager.curDocument.database, true);
+    }
+  }
+
+  /**
+   * `entityAppended` / `entityModified` / `entityErased` live on the database,
+   * which is replaced on every open, so the binding is refreshed after each one.
+   */
+  private wireDatabaseEvents(database: AcDbDatabase, keep = false): () => void {
+    const emit =
+      (kind: 'append' | 'modify' | 'erase') =>
+      (payload: { entity: AcDbEntity | AcDbEntity[] }): void => {
+        const entities = Array.isArray(payload.entity) ? payload.entity : [payload.entity];
+        const handles = entities.map((entity) => entity.objectId);
+        if (handles.length === 0) return;
+        for (const callback of this.entityListeners) callback(handles, kind);
+      };
+    const appended = emit('append');
+    const modified = emit('modify');
+    const erased = emit('erase');
+    database.events.entityAppended.addEventListener(appended);
+    database.events.entityModified.addEventListener(modified);
+    database.events.entityErased.addEventListener(erased);
+    const detach = (): void => {
+      database.events.entityAppended.removeEventListener(appended);
+      database.events.entityModified.removeEventListener(modified);
+      database.events.entityErased.removeEventListener(erased);
+    };
+    if (keep) this.cleanups.push(detach);
+    return keep ? (): void => undefined : detach;
+  }
+
+  async activate(name: string): Promise<boolean> {
+    const document = this.documentByName(name);
+    if (!document) return false;
+    return this.manager.activateDocument(document);
+  }
+
+  async close(name: string): Promise<boolean> {
+    const document = this.documentByName(name);
+    if (!document) return false;
+    return this.manager.closeDocument(document);
+  }
+
+  documentNames(): string[] {
+    return this.manager.documents.map((document) => document.fileName);
+  }
+
+  activeDocumentName(): string | null {
+    return this.manager.curDocument.fileName || null;
+  }
+
+  documentHandle(): CadDocumentHandle | null {
+    const database = this.manager.curDocument.database;
+    const version: unknown = database.version;
+    const dwgVersion =
+      typeof version === 'object' && version !== null && 'name' in version
+        ? String(version.name)
+        : 'AC1032';
+    const header: CadHeader = {
+      dwgVersion,
+      codepageDeclared: null,
+      codepageEffective: UNICODE_DWG_VERSIONS.has(dwgVersion) ? 'UTF-8' : 'unknown',
+      codepageOverrideByUser: false,
+      insunits: database.insunits,
+    };
+    return new SurfaceDocument(database, header, undefined);
+  }
+
+  entityCount(): number {
+    let count = 0;
+    const database = this.manager.curDocument.database;
+    for (const record of database.tables.blockTable.newIterator()) {
+      if (!record.isModelSapce && !record.isPaperSapce) continue;
+      count += record.newIterator().count;
+    }
+    return count;
+  }
+
+  layers(): CadLayer[] {
+    return this.documentHandle()?.layers() ?? [];
+  }
+
+  layouts(): CadLayout[] {
+    return this.documentHandle()?.layouts() ?? [];
+  }
+
+  activeLayoutHandle(): string | null {
+    return this.view().activeLayoutBtrId || null;
+  }
+
+  setActiveLayout(blockRecordHandle: string): boolean {
+    const known = this.layouts().some((layout) => layout.blockRecordHandle === blockRecordHandle);
+    if (!known) return false;
+    this.view().activeLayoutBtrId = blockRecordHandle;
+    return true;
+  }
+
+  async waitUntilIdle(timeoutMs: number): Promise<boolean> {
+    return this.view().waitUntilIdle(timeoutMs);
+  }
+
+  regen(): void {
+    this.manager.regen();
+  }
+
+  pick(worldPoint: ViewPoint, hitRadiusPx: number): CadHandle[] {
+    return this.view()
+      .pick({ x: worldPoint.x, y: worldPoint.y }, hitRadiusPx)
+      .map((item) => item.id);
+  }
+
+  search(box: ViewBox): CadHandle[] {
+    return this.view()
+      .search(box2d(box))
+      .map((item) => item.id);
+  }
+
+  selectByBox(
+    box: ViewBox,
+    mode: 'window' | 'crossing',
+    action: 'replace' | 'add' | 'remove'
+  ): void {
+    this.view().selectByBoxWithMode(box2d(box), mode, action);
+  }
+
+  setSelection(handles: CadHandle[]): void {
+    const selectionSet = this.view().selectionSet;
+    selectionSet.clear();
+    if (handles.length > 0) selectionSet.add(handles);
+  }
+
+  selection(): CadHandle[] {
+    return [...this.view().selectionSet.ids];
+  }
+
+  highlight(handles: CadHandle[]): void {
+    this.view().highlight(handles);
+  }
+
+  unhighlight(handles: CadHandle[]): void {
+    this.view().unhighlight(handles);
+  }
+
+  zoomTo(box: ViewBox, margin?: number): void {
+    this.view().zoomTo(box2d(box), margin);
+  }
+
+  zoomToFit(timeoutMs?: number): void {
+    this.view().zoomToFitDrawing(timeoutMs);
+  }
+
+  zoomToLayer(layerName: string): boolean {
+    return this.view().zoomToFitLayer(layerName);
+  }
+
+  screenToWorld(point: ViewPoint): ViewPoint {
+    const world = this.view().screenToWorld(new AcGePoint2d(point.x, point.y));
+    return { x: world.x, y: world.y };
+  }
+
+  worldToScreen(point: ViewPoint): ViewPoint {
+    const screen = this.view().worldToScreen(new AcGePoint2d(point.x, point.y));
+    return { x: screen.x, y: screen.y };
+  }
+
+  /**
+   * Adds transient entities and waits until the scene really has them.
+   *
+   * `AcTrView2d.addTransientEntity()` returns void and finishes drawing later
+   * (spike C.5); `AcTrScene.setTransientEntityVisible()` is the only published
+   * predicate that reports whether an object arrived, so it doubles as the
+   * completion signal here.
+   */
+  async addTransient(
+    entities: ViewOverlayEntity[],
+    color: number | string,
+    layer: string
+  ): Promise<CadHandle[]> {
+    if (entities.length === 0) return [];
+    const view = this.view();
+    const colorValue = colorOfSpec(color);
+    const created = entities.map((spec) => {
+      const entity = overlayEntity(spec);
+      entity.layer = layer;
+      entity.color = colorValue;
+      return entity;
+    });
+    view.addTransientEntity(created);
+    const handles = created.map((entity) => entity.objectId);
+    const deadline = Date.now() + TRANSIENT_POLL_TIMEOUT_MS;
+    for (;;) {
+      const ready = handles.every((handle) => view.cadScene.setTransientEntityVisible(handle, true));
+      if (ready || Date.now() > deadline) break;
+      await delay(TRANSIENT_POLL_INTERVAL_MS);
+    }
+    return handles;
+  }
+
+  setTransientVisible(handles: CadHandle[], visible: boolean): boolean {
+    const scene = this.view().cadScene;
+    let ok = handles.length > 0;
+    for (const handle of handles) {
+      if (!scene.setTransientEntityVisible(handle, visible)) ok = false;
+    }
+    return ok;
+  }
+
+  removeTransient(handles: CadHandle[]): void {
+    const view = this.view();
+    for (const handle of handles) view.removeTransientEntity(handle);
+  }
+
+  async runCommand(name: string, script?: string[]): Promise<void> {
+    const lines = [name, ...(script ?? [])];
+    await this.manager.executeCommandString(lines.join('\n'));
+  }
+
+  runEdit<T>(label: string, fn: (service: ViewEditService) => T): T {
+    const document = this.manager.curDocument;
+    const service = document.entityService;
+    const database = document.database;
+    let result!: T;
+    this.viewer.acapRunDatabaseEdit(database, label, () => {
+      result = fn({
+        erase: (handles) => service.eraseEntities(handles),
+        move: (handles, displacement) =>
+          service.translateEntities(service.getEntitiesByIds(handles), {
+            x: displacement.x,
+            y: displacement.y,
+            z: 0,
+          }),
+        rotate: (handles, basePoint, angleDeg) =>
+          service.rotateEntities(
+            service.getEntitiesByIds(handles),
+            { x: basePoint.x, y: basePoint.y, z: 0 },
+            (angleDeg * Math.PI) / 180
+          ),
+        copy: (handles, displacement) => {
+          const matrix = new AcGeMatrix3d().makeTranslation(displacement.x, displacement.y, 0);
+          const clones = service.cloneAndTransform(service.getEntitiesByIds(handles), matrix, {
+            append: true,
+          });
+          return clones.map((entity) => entity.objectId);
+        },
+      });
+    });
+    return result;
+  }
+
+  undo(): boolean {
+    return this.manager.curDocument.database.transactionManager.undo();
+  }
+
+  redo(): boolean {
+    return this.manager.curDocument.database.transactionManager.redo();
+  }
+
+  canUndo(): boolean {
+    return this.manager.curDocument.database.transactionManager.canUndo();
+  }
+
+  canRedo(): boolean {
+    return this.manager.curDocument.database.transactionManager.canRedo();
+  }
+
+  /**
+   * Pushes the fallback chain through **both** font managers.
+   *
+   * MTEXT is laid out in the mtext-renderer worker, which owns its own
+   * `FontManager`; the main-thread instance does not reach it and
+   * `AcTrMTextRenderer.getInstance().setDefaultFonts()` is the only public
+   * channel that does (spike B.3, trap 1).
+   */
+  async setFontChain(chain: string[]): Promise<void> {
+    const manager = this.fonts.FontManager.instance;
+    manager.setDefaultFonts(chain);
+    try {
+      await manager.loadFontsByNames(chain);
+      await this.three.AcTrMTextRenderer.getInstance().setDefaultFonts(chain);
+      await this.manager.loadDefaultFonts(chain);
+    } catch {
+      // A missing font file is reported through `fonts-not-found` and shown by
+      // the missing-font panel (W3-05); it must not fail the whole mount.
+    }
+  }
+
+  missingFonts(): string[] {
+    return Object.keys(this.view().missedData.fonts);
+  }
+
+  unresolvedXrefs(): { name: string; path: string; isOverlay: boolean }[] {
+    return this.view().missedData.xrefs.map((xref) => ({
+      name: xref.name,
+      path: xref.pathName,
+      isOverlay: xref.isOverlay,
+    }));
+  }
+
+  onDocument(callback: (event: ViewDocumentEvent) => void): () => void {
+    this.documentListeners.add(callback);
+    return () => {
+      this.documentListeners.delete(callback);
+    };
+  }
+
+  onSelection(callback: (handles: CadHandle[]) => void): () => void {
+    this.selectionListeners.add(callback);
+    return () => {
+      this.selectionListeners.delete(callback);
+    };
+  }
+
+  onEntityChanged(
+    callback: (handles: CadHandle[], kind: 'append' | 'modify' | 'erase') => void
+  ): () => void {
+    this.entityListeners.add(callback);
+    return () => {
+      this.entityListeners.delete(callback);
+    };
+  }
+
+  onUndoStack(callback: () => void): () => void {
+    const listener = (): void => {
+      callback();
+    };
+    this.viewer.eventBus.on('undo-stack-changed', listener);
+    return () => {
+      this.viewer.eventBus.off('undo-stack-changed', listener);
+    };
+  }
+
+  onProgress(callback: (event: ViewProgressEvent) => void): () => void {
+    const listener = (payload: { percentage: number; stage: unknown }): void => {
+      callback({ percentage: payload.percentage, stage: String(payload.stage) });
+    };
+    this.viewer.eventBus.on('open-file-progress', listener);
+    return () => {
+      this.viewer.eventBus.off('open-file-progress', listener);
+    };
+  }
+
+  onOpenFailed(callback: (message: string) => void): () => void {
+    const listener = (payload: { fileName: string; errorMessage?: string }): void => {
+      this.lastError = payload.errorMessage ?? payload.fileName;
+      callback(this.lastError);
+    };
+    this.viewer.eventBus.on('failed-to-open-file', listener);
+    return () => {
+      this.viewer.eventBus.off('failed-to-open-file', listener);
+    };
+  }
+
+  onMissedData(callback: () => void): () => void {
+    const listener = (): void => {
+      callback();
+    };
+    this.viewer.eventBus.on('missed-data-changed', listener);
+    return () => {
+      this.viewer.eventBus.off('missed-data-changed', listener);
+    };
+  }
+
+  /**
+   * Unwinds all five singletons the proposal lists
+   * (`AcApDocManager`, `AcDbDatabaseConverterManager`, `AcApXrefManager`,
+   * `FontManager`, `AcTrMTextRenderer`). Anything that throws on the way out is
+   * swallowed: a half-disposed viewer must not keep the next mount from
+   * starting, and the heap test measures the result, not the path.
+   */
+  async dispose(): Promise<void> {
+    for (const cleanup of this.cleanups.splice(0)) {
+      try {
+        cleanup();
+      } catch {
+        // listener already detached
+      }
+    }
+    this.documentListeners.clear();
+    this.selectionListeners.clear();
+    this.entityListeners.clear();
+    const steps: (() => unknown)[] = [
+      (): void => {
+        this.view().stopAnimationLoop();
+      },
+      (): void => {
+        this.view().clear();
+      },
+      (): Promise<void> => this.manager.destroy(),
+      (): void => {
+        this.viewer.AcApXrefManager.instance.clearAll();
+      },
+      (): void => {
+        AcDbDatabaseConverterManager.instance.unregister(AcDbFileType.DWG);
+      },
+      (): void => {
+        this.three.AcTrMTextRenderer.getInstance().dispose();
+      },
+      (): void => {
+        this.three.AcTrMTextRenderer.resetInstance();
+      },
+    ];
+    for (const step of steps) {
+      try {
+        await step();
+      } catch {
+        // best effort teardown
+      }
+    }
+  }
 }

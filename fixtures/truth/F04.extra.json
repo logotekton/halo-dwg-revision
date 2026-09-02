@@ -1,0 +1,321 @@
+{
+  "extra": {
+    "ansi31_hatches": [
+      {
+        "area": 540000.0,
+        "boundary": [
+          [
+            0.0,
+            1200.0
+          ],
+          [
+            900.0,
+            1200.0
+          ],
+          [
+            900.0,
+            1800.0
+          ],
+          [
+            0.0,
+            1800.0
+          ]
+        ],
+        "index": 0
+      },
+      {
+        "area": 540000.0,
+        "boundary": [
+          [
+            1400.0,
+            1200.0
+          ],
+          [
+            2300.0,
+            1200.0
+          ],
+          [
+            2300.0,
+            1800.0
+          ],
+          [
+            1400.0,
+            1800.0
+          ]
+        ],
+        "index": 1
+      },
+      {
+        "area": 540000.0,
+        "boundary": [
+          [
+            2800.0,
+            1200.0
+          ],
+          [
+            3700.0,
+            1200.0
+          ],
+          [
+            3700.0,
+            1800.0
+          ],
+          [
+            2800.0,
+            1800.0
+          ]
+        ],
+        "index": 2
+      },
+      {
+        "area": 540000.0,
+        "boundary": [
+          [
+            4200.0,
+            1200.0
+          ],
+          [
+            5100.0,
+            1200.0
+          ],
+          [
+            5100.0,
+            1800.0
+          ],
+          [
+            4200.0,
+            1800.0
+          ]
+        ],
+        "index": 3
+      },
+      {
+        "area": 540000.0,
+        "boundary": [
+          [
+            5600.0,
+            1200.0
+          ],
+          [
+            6500.0,
+            1200.0
+          ],
+          [
+            6500.0,
+            1800.0
+          ],
+          [
+            5600.0,
+            1800.0
+          ]
+        ],
+        "index": 4
+      }
+    ],
+    "expected_hatch_area_sum": 7040000.0,
+    "gradient_hatch": {
+      "area": 960000.0,
+      "boundary": [
+        [
+          5200.0,
+          2400.0
+        ],
+        [
+          6400.0,
+          2400.0
+        ],
+        [
+          6400.0,
+          3200.0
+        ],
+        [
+          5200.0,
+          3200.0
+        ]
+      ]
+    },
+    "holed_hatches": [
+      {
+        "area": 1200000.0,
+        "hole": [
+          [
+            2150.0,
+            2750.0
+          ],
+          [
+            2450.0,
+            2750.0
+          ],
+          [
+            2450.0,
+            2950.0
+          ],
+          [
+            2150.0,
+            2950.0
+          ]
+        ],
+        "index": 0,
+        "outer": [
+          [
+            1600.0,
+            2400.0
+          ],
+          [
+            3000.0,
+            2400.0
+          ],
+          [
+            3000.0,
+            3300.0
+          ],
+          [
+            1600.0,
+            3300.0
+          ]
+        ]
+      },
+      {
+        "area": 1200000.0,
+        "hole": [
+          [
+            3950.0,
+            2750.0
+          ],
+          [
+            4250.0,
+            2750.0
+          ],
+          [
+            4250.0,
+            2950.0
+          ],
+          [
+            3950.0,
+            2950.0
+          ]
+        ],
+        "index": 1,
+        "outer": [
+          [
+            3400.0,
+            2400.0
+          ],
+          [
+            4800.0,
+            2400.0
+          ],
+          [
+            4800.0,
+            3300.0
+          ],
+          [
+            3400.0,
+            3300.0
+          ]
+        ]
+      }
+    ],
+    "solid_count": 5,
+    "user_pattern_hatch": {
+      "area": 980000.0,
+      "boundary": [
+        [
+          0.0,
+          2400.0
+        ],
+        [
+          1400.0,
+          2400.0
+        ],
+        [
+          1400.0,
+          3100.0
+        ],
+        [
+          0.0,
+          3100.0
+        ]
+      ],
+      "name": "HALO-BRICK"
+    }
+  },
+  "fixture": "F04",
+  "primary": {
+    "dxf_version": "AC1032",
+    "encoding": "cp1252",
+    "file": "F04.dxf",
+    "sha256": "dce1fe05d500f80cbf2a542d0c9e702bf14bba4765fb0141e78db8c0d0b18c8a",
+    "size_bytes": 59135
+  },
+  "variants": {
+    "r2000_cp949": {
+      "dxf_version": "AC1015",
+      "encoding": "cp949",
+      "file": "F04_r2000_cp949.dxf",
+      "omitted": [
+        "GRADIENT_HATCH: gradient fill requires DXF R2004+, omitted for R2000"
+      ],
+      "sha256": "8dbb46f8fa4605574f6cb63ecf0a8d7b220386658736906f7d11c4a4544e1cdb",
+      "size_bytes": 38199,
+      "stats": {
+        "buckets": [
+          {
+            "aggregate": {
+              "bbox": {
+                "max": [
+                  6500.0,
+                  3300.0
+                ],
+                "min": [
+                  0.0,
+                  0.0
+                ]
+              },
+              "count_by_type": {
+                "HATCH": 8,
+                "SOLID": 5
+              },
+              "entity_count": 13,
+              "hatch_area_sum_mm2": 6080000.0,
+              "insert_by_block": {},
+              "length_sum_mm": 0.0,
+              "text_count": 0,
+              "text_hash": "da39a3ee5e6b4b0d"
+            },
+            "layer": "A-HATCH",
+            "space": "MODEL"
+          }
+        ],
+        "file_sha256": "8dbb46f8fa4605574f6cb63ecf0a8d7b220386658736906f7d11c4a4544e1cdb",
+        "producer": {
+          "name": "engine.ezdxf",
+          "version": "fixtures-gen/0.1.0+ezdxf/1.4.4"
+        },
+        "schema_version": "0.1",
+        "totals": {
+          "bbox": {
+            "max": [
+              6500.0,
+              3300.0
+            ],
+            "min": [
+              0.0,
+              0.0
+            ]
+          },
+          "count_by_type": {
+            "HATCH": 8,
+            "SOLID": 5
+          },
+          "entity_count": 13,
+          "hatch_area_sum_mm2": 6080000.0,
+          "insert_by_block": {},
+          "length_sum_mm": 0.0,
+          "text_count": 0,
+          "text_hash": "da39a3ee5e6b4b0d"
+        }
+      }
+    }
+  }
+}

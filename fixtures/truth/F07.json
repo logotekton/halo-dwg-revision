@@ -1,336 +1,82 @@
 {
-  "extra": {
-    "tables": {
-      "beam_schedule": {
-        "cell_matrix": [
-          [
-            "부호",
-            "위치",
-            "단면",
-            "상부근",
-            "하부근",
-            "늑근"
+  "buckets": [
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            6400.0,
+            0.0
           ],
-          [
-            "G1",
-            "단부",
-            "400x600",
-            "4-D22",
-            "3-D22",
-            "D10@150"
-          ],
-          [
-            "G1",
-            "중앙",
-            "400x600",
-            "3-D22",
-            "4-D22",
-            "D10@200"
-          ],
-          [
-            "B1",
-            "단부",
-            "300x500",
-            "3-D19",
-            "3-D19",
-            "D10@150"
-          ],
-          [
-            "B1",
-            "중앙",
-            "300x500",
-            "2-D19",
-            "3-D19",
-            "D10@200"
+          "min": [
+            0.0,
+            -3700.0
           ]
-        ],
-        "col_boundaries_x": [
-          0.0,
-          900.0,
-          1600.0,
-          2600.0,
-          3800.0,
-          5000.0,
-          6400.0
-        ],
-        "headers": [
-          "부호",
-          "위치",
-          "단면",
-          "상부근",
-          "하부근",
-          "늑근"
-        ],
-        "merges": [
-          {
-            "col": 0,
-            "row_end": 2,
-            "row_start": 1
-          }
-        ],
-        "row_boundaries_y": [
-          -2200.0,
-          -2500.0,
-          -2800.0,
-          -3100.0,
-          -3400.0,
-          -3700.0
-        ],
-        "title": "보 일람표 (Beam Schedule)"
-      },
-      "column_schedule": {
-        "cell_matrix": [
-          [
-            "부호",
-            "층",
-            "단면 b×h",
-            "주근",
-            "띠철근"
-          ],
-          [
-            "C1",
-            "1층",
-            "600x600",
-            "8-D25",
-            "D10@200"
-          ],
-          [
-            "C1",
-            "2층",
-            "600x600",
-            "8-D25",
-            "D10@200"
-          ],
-          [
-            "C2",
-            "1층",
-            "500x500",
-            "6-D22",
-            "D10@200"
-          ],
-          [
-            "C2",
-            "2층",
-            "500x500",
-            "6-D22",
-            "D10@200"
-          ]
-        ],
-        "col_boundaries_x": [
-          0.0,
-          900.0,
-          1600.0,
-          2800.0,
-          4200.0,
-          5600.0
-        ],
-        "headers": [
-          "부호",
-          "층",
-          "단면 b×h",
-          "주근",
-          "띠철근"
-        ],
-        "merges": [
-          {
-            "col": 0,
-            "row_end": 2,
-            "row_start": 1
-          }
-        ],
-        "row_boundaries_y": [
-          0.0,
-          -300.0,
-          -600.0,
-          -900.0,
-          -1200.0,
-          -1500.0
-        ],
-        "title": "기둥 일람표 (Column Schedule)"
-      }
-    }
-  },
-  "fixture": "F07",
-  "primary": {
-    "dxf_version": "AC1032",
-    "encoding": "cp1252",
-    "file": "F07.dxf",
-    "sha256": "13d324c7a667633976bdda3d70aaf2b97d7b3a732608eae90810ec5c48377d72",
-    "size_bytes": 73289,
-    "stats": {
-      "by_space": {
-        "Model": {
-          "by_layer": {
-            "A-DIM": {
-              "bbox": [
-                0.0,
-                -3700.0,
-                6400.0,
-                0.0
-              ],
-              "count_by_type": {
-                "LINE": 77
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {},
-              "length_sum": 89700.0,
-              "text_count": 0,
-              "text_hash": null
-            },
-            "A-TEXT": {
-              "bbox": [
-                0.0,
-                -3643.396999,
-                6078.703956,
-                348.0
-              ],
-              "count_by_type": {
-                "TEXT": 55
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {},
-              "length_sum": 0.0,
-              "text_count": 55,
-              "text_hash": "7c3e116b8bc0e246d2a7141e31640d1606f5ba86"
-            }
-          },
-          "totals": {
-            "bbox": [
-              0.0,
-              -3700.0,
-              6400.0,
-              348.0
-            ],
-            "count_by_type": {
-              "LINE": 77,
-              "TEXT": 55
-            },
-            "hatch_area_sum": 0.0,
-            "insert_by_block": {},
-            "length_sum": 89700.0,
-            "text_count": 55,
-            "text_hash": "7c3e116b8bc0e246d2a7141e31640d1606f5ba86"
-          }
-        }
-      },
-      "totals": {
-        "bbox": [
-          0.0,
-          -3700.0,
-          6400.0,
-          348.0
-        ],
+        },
         "count_by_type": {
-          "LINE": 77,
+          "LINE": 77
+        },
+        "entity_count": 77,
+        "hatch_area_sum_mm2": 0.0,
+        "insert_by_block": {},
+        "length_sum_mm": 89700.0,
+        "text_count": 0,
+        "text_hash": "da39a3ee5e6b4b0d"
+      },
+      "layer": "A-DIM",
+      "space": "MODEL"
+    },
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            6078.703956,
+            348.0
+          ],
+          "min": [
+            0.0,
+            -3643.396999
+          ]
+        },
+        "count_by_type": {
           "TEXT": 55
         },
-        "hatch_area_sum": 0.0,
+        "entity_count": 55,
+        "hatch_area_sum_mm2": 0.0,
         "insert_by_block": {},
-        "length_sum": 89700.0,
+        "length_sum_mm": 0.0,
         "text_count": 55,
-        "text_hash": "7c3e116b8bc0e246d2a7141e31640d1606f5ba86"
-      }
+        "text_hash": "e2d2556e02aa8e68"
+      },
+      "layer": "A-TEXT",
+      "space": "MODEL"
     }
+  ],
+  "file_sha256": "13d324c7a667633976bdda3d70aaf2b97d7b3a732608eae90810ec5c48377d72",
+  "producer": {
+    "name": "engine.ezdxf",
+    "version": "fixtures-gen/0.1.0+ezdxf/1.4.4"
   },
+  "schema_version": "0.1",
   "totals": {
-    "bbox": [
-      0.0,
-      -3700.0,
-      6400.0,
-      348.0
-    ],
+    "bbox": {
+      "max": [
+        6400.0,
+        348.0
+      ],
+      "min": [
+        0.0,
+        -3700.0
+      ]
+    },
     "count_by_type": {
       "LINE": 77,
       "TEXT": 55
     },
-    "hatch_area_sum": 0.0,
+    "entity_count": 132,
+    "hatch_area_sum_mm2": 0.0,
     "insert_by_block": {},
-    "length_sum": 89700.0,
+    "length_sum_mm": 89700.0,
     "text_count": 55,
-    "text_hash": "7c3e116b8bc0e246d2a7141e31640d1606f5ba86"
-  },
-  "variants": {
-    "r2000_cp949": {
-      "dxf_version": "AC1015",
-      "encoding": "cp949",
-      "file": "F07_r2000_cp949.dxf",
-      "omitted": [],
-      "sha256": "f00db4474356f9de3daa1a46d87d97ae615c03882e1e238ff7306608a0c52f7d",
-      "size_bytes": 52691,
-      "stats": {
-        "by_space": {
-          "Model": {
-            "by_layer": {
-              "A-DIM": {
-                "bbox": [
-                  0.0,
-                  -3700.0,
-                  6400.0,
-                  0.0
-                ],
-                "count_by_type": {
-                  "LINE": 77
-                },
-                "hatch_area_sum": 0.0,
-                "insert_by_block": {},
-                "length_sum": 89700.0,
-                "text_count": 0,
-                "text_hash": null
-              },
-              "A-TEXT": {
-                "bbox": [
-                  0.0,
-                  -3643.396999,
-                  6078.703956,
-                  348.0
-                ],
-                "count_by_type": {
-                  "TEXT": 55
-                },
-                "hatch_area_sum": 0.0,
-                "insert_by_block": {},
-                "length_sum": 0.0,
-                "text_count": 55,
-                "text_hash": "7c3e116b8bc0e246d2a7141e31640d1606f5ba86"
-              }
-            },
-            "totals": {
-              "bbox": [
-                0.0,
-                -3700.0,
-                6400.0,
-                348.0
-              ],
-              "count_by_type": {
-                "LINE": 77,
-                "TEXT": 55
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {},
-              "length_sum": 89700.0,
-              "text_count": 55,
-              "text_hash": "7c3e116b8bc0e246d2a7141e31640d1606f5ba86"
-            }
-          }
-        },
-        "totals": {
-          "bbox": [
-            0.0,
-            -3700.0,
-            6400.0,
-            348.0
-          ],
-          "count_by_type": {
-            "LINE": 77,
-            "TEXT": 55
-          },
-          "hatch_area_sum": 0.0,
-          "insert_by_block": {},
-          "length_sum": 89700.0,
-          "text_count": 55,
-          "text_hash": "7c3e116b8bc0e246d2a7141e31640d1606f5ba86"
-        }
-      }
-    }
+    "text_hash": "e2d2556e02aa8e68"
   }
 }

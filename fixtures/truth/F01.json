@@ -1,157 +1,151 @@
 {
-  "extra": {},
-  "fixture": "F01",
-  "primary": {
-    "dxf_version": "AC1032",
-    "encoding": "cp1252",
-    "file": "F01.dxf",
-    "sha256": "a51f5e2ddcab72fc5bf8e9c592d3534ed97a62a90af9167ebb58953c1e856818",
-    "size_bytes": 59345,
-    "stats": {
-      "by_space": {
-        "Model": {
-          "by_layer": {
-            "GEOM-CONT": {
-              "bbox": [
-                -1004.655501,
-                -714.060978,
-                1504.122882,
-                793.870707
-              ],
-              "count_by_type": {
-                "LINE": 6
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {},
-              "length_sum": 6700.679148,
-              "text_count": 0,
-              "text_hash": null
-            },
-            "GEOM-CTR": {
-              "bbox": [
-                0.0,
-                -1550.00001,
-                6050.0,
-                -300.0
-              ],
-              "count_by_type": {
-                "ARC": 3,
-                "POLYLINE": 1
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {},
-              "length_sum": 8983.256666,
-              "text_count": 0,
-              "text_hash": null
-            },
-            "GEOM-DASH": {
-              "bbox": [
-                0.0,
-                3000.0,
-                8100.0,
-                4200.0
-              ],
-              "count_by_type": {
-                "LWPOLYLINE": 3
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {},
-              "length_sum": 14998.230187,
-              "text_count": 0,
-              "text_hash": null
-            },
-            "GEOM-HID": {
-              "bbox": [
-                -483.930043,
-                -3700.042385,
-                7300.007462,
-                -2716.069957
-              ],
-              "count_by_type": {
-                "CIRCLE": 3,
-                "ELLIPSE": 2
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {},
-              "length_sum": 6495.40562,
-              "text_count": 0,
-              "text_hash": null
-            },
-            "GEOM-PHTM": {
-              "bbox": [
-                -0.0,
-                -6200.0,
-                6800.0,
-                -4295.496633
-              ],
-              "count_by_type": {
-                "POINT": 6,
-                "SPLINE": 2
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {},
-              "length_sum": 8123.733824,
-              "text_count": 0,
-              "text_hash": null
-            }
-          },
-          "totals": {
-            "bbox": [
-              -1004.655501,
-              -6200.0,
-              8100.0,
-              4200.0
-            ],
-            "count_by_type": {
-              "ARC": 3,
-              "CIRCLE": 3,
-              "ELLIPSE": 2,
-              "LINE": 6,
-              "LWPOLYLINE": 3,
-              "POINT": 6,
-              "POLYLINE": 1,
-              "SPLINE": 2
-            },
-            "hatch_area_sum": 0.0,
-            "insert_by_block": {},
-            "length_sum": 45301.305445,
-            "text_count": 0,
-            "text_hash": null
-          }
-        }
+  "buckets": [
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            1504.122882,
+            793.870707
+          ],
+          "min": [
+            -1004.655501,
+            -714.060978
+          ]
+        },
+        "count_by_type": {
+          "LINE": 6
+        },
+        "entity_count": 6,
+        "hatch_area_sum_mm2": 0.0,
+        "insert_by_block": {},
+        "length_sum_mm": 6700.679148,
+        "text_count": 0,
+        "text_hash": "da39a3ee5e6b4b0d"
       },
-      "totals": {
-        "bbox": [
-          -1004.655501,
-          -6200.0,
-          8100.0,
-          4200.0
-        ],
+      "layer": "GEOM-CONT",
+      "space": "MODEL"
+    },
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            6050.0,
+            -300.0
+          ],
+          "min": [
+            0.0,
+            -1550.00001
+          ]
+        },
         "count_by_type": {
           "ARC": 3,
+          "POLYLINE": 1
+        },
+        "entity_count": 4,
+        "hatch_area_sum_mm2": 0.0,
+        "insert_by_block": {},
+        "length_sum_mm": 8983.256666,
+        "text_count": 0,
+        "text_hash": "da39a3ee5e6b4b0d"
+      },
+      "layer": "GEOM-CTR",
+      "space": "MODEL"
+    },
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            8100.0,
+            4200.0
+          ],
+          "min": [
+            0.0,
+            3000.0
+          ]
+        },
+        "count_by_type": {
+          "LWPOLYLINE": 3
+        },
+        "entity_count": 3,
+        "hatch_area_sum_mm2": 0.0,
+        "insert_by_block": {},
+        "length_sum_mm": 14998.230187,
+        "text_count": 0,
+        "text_hash": "da39a3ee5e6b4b0d"
+      },
+      "layer": "GEOM-DASH",
+      "space": "MODEL"
+    },
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            7300.007462,
+            -2716.069957
+          ],
+          "min": [
+            -483.930043,
+            -3700.042385
+          ]
+        },
+        "count_by_type": {
           "CIRCLE": 3,
-          "ELLIPSE": 2,
-          "LINE": 6,
-          "LWPOLYLINE": 3,
+          "ELLIPSE": 2
+        },
+        "entity_count": 5,
+        "hatch_area_sum_mm2": 0.0,
+        "insert_by_block": {},
+        "length_sum_mm": 11908.922807,
+        "text_count": 0,
+        "text_hash": "da39a3ee5e6b4b0d"
+      },
+      "layer": "GEOM-HID",
+      "space": "MODEL"
+    },
+    {
+      "aggregate": {
+        "bbox": {
+          "max": [
+            6800.0,
+            -4295.496633
+          ],
+          "min": [
+            -0.0,
+            -6200.0
+          ]
+        },
+        "count_by_type": {
           "POINT": 6,
-          "POLYLINE": 1,
           "SPLINE": 2
         },
-        "hatch_area_sum": 0.0,
+        "entity_count": 8,
+        "hatch_area_sum_mm2": 0.0,
         "insert_by_block": {},
-        "length_sum": 45301.305445,
+        "length_sum_mm": 8123.733824,
         "text_count": 0,
-        "text_hash": null
-      }
+        "text_hash": "da39a3ee5e6b4b0d"
+      },
+      "layer": "GEOM-PHTM",
+      "space": "MODEL"
     }
+  ],
+  "file_sha256": "a51f5e2ddcab72fc5bf8e9c592d3534ed97a62a90af9167ebb58953c1e856818",
+  "producer": {
+    "name": "engine.ezdxf",
+    "version": "fixtures-gen/0.1.0+ezdxf/1.4.4"
   },
+  "schema_version": "0.1",
   "totals": {
-    "bbox": [
-      -1004.655501,
-      -6200.0,
-      8100.0,
-      4200.0
-    ],
+    "bbox": {
+      "max": [
+        8100.0,
+        4200.0
+      ],
+      "min": [
+        -1004.655501,
+        -6200.0
+      ]
+    },
     "count_by_type": {
       "ARC": 3,
       "CIRCLE": 3,
@@ -162,157 +156,11 @@
       "POLYLINE": 1,
       "SPLINE": 2
     },
-    "hatch_area_sum": 0.0,
+    "entity_count": 26,
+    "hatch_area_sum_mm2": 0.0,
     "insert_by_block": {},
-    "length_sum": 45301.305445,
+    "length_sum_mm": 50714.822632,
     "text_count": 0,
-    "text_hash": null
-  },
-  "variants": {
-    "r2000_cp949": {
-      "dxf_version": "AC1015",
-      "encoding": "cp949",
-      "file": "F01_r2000_cp949.dxf",
-      "omitted": [],
-      "sha256": "0e0ebe2d02811e252116fa1ef2e8fa0c8ba88d64dc0acff5ff4feada49dfe463",
-      "size_bytes": 38773,
-      "stats": {
-        "by_space": {
-          "Model": {
-            "by_layer": {
-              "GEOM-CONT": {
-                "bbox": [
-                  -1371.842182,
-                  -1296.657269,
-                  875.792506,
-                  1243.292054
-                ],
-                "count_by_type": {
-                  "LINE": 6
-                },
-                "hatch_area_sum": 0.0,
-                "insert_by_block": {},
-                "length_sum": 6816.043705,
-                "text_count": 0,
-                "text_hash": null
-              },
-              "GEOM-CTR": {
-                "bbox": [
-                  0.0,
-                  -1550.00001,
-                  6050.0,
-                  -300.0
-                ],
-                "count_by_type": {
-                  "ARC": 3,
-                  "POLYLINE": 1
-                },
-                "hatch_area_sum": 0.0,
-                "insert_by_block": {},
-                "length_sum": 8983.256666,
-                "text_count": 0,
-                "text_hash": null
-              },
-              "GEOM-DASH": {
-                "bbox": [
-                  0.0,
-                  3000.0,
-                  8100.0,
-                  4200.0
-                ],
-                "count_by_type": {
-                  "LWPOLYLINE": 3
-                },
-                "hatch_area_sum": 0.0,
-                "insert_by_block": {},
-                "length_sum": 14998.230187,
-                "text_count": 0,
-                "text_hash": null
-              },
-              "GEOM-HID": {
-                "bbox": [
-                  -484.778516,
-                  -3700.042385,
-                  7300.007462,
-                  -2715.221484
-                ],
-                "count_by_type": {
-                  "CIRCLE": 3,
-                  "ELLIPSE": 2
-                },
-                "hatch_area_sum": 0.0,
-                "insert_by_block": {},
-                "length_sum": 6059.33768,
-                "text_count": 0,
-                "text_hash": null
-              },
-              "GEOM-PHTM": {
-                "bbox": [
-                  -0.0,
-                  -6200.0,
-                  6800.0,
-                  -4295.496633
-                ],
-                "count_by_type": {
-                  "POINT": 6,
-                  "SPLINE": 2
-                },
-                "hatch_area_sum": 0.0,
-                "insert_by_block": {},
-                "length_sum": 8123.733824,
-                "text_count": 0,
-                "text_hash": null
-              }
-            },
-            "totals": {
-              "bbox": [
-                -1371.842182,
-                -6200.0,
-                8100.0,
-                4200.0
-              ],
-              "count_by_type": {
-                "ARC": 3,
-                "CIRCLE": 3,
-                "ELLIPSE": 2,
-                "LINE": 6,
-                "LWPOLYLINE": 3,
-                "POINT": 6,
-                "POLYLINE": 1,
-                "SPLINE": 2
-              },
-              "hatch_area_sum": 0.0,
-              "insert_by_block": {},
-              "length_sum": 44980.602062,
-              "text_count": 0,
-              "text_hash": null
-            }
-          }
-        },
-        "totals": {
-          "bbox": [
-            -1371.842182,
-            -6200.0,
-            8100.0,
-            4200.0
-          ],
-          "count_by_type": {
-            "ARC": 3,
-            "CIRCLE": 3,
-            "ELLIPSE": 2,
-            "LINE": 6,
-            "LWPOLYLINE": 3,
-            "POINT": 6,
-            "POLYLINE": 1,
-            "SPLINE": 2
-          },
-          "hatch_area_sum": 0.0,
-          "insert_by_block": {},
-          "length_sum": 44980.602062,
-          "text_count": 0,
-          "text_hash": null
-        }
-      }
-    }
+    "text_hash": "da39a3ee5e6b4b0d"
   }
 }

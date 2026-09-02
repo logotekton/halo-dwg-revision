@@ -63,12 +63,47 @@ function fixtureServer(): Plugin {
 //                        is neither fast nor reliable.
 // --------------------------------------------------------------------------
 const GENERATED = fileURLToPath(new URL('../../fixtures/generated/', import.meta.url));
-const SINK = fileURLToPath(new URL('./out/bench/', import.meta.url));
+const SINK = process.env.BENCH_SINK_DIR ?? fileURLToPath(new URL('./out/bench/', import.meta.url));
 const SAFE_NAME = /^[A-Za-z0-9._-]+$/;
+
+// W3-09: the real drawing set lives outside the repo under names with spaces,
+// `#` and Hangul, so it cannot go through `/gen/<name>`'s SAFE_NAME filter (and
+// must never be copied into the repo). `BENCH_MANIFEST` points at a JSON map
+// `{ id: absolutePath }` written by tools/bench-open.mjs; the id is the only
+// thing that ever reaches a URL, and nothing outside the map can be read.
+const MANIFEST_PATH = process.env.BENCH_MANIFEST;
+let manifest: Record<string, string> | null = null;
+function realPath(id: string): string | null {
+  if (!MANIFEST_PATH) return null;
+  manifest ??= JSON.parse(readFileSync(MANIFEST_PATH, 'utf8')) as Record<string, string>;
+  return Object.prototype.hasOwnProperty.call(manifest, id) ? manifest[id] : null;
+}
 
 function benchRoutes(): Plugin {
   const mw: Connect.NextHandleFunction = (req, res, next) => {
     const url = (req.url ?? '').split('?')[0];
+
+    if (url.startsWith('/real/')) {
+      // `/real/<id><.ext>`: the extension is carried only so the page can tell
+      // DWG from DXF (window.__bench.fetchFile sniffs the URL); the manifest is
+      // keyed by the bare id.
+      const nameWithExt = decodeURIComponent(url.slice('/real/'.length));
+      const id = nameWithExt.replace(/\.[A-Za-z0-9]+$/, '');
+      const file = SAFE_NAME.test(nameWithExt) ? realPath(id) : null;
+      if (!file) {
+        res.statusCode = 404;
+        return res.end('not found');
+      }
+      try {
+        res.setHeader('content-type', MIME[extname(file)] ?? 'application/octet-stream');
+        res.setHeader('content-length', String(statSync(file).size));
+        createReadStream(file).pipe(res);
+      } catch {
+        res.statusCode = 404;
+        res.end('not found');
+      }
+      return;
+    }
 
     if (url.startsWith('/gen/')) {
       const name = decodeURIComponent(url.slice('/gen/'.length));

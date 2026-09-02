@@ -55,6 +55,21 @@ interface RenderResult {
   error?: string;
 }
 
+/**
+ * W3-09 -- what the *parser* (not the produced DXF) says about a real drawing:
+ * per-space entity counts, so a drawing whose content lives in paper space is
+ * not reported as empty, plus the table sizes the inventory needs.
+ */
+interface SurveyResult {
+  ok: boolean;
+  spaces?: Record<string, { count: number; byType: Record<string, number> }>;
+  totalEntities?: number;
+  layerNames?: string[];
+  blockCount?: number;
+  xrefBlocks?: string[];
+  error?: string;
+}
+
 interface RunAllResult {
   ok: boolean;
   marks: Record<string, number>;
@@ -72,6 +87,7 @@ declare global {
       fetchFile: (url: string) => Promise<{ ok: boolean; bytes: number; error?: string }>;
       parse: () => Promise<ParseResult>;
       recount: (waitMs?: number) => Promise<{ entityCount: number; byType: Record<string, number> }>;
+      survey: () => SurveyResult;
       runAll: (url: string, sinkName: string, settleMs?: number) => Promise<RunAllResult>;
       dxfOut: (sinkName: string, version?: string, precision?: number) => Promise<DxfOutResult>;
       render: (url: string, settleMs?: number) => Promise<RenderResult>;
@@ -202,6 +218,60 @@ window.__bench = {
     const c = countEntities(db);
     line('warn', `recount after ${String(waitMs)} ms: ${String(c.entityCount)}`);
     return c;
+  },
+
+  /**
+   * Step 2c (W3-09) -- per-space counts and table names from the *parsed*
+   * database. `countEntities` walks model space only, which is right for the
+   * synthetic fixtures and wrong for a real sheet set where the title block and
+   * often the whole drawing live in a layout.
+   */
+  survey(): SurveyResult {
+    if (!db) return { ok: false, error: 'call parse() first' };
+    try {
+      const spaces: Record<string, { count: number; byType: Record<string, number> }> = {};
+      const layerNames: string[] = [];
+      const xrefBlocks: string[] = [];
+      let blockCount = 0;
+      let totalEntities = 0;
+
+      for (const layer of db.tables.layerTable.newIterator()) {
+        layerNames.push(String((layer as { name?: string }).name ?? ''));
+      }
+      for (const btr of db.tables.blockTable.newIterator()) {
+        blockCount++;
+        const rec = btr as unknown as {
+          name?: string;
+          isXref?: boolean;
+          pathName?: string;
+          newIterator?: () => Iterable<AcDbEntity>;
+        };
+        const name = String(rec.name ?? '');
+        if (rec.isXref === true) xrefBlocks.push(name);
+        const isModel = /^\*Model_Space/i.test(name);
+        const isPaper = /^\*Paper_Space/i.test(name);
+        if (!isModel && !isPaper) continue;
+        const key = isModel ? 'MODEL' : `PAPER:${name}`;
+        const byType: Record<string, number> = {};
+        let count = 0;
+        try {
+          for (const e of rec.newIterator?.() ?? []) {
+            const t = (e as AcDbEntity).dxfTypeName;
+            byType[t] = (byType[t] ?? 0) + 1;
+            count++;
+          }
+        } catch (e) {
+          byType[`<iterator-error>`] = 1;
+          line('bad', `space ${key}: ${errText(e)}`);
+        }
+        spaces[key] = { count, byType };
+        totalEntities += count;
+      }
+      line('ok', `survey: ${String(totalEntities)} entities across ${String(Object.keys(spaces).length)} spaces`);
+      return { ok: true, spaces, totalEntities, layerNames, blockCount, xrefBlocks };
+    } catch (e) {
+      return { ok: false, error: errText(e) };
+    }
   },
 
   /** Step 3 -- ADR-0002 tier-2 writer: dxfOut(), shipped back to disk. */

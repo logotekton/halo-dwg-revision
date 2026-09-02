@@ -1,0 +1,24 @@
+{
+  "schema_version": "0.1",
+  "checks": [
+    {
+      "id": "SL_ELEVATION_VS_SECTION",
+      "left_kind": "SL",
+      "right_kind": "SL",
+      "operator": "EQ",
+      "tolerance_mm": 5,
+      "severity": "ERROR"
+    },
+    {
+      "id": "CH_EQ_SL",
+      "left_kind": "CH",
+      "right_kind": "SL",
+      "operator": "EQ",
+      "tolerance_mm": 5,
+      "left_source": "LEVEL_TABLE",
+      "right_source": "ELEVATION",
+      "severity": "ERROR",
+      "description": "Forbidden by ADR-0003: the ceiling height and the structural level measure different things."
+    }
+  ]
+}

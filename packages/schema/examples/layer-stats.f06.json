@@ -1,0 +1,95 @@
+{
+  "schema_version": "0.1",
+  "file_sha256": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+  "producer": { "name": "viewer.mlightcad", "version": "1.6.3" },
+  "buckets": [
+    {
+      "layer": "S-BEAM",
+      "space": "MODEL",
+      "aggregate": {
+        "entity_count": 5,
+        "count_by_type": { "LINE": 4, "MTEXT": 1 },
+        "length_sum_mm": 26400,
+        "hatch_area_sum_mm2": 0,
+        "text_count": 1,
+        "text_hash": "4ae7d1eb9626d5e9",
+        "insert_by_block": {},
+        "bbox": { "min": [0, 0], "max": [7200, 6000] }
+      }
+    },
+    {
+      "layer": "S-COL",
+      "space": "MODEL",
+      "aggregate": {
+        "entity_count": 4,
+        "count_by_type": { "LWPOLYLINE": 4 },
+        "length_sum_mm": 9600,
+        "hatch_area_sum_mm2": 0,
+        "text_count": 0,
+        "text_hash": "da39a3ee5e6b4b0d",
+        "insert_by_block": {},
+        "bbox": { "min": [-300, -300], "max": [7500, 6300] }
+      }
+    },
+    {
+      "layer": "S-GRID",
+      "space": "MODEL",
+      "aggregate": {
+        "entity_count": 2,
+        "count_by_type": { "INSERT": 1, "ATTRIB": 1 },
+        "length_sum_mm": 0,
+        "hatch_area_sum_mm2": 0,
+        "text_count": 1,
+        "text_hash": "bb4e247a20875831",
+        "insert_by_block": { "GRID-BUBBLE": 1 },
+        "bbox": { "min": [-400, -1900], "max": [400, -1100] }
+      }
+    },
+    {
+      "layer": "S-HATCH",
+      "space": "MODEL",
+      "aggregate": {
+        "entity_count": 1,
+        "count_by_type": { "HATCH": 1 },
+        "length_sum_mm": 0,
+        "hatch_area_sum_mm2": 360000,
+        "text_count": 0,
+        "text_hash": "da39a3ee5e6b4b0d",
+        "insert_by_block": {},
+        "bbox": { "min": [-300, -300], "max": [300, 300] }
+      }
+    },
+    {
+      "layer": "S-TEXT",
+      "space": "MODEL",
+      "aggregate": {
+        "entity_count": 2,
+        "count_by_type": { "TEXT": 2 },
+        "length_sum_mm": 0,
+        "hatch_area_sum_mm2": 0,
+        "text_count": 2,
+        "text_hash": "0cfd12697598bd81",
+        "insert_by_block": {},
+        "bbox": { "min": [450, 450], "max": [8050, 650] }
+      }
+    }
+  ],
+  "totals": {
+    "entity_count": 14,
+    "count_by_type": {
+      "LWPOLYLINE": 4,
+      "LINE": 4,
+      "MTEXT": 1,
+      "TEXT": 2,
+      "INSERT": 1,
+      "ATTRIB": 1,
+      "HATCH": 1
+    },
+    "length_sum_mm": 36000,
+    "hatch_area_sum_mm2": 360000,
+    "text_count": 4,
+    "text_hash": "60b8d9e0dec0d7c7",
+    "insert_by_block": { "GRID-BUBBLE": 1 },
+    "bbox": { "min": [-400, -1900], "max": [8050, 6300] }
+  }
+}

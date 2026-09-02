@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.halo-cad.internal/v0/sidecar/tags.schema.json",
+  "title": "TagsSidecar",
+  "description": "User tagging and classification overrides for one drawing, stored as a sidecar (docs/PLAN.md 4). Every tag carries both the handle-based `target` and a `stable_key`: on re-import the handle is tried first, and when handles were renumbered the stable key reattaches the decision. A tag that cannot be reattached becomes an orphaned decision and is listed, never deleted.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "file_sha256", "tags"],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/schema_version"
+    },
+    "file_sha256": {
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/sha256"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "$ref": "https://schema.halo-cad.internal/v0/sidecar/tags.schema.json#/$defs/tag"
+      }
+    }
+  },
+  "$defs": {
+    "tag": {
+      "title": "EntityTag",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "target", "stable_key", "labels", "author", "created_at"],
+      "properties": {
+        "id": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+        },
+        "target": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/entity-ref.schema.json"
+        },
+        "stable_key": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/stable_key"
+        },
+        "labels": {
+          "description": "Free-form labels, NFC normalised, deduplicated and sorted so the sidecar diffs cleanly.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 64 }
+        },
+        "classification": {
+          "$ref": "https://schema.halo-cad.internal/v0/sidecar/tags.schema.json#/$defs/classification"
+        },
+        "author": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/author"
+        },
+        "created_at": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/timestamp"
+        },
+        "updated_at": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/timestamp"
+        },
+        "notes": { "type": "string", "maxLength": 1024 }
+      }
+    },
+    "classification": {
+      "title": "ClassificationOverride",
+      "description": "Sheet, member or finish classification for the target. When `source` is `USER` the value overrides whatever the automatic classifier produced, and `overridden_from` keeps the machine answer for audit.",
+      "allOf": [
+        {
+          "$ref": "https://schema.halo-cad.internal/v0/sidecar/tags.schema.json#/$defs/classification_fields"
+        },
+        {
+          "$ref": "https://schema.halo-cad.internal/v0/sidecar/tags.schema.json#/$defs/classification_rules"
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "classification_fields": {
+      "title": "ClassificationOverrideFields",
+      "type": "object",
+      "required": ["value", "source"],
+      "properties": {
+        "value": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "source": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/classification_source"
+        },
+        "confidence": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/confidence"
+        },
+        "overridden_from": {
+          "$ref": "https://schema.halo-cad.internal/v0/sidecar/tags.schema.json#/$defs/prior_classification"
+        }
+      }
+    },
+    "prior_classification": {
+      "title": "PriorClassification",
+      "description": "The answer that was replaced, kept for the audit log.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "source"],
+      "properties": {
+        "value": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "source": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/classification_source"
+        },
+        "confidence": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/confidence"
+        }
+      }
+    },
+    "classification_rules": {
+      "title": "ClassificationRules",
+      "description": "An automatic classification must say how sure it is; a user decision does not need a score. Carries no fields of its own.",
+      "tsType": "unknown",
+      "if": {
+        "required": ["source"],
+        "properties": { "source": { "enum": ["AUTO_RULE", "AUTO_ML"] } }
+      },
+      "then": { "required": ["confidence"] }
+    }
+  }
+}

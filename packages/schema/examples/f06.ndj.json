@@ -1,0 +1,314 @@
+{
+  "schema_version": "0.1",
+  "header": {
+    "file_id": "4QQZQWAKSC9JFM0DR3AN3VVKB6",
+    "file_sha256": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+    "original_sha256": "8633f9a0af23efc9f76763047f8c421fc423c80974e90d1e0019736336358a43",
+    "dwg_version": "AC1032",
+    "codepage_declared": null,
+    "codepage_effective": "UTF-8",
+    "insunits": 4,
+    "unit_scale_to_mm": 1,
+    "extents": { "min": [-400, -1900], "max": [8050, 6300] },
+    "producer": { "name": "engine.ezdxf", "version": "1.4.4" },
+    "layers": [
+      { "name": "S-COL", "color": 1, "linetype": "Continuous", "lineweight_mm": 0.5 },
+      { "name": "S-BEAM", "color": 3, "linetype": "DASHED", "lineweight_mm": 0.25 },
+      { "name": "S-TEXT", "color": 7, "linetype": "Continuous", "lineweight_mm": -3 },
+      { "name": "S-GRID", "color": 4, "linetype": "CENTER", "lineweight_mm": 0.13 },
+      { "name": "S-HATCH", "color": 8, "linetype": "Continuous", "lineweight_mm": -3 }
+    ],
+    "blocks": [
+      { "name": "GRID-BUBBLE", "is_xref": false, "base_point": [0, 0], "entity_count": 2 }
+    ],
+    "layouts": [
+      { "name": "Model", "is_model": true, "tab_order": 0 },
+      {
+        "name": "A1-S01",
+        "is_model": false,
+        "tab_order": 1,
+        "extents": { "min": [0, 0], "max": [841000, 594000] }
+      }
+    ]
+  },
+  "entities": [
+    {
+      "type": "LWPOLYLINE",
+      "layer": "S-COL",
+      "provenance": {
+        "file": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+        "handle": "2A0",
+        "path": [],
+        "space": "MODEL",
+        "role": "column_outline"
+      },
+      "bbox": { "min": [-300, -300], "max": [300, 300] },
+      "vertices": [
+        [-300, -300],
+        [300, -300],
+        [300, 300],
+        [-300, 300]
+      ],
+      "closed": true,
+      "color": 256
+    },
+    {
+      "type": "LWPOLYLINE",
+      "layer": "S-COL",
+      "provenance": {
+        "file": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+        "handle": "2A1",
+        "path": [],
+        "space": "MODEL",
+        "role": "column_outline"
+      },
+      "bbox": { "min": [6900, -300], "max": [7500, 300] },
+      "vertices": [
+        [6900, -300],
+        [7500, -300],
+        [7500, 300],
+        [6900, 300]
+      ],
+      "closed": true,
+      "color": 256
+    },
+    {
+      "type": "LWPOLYLINE",
+      "layer": "S-COL",
+      "provenance": {
+        "file": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+        "handle": "2A2",
+        "path": [],
+        "space": "MODEL",
+        "role": "column_outline"
+      },
+      "bbox": { "min": [-300, 5700], "max": [300, 6300] },
+      "vertices": [
+        [-300, 5700],
+        [300, 5700],
+        [300, 6300],
+        [-300, 6300]
+      ],
+      "closed": true,
+      "color": 256
+    },
+    {
+      "type": "LWPOLYLINE",
+      "layer": "S-COL",
+      "provenance": {
+        "file": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+        "handle": "2A3",
+        "path": [],
+        "space": "MODEL",
+        "role": "column_outline"
+      },
+      "bbox": { "min": [6900, 5700], "max": [7500, 6300] },
+      "vertices": [
+        [6900, 5700],
+        [7500, 5700],
+        [7500, 6300],
+        [6900, 6300]
+      ],
+      "closed": true,
+      "color": 256
+    },
+    {
+      "type": "LINE",
+      "layer": "S-BEAM",
+      "provenance": {
+        "file": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+        "handle": "2B0",
+        "path": [],
+        "space": "MODEL",
+        "role": "centerline"
+      },
+      "bbox": { "min": [0, 0], "max": [7200, 0] },
+      "start": [0, 0],
+      "end": [7200, 0]
+    },
+    {
+      "type": "LINE",
+      "layer": "S-BEAM",
+      "provenance": {
+        "file": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+        "handle": "2B1",
+        "path": [],
+        "space": "MODEL",
+        "role": "centerline"
+      },
+      "bbox": { "min": [0, 6000], "max": [7200, 6000] },
+      "start": [0, 6000],
+      "end": [7200, 6000]
+    },
+    {
+      "type": "LINE",
+      "layer": "S-BEAM",
+      "provenance": {
+        "file": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+        "handle": "2B2",
+        "path": [],
+        "space": "MODEL",
+        "role": "centerline"
+      },
+      "bbox": { "min": [0, 0], "max": [0, 6000] },
+      "start": [0, 0],
+      "end": [0, 6000]
+    },
+    {
+      "type": "LINE",
+      "layer": "S-BEAM",
+      "provenance": {
+        "file": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+        "handle": "2B3",
+        "path": [],
+        "space": "MODEL",
+        "role": "centerline"
+      },
+      "bbox": { "min": [7200, 0], "max": [7200, 6000] },
+      "start": [7200, 0],
+      "end": [7200, 6000]
+    },
+    {
+      "type": "MTEXT",
+      "layer": "S-BEAM",
+      "provenance": {
+        "file": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+        "handle": "2C2",
+        "path": [],
+        "space": "MODEL",
+        "role": "member_tag"
+      },
+      "bbox": { "min": [3600, 150], "max": [4800, 350] },
+      "raw": "{\\fArial|b0|i0;G1 (400x700)}",
+      "plain": "G1 (400x700)",
+      "insert": [3600, 150],
+      "char_height_mm": 200,
+      "width_mm": 1200,
+      "rotation_deg": 0,
+      "attachment_point": 1
+    },
+    {
+      "type": "TEXT",
+      "layer": "S-TEXT",
+      "provenance": {
+        "file": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+        "handle": "2C0",
+        "path": [],
+        "space": "MODEL",
+        "role": "member_tag"
+      },
+      "bbox": { "min": [450, 450], "max": [850, 650] },
+      "text": "C1",
+      "insert": [450, 450],
+      "height_mm": 200,
+      "rotation_deg": 0,
+      "style": "Standard",
+      "halign": "LEFT",
+      "valign": "BASELINE"
+    },
+    {
+      "type": "TEXT",
+      "layer": "S-TEXT",
+      "provenance": {
+        "file": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+        "handle": "2C1",
+        "path": [],
+        "space": "MODEL",
+        "role": "member_tag"
+      },
+      "bbox": { "min": [7650, 450], "max": [8050, 650] },
+      "text": "C2",
+      "insert": [7650, 450],
+      "height_mm": 200,
+      "rotation_deg": 0,
+      "style": "Standard",
+      "halign": "LEFT",
+      "valign": "BASELINE"
+    },
+    {
+      "type": "INSERT",
+      "layer": "S-GRID",
+      "provenance": {
+        "file": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+        "handle": "2D0",
+        "path": [],
+        "space": "MODEL",
+        "role": "grid_bubble"
+      },
+      "bbox": { "min": [-400, -1900], "max": [400, -1100] },
+      "block_name": "GRID-BUBBLE",
+      "transform": {
+        "insert": [0, -1500],
+        "scale": [1, 1, 1],
+        "rotation_deg": 0
+      },
+      "attribs": [
+        {
+          "tag": "GRIDLABEL",
+          "text": "X1",
+          "provenance": {
+            "file": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+            "handle": "2D1",
+            "path": ["2D0"],
+            "space": "MODEL"
+          }
+        }
+      ]
+    },
+    {
+      "type": "ATTRIB",
+      "layer": "S-GRID",
+      "provenance": {
+        "file": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+        "handle": "2D1",
+        "path": ["2D0"],
+        "space": "MODEL",
+        "role": "grid_label"
+      },
+      "bbox": { "min": [-200, -1600], "max": [200, -1350] },
+      "tag": "GRIDLABEL",
+      "text": "X1",
+      "insert": [-200, -1600],
+      "height_mm": 250,
+      "rotation_deg": 0,
+      "style": "Standard"
+    },
+    {
+      "type": "HATCH",
+      "layer": "S-HATCH",
+      "provenance": {
+        "file": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+        "handle": "2E0",
+        "path": [],
+        "space": "MODEL",
+        "role": "column_fill"
+      },
+      "bbox": { "min": [-300, -300], "max": [300, 300] },
+      "pattern_name": "SOLID",
+      "solid_fill": true,
+      "is_associative": true,
+      "boundary_loops": [
+        {
+          "is_outer": true,
+          "path_kind": "POLYLINE",
+          "vertices": [
+            [-300, -300],
+            [300, -300],
+            [300, 300],
+            [-300, 300]
+          ],
+          "source_refs": [
+            {
+              "file": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+              "handle": "2A0",
+              "path": [],
+              "space": "MODEL",
+              "role": "boundary"
+            }
+          ]
+        }
+      ],
+      "area_mm2": 360000
+    }
+  ]
+}

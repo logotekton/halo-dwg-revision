@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.halo-cad.internal/v0/bridge/messages.schema.json",
+  "title": "BridgeMessage",
+  "description": "postMessage envelope for the 3D panel iframe (ADR-0004). The 2D core bundles three@0.172 and the 3D panel bundles three>=0.182, so no Three object ever crosses the boundary: only these JSON messages do, and selection is synchronised by id. Every message carries `protocol_version`; a receiver drops a message whose version it does not implement instead of guessing.",
+  "x-discriminator": {
+    "propertyName": "type",
+    "mapping": {
+      "ready": "#/$defs/ready",
+      "load": "#/$defs/load",
+      "select": "#/$defs/select",
+      "colorize": "#/$defs/colorize",
+      "camera": "#/$defs/camera",
+      "selected": "#/$defs/selected",
+      "error": "#/$defs/error"
+    }
+  },
+  "oneOf": [
+    { "$ref": "https://schema.halo-cad.internal/v0/bridge/messages.schema.json#/$defs/ready" },
+    { "$ref": "https://schema.halo-cad.internal/v0/bridge/messages.schema.json#/$defs/load" },
+    { "$ref": "https://schema.halo-cad.internal/v0/bridge/messages.schema.json#/$defs/select" },
+    { "$ref": "https://schema.halo-cad.internal/v0/bridge/messages.schema.json#/$defs/colorize" },
+    { "$ref": "https://schema.halo-cad.internal/v0/bridge/messages.schema.json#/$defs/camera" },
+    { "$ref": "https://schema.halo-cad.internal/v0/bridge/messages.schema.json#/$defs/selected" },
+    { "$ref": "https://schema.halo-cad.internal/v0/bridge/messages.schema.json#/$defs/error" }
+  ],
+  "$defs": {
+    "protocol_version": {
+      "title": "BridgeProtocolVersion",
+      "description": "Pinned for v0 of the bridge. Bumped in the same commit as any change to the payloads, so a stale iframe fails the handshake loudly instead of silently mis-reading a message.",
+      "const": "0.1"
+    },
+    "message_type": {
+      "title": "BridgeMessageType",
+      "type": "string",
+      "enum": ["ready", "load", "select", "colorize", "camera", "selected", "error"]
+    },
+    "object_id": {
+      "description": "Identifier shared by both sides. For a reconstructed model it is the `stable_key` of the member; for an IFC model it is the IFC GlobalId.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "base": {
+      "title": "BridgeEnvelope",
+      "type": "object",
+      "required": ["protocol_version", "type"],
+      "properties": {
+        "protocol_version": { "$ref": "https://schema.halo-cad.internal/v0/bridge/messages.schema.json#/$defs/protocol_version" },
+        "type": {
+          "description": "Message kind. Narrowed to a single value by each `oneOf` branch, so the effective domain is the `message_type` enum below; it is spelled out here as a plain string because a `$ref` that every branch overrides with a `const` trips the pydantic generator.",
+          "type": "string",
+          "minLength": 1
+        },
+        "request_id": {
+          "description": "Echoed back on `selected` or `error` so a caller can correlate the answer to its request.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "ready": {
+      "title": "BridgeReady",
+      "description": "Viewer to host. First message the iframe sends once its renderer is live; the host queues everything else until it arrives.",
+      "type": "object",
+      "allOf": [{ "$ref": "https://schema.halo-cad.internal/v0/bridge/messages.schema.json#/$defs/base" }],
+      "required": ["payload"],
+      "properties": {
+        "type": { "const": "ready" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["viewer_version", "three_version"],
+          "properties": {
+            "viewer_version": { "type": "string", "minLength": 1 },
+            "three_version": {
+              "description": "Three.js version bundled inside the iframe. The host logs it to prove the two Three builds stayed separate (ADR-0004).",
+              "type": "string",
+              "minLength": 1
+            },
+            "capabilities": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": ["ifc", "glb", "section", "colorize", "measure"]
+              }
+            }
+          }
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "load": {
+      "title": "BridgeLoad",
+      "description": "Host to viewer. Loads a model into the panel.",
+      "type": "object",
+      "allOf": [{ "$ref": "https://schema.halo-cad.internal/v0/bridge/messages.schema.json#/$defs/base" }],
+      "required": ["payload"],
+      "properties": {
+        "type": { "const": "load" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["model_id", "url", "format"],
+          "properties": {
+            "model_id": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid" },
+            "url": {
+              "description": "`halocad://` for a resource served out of the open project bundle, `blob:` for an in-memory transfer, or the loopback sidecar origin. No other origin is reachable at runtime (CLAUDE.md rule 9).",
+              "type": "string",
+              "pattern": "^(halocad://|blob:|http://127\\.0\\.0\\.1(:[0-9]{1,5})?/)"
+            },
+            "format": { "type": "string", "enum": ["GLB", "IFC"] },
+            "up_axis": { "type": "string", "enum": ["Y", "Z"], "default": "Z" },
+            "unit_scale_to_mm": { "type": "number", "exclusiveMinimum": 0, "default": 1 },
+            "replace": {
+              "description": "Drop models already loaded in the panel before adding this one.",
+              "type": "boolean",
+              "default": true
+            }
+          }
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "select": {
+      "title": "BridgeSelect",
+      "description": "Host to viewer. Pushes the 2D selection into the 3D panel.",
+      "type": "object",
+      "allOf": [{ "$ref": "https://schema.halo-cad.internal/v0/bridge/messages.schema.json#/$defs/base" }],
+      "required": ["payload"],
+      "properties": {
+        "type": { "const": "select" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ids"],
+          "properties": {
+            "ids": { "type": "array", "items": { "$ref": "https://schema.halo-cad.internal/v0/bridge/messages.schema.json#/$defs/object_id" } },
+            "mode": {
+              "type": "string",
+              "enum": ["REPLACE", "ADD", "REMOVE"],
+              "default": "REPLACE"
+            },
+            "zoom_to": { "type": "boolean", "default": false }
+          }
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "colorize": {
+      "title": "BridgeColorize",
+      "description": "Host to viewer. Paints objects by id, used for confidence and review-status overlays.",
+      "type": "object",
+      "allOf": [{ "$ref": "https://schema.halo-cad.internal/v0/bridge/messages.schema.json#/$defs/base" }],
+      "required": ["payload"],
+      "properties": {
+        "type": { "const": "colorize" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["map"],
+          "properties": {
+            "map": {
+              "description": "Object id to `#RRGGBB` colour.",
+              "type": "object",
+              "additionalProperties": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" }
+            },
+            "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+            "reset": {
+              "description": "Clear every previous colour before applying `map`.",
+              "type": "boolean",
+              "default": false
+            }
+          }
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "camera": {
+      "title": "BridgeCamera",
+      "description": "Host to viewer. Moves the camera or sets the section plane.",
+      "type": "object",
+      "allOf": [{ "$ref": "https://schema.halo-cad.internal/v0/bridge/messages.schema.json#/$defs/base" }],
+      "required": ["payload"],
+      "properties": {
+        "type": { "const": "camera" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["op"],
+          "properties": {
+            "op": { "type": "string", "enum": ["FIT", "SET", "SECTION", "CLEAR_SECTION"] },
+            "ids": {
+              "description": "Objects to fit when `op` is `FIT`. Empty or absent fits the whole model.",
+              "type": "array",
+              "items": { "$ref": "https://schema.halo-cad.internal/v0/bridge/messages.schema.json#/$defs/object_id" }
+            },
+            "position": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/point" },
+            "target": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/point" },
+            "up": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/point" },
+            "fov_deg": { "type": "number", "exclusiveMinimum": 0, "maximum": 179 },
+            "section_plane": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["origin", "normal"],
+              "properties": {
+                "origin": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/point" },
+                "normal": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/point" }
+              }
+            }
+          }
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "selected": {
+      "title": "BridgeSelected",
+      "description": "Viewer to host. Reports what the user picked in the 3D panel; the host mirrors it into the 2D selection. Synchronisation is id based and slightly delayed by design (ADR-0004).",
+      "type": "object",
+      "allOf": [{ "$ref": "https://schema.halo-cad.internal/v0/bridge/messages.schema.json#/$defs/base" }],
+      "required": ["payload"],
+      "properties": {
+        "type": { "const": "selected" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ids"],
+          "properties": {
+            "ids": { "type": "array", "items": { "$ref": "https://schema.halo-cad.internal/v0/bridge/messages.schema.json#/$defs/object_id" } },
+            "model_id": { "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid" }
+          }
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "error": {
+      "title": "BridgeError",
+      "description": "Viewer to host. The panel never throws across the boundary; it reports a coded error the host can localise.",
+      "type": "object",
+      "allOf": [{ "$ref": "https://schema.halo-cad.internal/v0/bridge/messages.schema.json#/$defs/base" }],
+      "required": ["payload"],
+      "properties": {
+        "type": { "const": "error" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message"],
+          "properties": {
+            "code": {
+              "type": "string",
+              "enum": [
+                "LOAD_FAILED",
+                "UNSUPPORTED_FORMAT",
+                "PROTOCOL_VERSION_MISMATCH",
+                "UNKNOWN_MESSAGE",
+                "OUT_OF_MEMORY",
+                "INTERNAL"
+              ]
+            },
+            "message": {
+              "description": "Developer-facing English text for the log. UI text is resolved from `code` through the i18n table (CLAUDE.md rule 8).",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            },
+            "detail": { "type": "string", "maxLength": 8192 }
+          }
+        }
+      },
+      "unevaluatedProperties": false
+    }
+  }
+}

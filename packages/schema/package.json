@@ -1,0 +1,35 @@
+{
+  "name": "@halo-cad/schema",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Halo CAD contract schemas (JSON Schema 2020-12) and generated TypeScript / pydantic bindings",
+  "license": "GPL-3.0-only",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "gen",
+    "src"
+  ],
+  "scripts": {
+    "codegen": "node scripts/gen-ts.mjs",
+    "codegen:python": "bash scripts/gen-python.sh",
+    "build": "node scripts/gen-ts.mjs && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^24.3.0",
+    "eslint": "^9.34.0",
+    "json-schema-to-typescript": "^15.0.4",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.41.0",
+    "vitest": "^3.2.4"
+  }
+}

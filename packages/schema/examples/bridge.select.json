@@ -1,0 +1,10 @@
+{
+  "protocol_version": "0.1",
+  "type": "select",
+  "request_id": "sel-0042",
+  "payload": {
+    "ids": ["MEMBER:COL:3F:X1-Y1", "MEMBER:COL:3F:X2-Y1"],
+    "mode": "REPLACE",
+    "zoom_to": true
+  }
+}

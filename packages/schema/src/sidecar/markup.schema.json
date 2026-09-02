@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.halo-cad.internal/v0/sidecar/markup.schema.json",
+  "title": "MarkupSidecar",
+  "description": "Review markup for one drawing, stored as a sidecar next to the project bundle (`sidecars/*.json` in docs/PLAN.md 4). Sidecars never touch the original drawing (CLAUDE.md rule 1) and are keyed by handle so they survive re-import and stay diffable in git. Geometry is in millimetres in the coordinate system of `space`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "file_sha256", "markups"],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/schema_version"
+    },
+    "file_sha256": {
+      "description": "Working DXF this markup belongs to.",
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/sha256"
+    },
+    "markups": {
+      "type": "array",
+      "items": {
+        "$ref": "https://schema.halo-cad.internal/v0/sidecar/markup.schema.json#/$defs/markup"
+      }
+    }
+  },
+  "$defs": {
+    "markup": {
+      "title": "Markup",
+      "description": "One markup item.",
+      "allOf": [
+        {
+          "$ref": "https://schema.halo-cad.internal/v0/sidecar/markup.schema.json#/$defs/markup_fields"
+        },
+        {
+          "$ref": "https://schema.halo-cad.internal/v0/sidecar/markup.schema.json#/$defs/markup_rules"
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "markup_kind": {
+      "title": "MarkupKind",
+      "description": "`CLOUD` revision cloud around an area, `ARROW` a two-point pointer, `NOTE` a text note anchored at one point, `FREEHAND` a sketched polyline.",
+      "type": "string",
+      "enum": ["CLOUD", "ARROW", "NOTE", "FREEHAND"]
+    },
+    "markup_status": {
+      "title": "MarkupStatus",
+      "type": "string",
+      "enum": ["OPEN", "IN_PROGRESS", "RESOLVED", "REJECTED"]
+    },
+    "markup_fields": {
+      "title": "MarkupFields",
+      "type": "object",
+      "required": ["id", "kind", "space", "points", "author", "created_at", "status"],
+      "properties": {
+        "id": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+        },
+        "kind": {
+          "$ref": "https://schema.halo-cad.internal/v0/sidecar/markup.schema.json#/$defs/markup_kind"
+        },
+        "space": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/space"
+        },
+        "points": {
+          "description": "`CLOUD` at least 3 points forming a closed outline, `ARROW` exactly the tail and the head, `NOTE` exactly the anchor, `FREEHAND` at least 2 points.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/point"
+          }
+        },
+        "text": {
+          "description": "Note body. Required for `NOTE`, optional as a caption on the other kinds.",
+          "type": "string",
+          "maxLength": 4096
+        },
+        "color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$", "default": "#FF0000" },
+        "entity_refs": {
+          "description": "Entities the markup is about, so the review list can jump to them.",
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.halo-cad.internal/v0/common/entity-ref.schema.json"
+          }
+        },
+        "author": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/author"
+        },
+        "created_at": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/timestamp"
+        },
+        "updated_at": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/timestamp"
+        },
+        "status": {
+          "$ref": "https://schema.halo-cad.internal/v0/sidecar/markup.schema.json#/$defs/markup_status"
+        },
+        "resolved_by": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/author"
+        },
+        "resolved_at": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/timestamp"
+        },
+        "revision_id": {
+          "description": "DMS revision the markup was raised against (P2).",
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+        }
+      }
+    },
+    "markup_rules": {
+      "title": "MarkupRules",
+      "description": "Point-count and closure constraints per markup kind. Carries no fields of its own.",
+      "tsType": "unknown",
+      "allOf": [
+        {
+          "if": {
+            "required": ["kind"],
+            "properties": { "kind": { "const": "CLOUD" } }
+          },
+          "then": { "properties": { "points": { "minItems": 3 } } }
+        },
+        {
+          "if": {
+            "required": ["kind"],
+            "properties": { "kind": { "const": "ARROW" } }
+          },
+          "then": { "properties": { "points": { "minItems": 2, "maxItems": 2 } } }
+        },
+        {
+          "if": {
+            "required": ["kind"],
+            "properties": { "kind": { "const": "FREEHAND" } }
+          },
+          "then": { "properties": { "points": { "minItems": 2 } } }
+        },
+        {
+          "if": {
+            "required": ["kind"],
+            "properties": { "kind": { "const": "NOTE" } }
+          },
+          "then": {
+            "required": ["text"],
+            "properties": {
+              "points": { "minItems": 1, "maxItems": 1 },
+              "text": { "minLength": 1 }
+            }
+          }
+        },
+        {
+          "$comment": "A closed markup records who closed it and when.",
+          "if": {
+            "required": ["status"],
+            "properties": { "status": { "enum": ["RESOLVED", "REJECTED"] } }
+          },
+          "then": { "required": ["resolved_by", "resolved_at"] }
+        }
+      ]
+    }
+  }
+}

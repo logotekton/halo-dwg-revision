@@ -1,0 +1,739 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json",
+  "title": "NdjEntity",
+  "description": "One normalised entity of the working DXF. Discriminated on `type`; an unknown `type` fails validation on purpose so a new entity class cannot silently reach the engine. Every entity carries `provenance` (CLAUDE.md rule 6). Lengths are millimetres, angles are degrees CCW unless stated otherwise. Each branch is `allOf: [base, own fields]` with `unevaluatedProperties: false`, which both closes the object and lets the code generators emit a real intersection type.",
+  "x-discriminator": {
+    "propertyName": "type",
+    "mapping": {
+      "LINE": "#/$defs/line",
+      "LWPOLYLINE": "#/$defs/lwpolyline",
+      "POLYLINE": "#/$defs/polyline",
+      "ARC": "#/$defs/arc",
+      "CIRCLE": "#/$defs/circle",
+      "ELLIPSE": "#/$defs/ellipse",
+      "SPLINE": "#/$defs/spline",
+      "TEXT": "#/$defs/text",
+      "MTEXT": "#/$defs/mtext",
+      "ATTRIB": "#/$defs/attrib",
+      "ATTDEF": "#/$defs/attdef",
+      "INSERT": "#/$defs/insert",
+      "HATCH": "#/$defs/hatch",
+      "DIMENSION": "#/$defs/dimension",
+      "LEADER": "#/$defs/leader",
+      "MLEADER": "#/$defs/mleader",
+      "SOLID": "#/$defs/solid",
+      "POINT": "#/$defs/point_entity",
+      "3DFACE": "#/$defs/face3d",
+      "PROXY": "#/$defs/proxy"
+    }
+  },
+  "$comment": "`discriminator` is an OpenAPI keyword, not JSON Schema. Branch selection is expressed with `oneOf` plus a `const` on `type` in every branch; `x-discriminator` is documentation and a hint for code generators.",
+  "oneOf": [
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/line" },
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/lwpolyline" },
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/polyline" },
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/arc" },
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/circle" },
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/ellipse" },
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/spline" },
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/text" },
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/mtext" },
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/attrib" },
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/attdef" },
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/insert" },
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/hatch" },
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/dimension" },
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/leader" },
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/mleader" },
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/solid" },
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point_entity" },
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/face3d" },
+    { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/proxy" }
+  ],
+  "$defs": {
+    "entity_type": {
+      "title": "EntityType",
+      "description": "Closed set of normalised entity types for v0. Anything the parser cannot map to one of these is reported as a whitelist violation by the crosscheck, not emitted as NDJ.",
+      "type": "string",
+      "enum": [
+        "LINE",
+        "LWPOLYLINE",
+        "POLYLINE",
+        "ARC",
+        "CIRCLE",
+        "ELLIPSE",
+        "SPLINE",
+        "TEXT",
+        "MTEXT",
+        "ATTRIB",
+        "ATTDEF",
+        "INSERT",
+        "HATCH",
+        "DIMENSION",
+        "LEADER",
+        "MLEADER",
+        "SOLID",
+        "POINT",
+        "3DFACE",
+        "PROXY"
+      ]
+    },
+    "base": {
+      "title": "EntityBase",
+      "description": "Properties every normalised entity carries.",
+      "type": "object",
+      "required": ["type", "layer", "provenance"],
+      "properties": {
+        "type": {
+          "description": "Normalised entity type. Narrowed to a single value by each `oneOf` branch, so the effective domain is the `entity_type` enum below; it is spelled out here as a plain string because a `$ref` that every branch overrides with a `const` trips the pydantic generator.",
+          "type": "string",
+          "minLength": 1
+        },
+        "layer": {
+          "description": "Layer name exactly as decoded from the working DXF (NFC normalised).",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "provenance": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/provenance.schema.json"
+        },
+        "bbox": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/bbox"
+        },
+        "color": {
+          "description": "ACI index (0 = BYBLOCK, 256 = BYLAYER) or an explicit `#RRGGBB` true colour.",
+          "oneOf": [
+            { "type": "integer", "minimum": 0, "maximum": 256 },
+            { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" }
+          ]
+        },
+        "linetype": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "lineweight_mm": {
+          "description": "Plot lineweight in millimetres, or the DXF sentinels -1 BYLAYER, -2 BYBLOCK, -3 DEFAULT.",
+          "type": "number",
+          "minimum": -3
+        },
+        "is_visible": { "type": "boolean", "default": true }
+      }
+    },
+    "point": {
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/point"
+    },
+    "point_list": {
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/points"
+    },
+    "flattened": {
+      "title": "FlattenedCurve",
+      "description": "Straight-segment approximation of a curved entity, in millimetres, produced at the 0.1mm index tolerance of docs/PLAN.md 5 so the viewer and the engine measure the same length.",
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/points"
+    },
+    "line": {
+      "title": "LineEntity",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "start", "end"],
+          "properties": {
+            "type": { "const": "LINE" },
+            "start": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+            },
+            "end": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "lwpolyline": {
+      "title": "LwPolylineEntity",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "vertices", "closed"],
+          "properties": {
+            "type": { "const": "LWPOLYLINE" },
+            "vertices": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+              }
+            },
+            "bulges": {
+              "description": "Per-vertex bulge factors, same length as `vertices` when present. 0 means a straight segment.",
+              "type": "array",
+              "items": { "type": "number" }
+            },
+            "closed": { "type": "boolean" },
+            "elevation_mm": { "type": "number", "default": 0 },
+            "const_width_mm": { "type": "number", "minimum": 0 },
+            "flattened": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/flattened"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "polyline": {
+      "title": "PolylineEntity",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "vertices", "closed", "polyline_kind"],
+          "properties": {
+            "type": { "const": "POLYLINE" },
+            "polyline_kind": { "type": "string", "enum": ["2D", "3D", "MESH", "PFACE"] },
+            "vertices": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+              }
+            },
+            "bulges": { "type": "array", "items": { "type": "number" } },
+            "closed": { "type": "boolean" },
+            "flattened": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/flattened"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "arc": {
+      "title": "ArcEntity",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "center", "radius_mm", "start_angle_deg", "end_angle_deg"],
+          "properties": {
+            "type": { "const": "ARC" },
+            "center": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+            },
+            "radius_mm": { "type": "number", "exclusiveMinimum": 0 },
+            "start_angle_deg": { "type": "number" },
+            "end_angle_deg": { "type": "number" },
+            "normal": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+            },
+            "flattened": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/flattened"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "circle": {
+      "title": "CircleEntity",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "center", "radius_mm"],
+          "properties": {
+            "type": { "const": "CIRCLE" },
+            "center": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+            },
+            "radius_mm": { "type": "number", "exclusiveMinimum": 0 },
+            "normal": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+            },
+            "flattened": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/flattened"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "ellipse": {
+      "title": "EllipseEntity",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "center", "major_axis", "ratio", "start_param", "end_param"],
+          "properties": {
+            "type": { "const": "ELLIPSE" },
+            "center": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+            },
+            "major_axis": {
+              "description": "Major axis vector from `center` to the end of the major axis, in millimetres.",
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+            },
+            "ratio": {
+              "description": "Minor over major axis ratio.",
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1
+            },
+            "start_param": { "type": "number" },
+            "end_param": { "type": "number" },
+            "normal": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+            },
+            "flattened": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/flattened"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "spline": {
+      "title": "SplineEntity",
+      "description": "Both representations are kept: the original NURBS parameters and, optionally, the flattened approximation used for length and picking.",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "degree", "control_points", "closed"],
+          "properties": {
+            "type": { "const": "SPLINE" },
+            "degree": { "type": "integer", "minimum": 1, "maximum": 11 },
+            "control_points": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+              }
+            },
+            "knots": { "type": "array", "items": { "type": "number" } },
+            "weights": {
+              "type": "array",
+              "items": { "type": "number", "exclusiveMinimum": 0 }
+            },
+            "fit_points": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point_list"
+            },
+            "closed": { "type": "boolean" },
+            "flattened": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/flattened"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "text": {
+      "title": "TextEntity",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "text", "insert", "height_mm"],
+          "properties": {
+            "type": { "const": "TEXT" },
+            "text": {
+              "description": "Decoded, NFC-normalised string. `\\M+1XXXX` and `\\U+XXXX` escapes are already resolved (docs/PLAN.md 5).",
+              "type": "string"
+            },
+            "insert": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+            },
+            "align_point": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+            },
+            "height_mm": { "type": "number", "exclusiveMinimum": 0 },
+            "rotation_deg": { "type": "number", "default": 0 },
+            "width_factor": { "type": "number", "exclusiveMinimum": 0, "default": 1 },
+            "oblique_deg": { "type": "number", "default": 0 },
+            "style": { "type": "string" },
+            "halign": {
+              "type": "string",
+              "enum": ["LEFT", "CENTER", "RIGHT", "ALIGNED", "MIDDLE", "FIT"]
+            },
+            "valign": { "type": "string", "enum": ["BASELINE", "BOTTOM", "MIDDLE", "TOP"] }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "mtext": {
+      "title": "MTextEntity",
+      "description": "Both the raw MTEXT string with its formatting codes and the plain-text rendering are kept; the `text_hash` of the layer statistics is computed from `plain`.",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "raw", "plain", "insert", "char_height_mm"],
+          "properties": {
+            "type": { "const": "MTEXT" },
+            "raw": { "type": "string" },
+            "plain": { "type": "string" },
+            "insert": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+            },
+            "char_height_mm": { "type": "number", "exclusiveMinimum": 0 },
+            "width_mm": { "type": "number", "minimum": 0 },
+            "rotation_deg": { "type": "number", "default": 0 },
+            "attachment_point": { "type": "integer", "minimum": 1, "maximum": 9 },
+            "line_spacing_factor": { "type": "number", "exclusiveMinimum": 0 },
+            "style": { "type": "string" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "attrib": {
+      "title": "AttribEntity",
+      "description": "Attribute owned by an INSERT. Its `provenance.path` ends with the owning INSERT handle.",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "tag", "text", "insert", "height_mm"],
+          "properties": {
+            "type": { "const": "ATTRIB" },
+            "tag": { "type": "string", "minLength": 1 },
+            "text": { "type": "string" },
+            "insert": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+            },
+            "height_mm": { "type": "number", "exclusiveMinimum": 0 },
+            "rotation_deg": { "type": "number", "default": 0 },
+            "style": { "type": "string" },
+            "is_invisible": { "type": "boolean", "default": false }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "attdef": {
+      "title": "AttdefEntity",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "tag", "insert", "height_mm"],
+          "properties": {
+            "type": { "const": "ATTDEF" },
+            "tag": { "type": "string", "minLength": 1 },
+            "prompt": { "type": "string" },
+            "default_text": { "type": "string" },
+            "insert": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+            },
+            "height_mm": { "type": "number", "exclusiveMinimum": 0 },
+            "rotation_deg": { "type": "number", "default": 0 },
+            "style": { "type": "string" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "insert_attrib": {
+      "title": "InsertAttrib",
+      "description": "Attribute value carried by a block reference, with its own provenance so evidence resolves through the reference chain.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tag", "text", "provenance"],
+      "properties": {
+        "tag": { "type": "string", "minLength": 1 },
+        "text": { "type": "string" },
+        "provenance": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/provenance.schema.json"
+        }
+      }
+    },
+    "insert": {
+      "title": "InsertEntity",
+      "description": "Block reference. Entities emitted from inside the block carry this INSERT's handle appended to their `provenance.path`, so evidence can be resolved back through nested references. `attribs` denormalises the ATTRIB entities that also appear in the entity stream under their own handles; the layer statistics count those ATTRIB entities, never these copies.",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "block_name", "transform"],
+          "properties": {
+            "type": { "const": "INSERT" },
+            "block_name": { "type": "string", "minLength": 1, "maxLength": 255 },
+            "transform": {
+              "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/transform"
+            },
+            "column_count": { "type": "integer", "minimum": 1, "default": 1 },
+            "row_count": { "type": "integer", "minimum": 1, "default": 1 },
+            "column_spacing_mm": { "type": "number", "default": 0 },
+            "row_spacing_mm": { "type": "number", "default": 0 },
+            "attribs": {
+              "type": "array",
+              "items": {
+                "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/insert_attrib"
+              }
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "hatch_loop": {
+      "title": "HatchLoop",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["is_outer", "vertices"],
+      "properties": {
+        "is_outer": { "type": "boolean" },
+        "path_kind": { "type": "string", "enum": ["POLYLINE", "EDGES"] },
+        "vertices": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+          }
+        },
+        "source_refs": {
+          "description": "Boundary entities this loop was built from, for associative hatches.",
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.halo-cad.internal/v0/common/entity-ref.schema.json"
+          }
+        }
+      }
+    },
+    "hatch": {
+      "title": "HatchEntity",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "pattern_name", "solid_fill", "boundary_loops", "area_mm2"],
+          "properties": {
+            "type": { "const": "HATCH" },
+            "pattern_name": { "type": "string", "minLength": 1 },
+            "solid_fill": { "type": "boolean" },
+            "pattern_scale": { "type": "number", "exclusiveMinimum": 0 },
+            "pattern_angle_deg": { "type": "number" },
+            "is_associative": { "type": "boolean" },
+            "boundary_loops": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/hatch_loop"
+              }
+            },
+            "area_mm2": {
+              "description": "Net filled area (outer loops minus inner loops) in square millimetres. Summed into `hatch_area_sum_mm2` by both parsers.",
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "dimension": {
+      "title": "DimensionEntity",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "dim_kind", "measurement_mm", "defpoints"],
+          "properties": {
+            "type": { "const": "DIMENSION" },
+            "dim_kind": {
+              "type": "string",
+              "enum": [
+                "LINEAR",
+                "ALIGNED",
+                "ANGULAR",
+                "ANGULAR_3P",
+                "DIAMETER",
+                "RADIUS",
+                "ORDINATE",
+                "ARC_LENGTH"
+              ]
+            },
+            "measurement_mm": {
+              "description": "Value measured by the dimension. For the ANGULAR kinds the unit is degrees, not millimetres.",
+              "type": "number"
+            },
+            "text_override": {
+              "description": "Raw dimension text when the drawing overrides the measurement; `<>` marks the measured value.",
+              "type": "string"
+            },
+            "text_plain": { "type": "string" },
+            "text_position": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+            },
+            "defpoints": {
+              "description": "Definition points in drawing order, as stored in the DXF.",
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+              }
+            },
+            "dimstyle": { "type": "string" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "leader": {
+      "title": "LeaderEntity",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "vertices"],
+          "properties": {
+            "type": { "const": "LEADER" },
+            "vertices": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+              }
+            },
+            "has_arrowhead": { "type": "boolean", "default": true },
+            "annotation_ref": {
+              "$ref": "https://schema.halo-cad.internal/v0/common/entity-ref.schema.json"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "mleader_line": {
+      "title": "MLeaderLine",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vertices"],
+      "properties": {
+        "vertices": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+          }
+        }
+      }
+    },
+    "mleader": {
+      "title": "MLeaderEntity",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "leader_lines", "content_kind"],
+          "properties": {
+            "type": { "const": "MLEADER" },
+            "leader_lines": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/mleader_line"
+              }
+            },
+            "content_kind": { "type": "string", "enum": ["MTEXT", "BLOCK", "NONE"] },
+            "text_plain": { "type": "string" },
+            "block_name": { "type": "string", "minLength": 1 }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "solid": {
+      "title": "SolidEntity",
+      "description": "SOLID or TRACE filled area. `corners` are already reordered into drawing order, so the DXF third and fourth corner swap is not repeated here.",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "corners"],
+          "properties": {
+            "type": { "const": "SOLID" },
+            "corners": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 4,
+              "items": {
+                "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+              }
+            },
+            "area_mm2": { "type": "number", "minimum": 0 }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "point_entity": {
+      "title": "PointEntity",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "position"],
+          "properties": {
+            "type": { "const": "POINT" },
+            "position": {
+              "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "face3d": {
+      "title": "Face3dEntity",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "corners"],
+          "properties": {
+            "type": { "const": "3DFACE" },
+            "corners": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 4,
+              "items": {
+                "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/point"
+              }
+            },
+            "invisible_edges": {
+              "description": "DXF group code 70 edge visibility bit field.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 15
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "proxy": {
+      "title": "ProxyEntity",
+      "description": "ACAD_PROXY_ENTITY, or anything the parser could only read as proxy graphics. Present so the crosscheck can account for it; never a source of quantities.",
+      "allOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/ndj/entity.schema.json#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["type", "graphics_present"],
+          "properties": {
+            "type": { "const": "PROXY" },
+            "proxy_class_name": { "type": "string" },
+            "original_type": {
+              "description": "Original DXF entity name when known, e.g. `ACAD_TABLE`.",
+              "type": "string"
+            },
+            "graphics_present": { "type": "boolean" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}

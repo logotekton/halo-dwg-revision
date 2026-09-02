@@ -1,0 +1,59 @@
+{
+  "schema_version": "0.1",
+  "file_sha256": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+  "markups": [
+    {
+      "id": "5S0HWCYQXA3HRKK6SDCT7J0703",
+      "kind": "CLOUD",
+      "space": "MODEL",
+      "points": [
+        [6700, -500],
+        [7700, -500],
+        [7700, 500],
+        [6700, 500]
+      ],
+      "text": "C2 단면 치수 확인",
+      "color": "#FF0000",
+      "entity_refs": [
+        {
+          "file": "5747a89c5a08e33837a535af35cb18a88c0d2dc9a8b5a99e1a0a9d30b8ba0fe1",
+          "handle": "2A1",
+          "path": [],
+          "space": "MODEL",
+          "role": "column_outline"
+        }
+      ],
+      "author": "kim.js",
+      "created_at": "2026-09-02T10:04:00+09:00",
+      "status": "OPEN"
+    },
+    {
+      "id": "4932DYJJKV1ABZRP0068TZHGRE",
+      "kind": "ARROW",
+      "space": "PAPER:A1-S01",
+      "points": [
+        [120000, 80000],
+        [96000, 62000]
+      ],
+      "text": "그리드 번호 누락",
+      "color": "#0080FF",
+      "author": "park.hy",
+      "created_at": "2026-09-02T10:11:30+09:00",
+      "updated_at": "2026-09-02T11:02:00+09:00",
+      "status": "RESOLVED",
+      "resolved_by": "kim.js",
+      "resolved_at": "2026-09-02T11:02:00+09:00"
+    },
+    {
+      "id": "2K0SN6TTJGG6G9A88G6PVMRT21",
+      "kind": "NOTE",
+      "space": "MODEL",
+      "points": [[3600, 3000]],
+      "text": "G1 보 폭 400 확정. 일람표와 일치.",
+      "author": "kim.js",
+      "created_at": "2026-09-02T10:20:00+09:00",
+      "status": "IN_PROGRESS",
+      "revision_id": "0J8JJ858S38QS4Q1J1W8FZ0JD8"
+    }
+  ]
+}

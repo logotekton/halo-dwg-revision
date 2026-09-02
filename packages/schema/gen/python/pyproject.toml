@@ -1,0 +1,34 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "halo-schema"
+version = "0.0.1"
+description = "Halo CAD contract schemas as pydantic v2 models, generated from packages/schema/src"
+readme = "../../README.md"
+requires-python = ">=3.12"
+license = { text = "GPL-3.0-only" }
+dependencies = ["pydantic>=2.9"]
+
+[project.optional-dependencies]
+# Needed only by halo_schema.validation, which enforces the conditional rules
+# (ADR-0003 height comparisons, evidence requirements) that pydantic cannot
+# express. The models themselves need pydantic alone.
+validation = ["jsonschema>=4.23", "referencing>=0.35"]
+
+[dependency-groups]
+dev = ["pytest>=8.3", "jsonschema>=4.23", "referencing>=0.35"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["halo_schema"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"halo_schema/schemas" = "halo_schema/schemas"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+  "models: needs the generated pydantic models under halo_schema/models",
+]

@@ -91,7 +91,7 @@ assert_valid("ndj_document", payload, "F06 NDJ")
 document = NdjDocument.model_validate(payload)
 ```
 
-pydantic 모델은 **형태**만 담는다. `if`/`then` 조건(ADR-0003 높이 규칙, 근거 필수, 마크업 점 개수)은 pydantic으로 표현할 수 없으므로 `halo_schema.validation`이 스키마 원본으로 검증한다. 스키마 원본은 `halo_schema/schemas/`에 패키지 데이터로 함께 실린다(`src/`와 바이트 동일, vitest가 검사).
+pydantic 모델은 **형태**만 담는다. `if`/`then` 조건(ADR-0003 높이 규칙, 근거 필수, 마크업 점 개수)은 pydantic으로 표현할 수 없으므로 `halo_schema.validation`이 스키마 원본으로 검증한다. `allOf`로 합성된 모델(`Check`, `Floor`, `Markup`, `LevelObservation`, `Classification`)은 `unevaluatedProperties: false`가 코드젠에 전달되지 않아 모르는 필드를 거부하는 대신 조용히 버린다 — **엔진 경계에서는 pydantic 로드 전에 `assert_valid`를 먼저 부른다.** 스키마 원본은 `halo_schema/schemas/`에 패키지 데이터로 함께 실린다(`src/`와 바이트 동일, vitest가 검사).
 
 ## ADR-0003이 스키마에 박혀 있는 방식
 

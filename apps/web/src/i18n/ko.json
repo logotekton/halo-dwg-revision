@@ -1,0 +1,12 @@
+{
+  "app": {
+    "title": "대명 CAD"
+  },
+  "canvas": {
+    "areaLabel": "도면 캔버스",
+    "placeholder": "열린 도면이 없습니다"
+  },
+  "status": {
+    "engineDisconnected": "엔진: 연결 안 됨"
+  }
+}

@@ -28,6 +28,9 @@ uv run halo-engine serve --dev --port 8765 --token dev
 - `--reload`: 소스 변경 시 자동 재시작(개발 전용, Electron이 spawn하는 경로에서는 쓰지 않는다).
 - `--log-dir PATH`: 지정하면 사람이 읽는 로그 라인을 이 아래 회전 파일에도 남긴다(`stderr`에는
   항상 남는다).
+- `--converter-fallback acad-ts`: DWG→DXF 변환이 필요한데 WS로 연결된 데스크톱이 없을 때,
+  엔진이 acad-ts CLI를 subprocess로 직접 실행한다(아래 "DWG 변환과 임포트 잡" 절). 드로잉셋
+  임포트 요청 본문의 `converter_fallback` 필드가 이 서버 기본값을 요청 단위로 덮어쓴다.
 
 포트를 바인드한 직후, **다른 어떤 로그보다 먼저** stdout 한 줄에 READY JSON을 찍고 flush한다:
 
@@ -55,15 +58,105 @@ uvicorn/애플리케이션 로그는 모두 `stderr`로 간다 — stdout은 이
 
 - `GET /api/v1/system/health` — 토큰 불필요. `{status, version, python, deps:{ezdxf, shapely,
   manifold3d, trimesh, ifcopenshell, numpy, fastapi}}`.
-- `GET /api/v1/system/capabilities` — 토큰 필요. 현재 정직한 기능 플래그
-  (`{dwg2dxf: false, ifc_export: true, job_runner: false, websocket: false, dms_sync: false}`).
-  잡 러너·WebSocket 라우터는 W2-01·W8-05에서 붙는다(`api/routers/__init__.py`가 자리만 남김).
+- `GET /api/v1/system/capabilities` — 토큰 필요. `job_runner`·`websocket`은 W3-03에서 실제로
+  붙었지만 이 엔드포인트의 플래그 값 자체는 `api/routers/system.py` 소유라 이 태스크가 고치지
+  않는다(보고서 "Shared-file patch" 참고 — 값이 아직 `false`로 남아 있다).
 - `POST /api/v1/system/shutdown` — 토큰 필요. 우아한 종료를 요청한다.
 - `POST /api/v1/files/crosscheck` — 토큰 필요. 본문 `{reference, other, whitelist?}`
   (`LayerStatsDocument` 두 개 + 화이트리스트 경로). 응답은 `CrosscheckReport`
-  (`halo_engine/validate/crosscheck_report.schema.json`). 아래 "파서 교차검증" 절 참고.
+  (`halo_engine/validate/crosscheck_report.schema.json`). 상태를 저장하지 않는 범용 비교
+  (W2-04). 파일에 저장하는 버전은 아래 `POST /api/v1/files/{id}/crosscheck` 참고.
+- `POST /api/v1/projects` `{name, path?}` → `201 {id, bundle_path}`. `path` 생략 시
+  `~/Documents/Halo CAD/<name>.halo`. 새 번들을 만들고 바로 연다(엔진 워크스페이스는 한 번에
+  프로젝트 하나).
+- `POST /api/v1/projects/open` `{bundle_path}` → `200 {id, bundle_path}`. 기존 번들을 연다
+  (Alembic 마이그레이션을 최신으로 올린 뒤).
+- `GET /api/v1/projects/recent` — 이 엔진의 `--data-dir`에 저장된 최근 프로젝트 목록
+  (`<data-dir>/recent-projects.json`, 프로세스 재시작에도 유지).
+- `GET /api/v1/projects/{id}` — 현재 열린 프로젝트만(다른 id는 404, 연 프로젝트가 없으면 409).
+- `POST /api/v1/projects/{id}/drawing-sets` `{files: [절대경로...], search_paths?, converter_fallback?}`
+  → `202 {job_id, drawing_set_id}`. 임포트 잡을 예약하고 즉시 반환한다(아래 "DWG 변환과 임포트
+  잡" 절).
+- `GET /api/v1/jobs/{id}` — `{id, status, progress, message, drawing_set_id, error}`.
+- `POST /api/v1/jobs/{id}/cancel` — 다음 파일로 넘어가기 전에 협조적으로 취소한다(진행 중인
+  파일은 끝까지 마친다).
+- `GET /api/v1/drawing-sets/{id}/files` — `[{id, original_name, format, dwg_version,
+  entity_count, codepage_effective, import_status, error_message, working_dxf_path,
+  parser_crosscheck?}]`.
+- `GET /api/v1/files/{id}/working-dxf` — 정본 DXF 바이트 스트림. `ETag`(mtime+size 기반)와
+  `If-None-Match` 조건부 GET(304) 지원.
+- `GET /api/v1/files/{id}/stats` — `ingest/working_dxf.py`가 만든 `LayerStatsDocument` 그대로.
+- `POST /api/v1/files/{id}/converted` `{dxf_path, entity_count, converter}` — 데스크톱이
+  `convert.request` WS 이벤트에 대한 답으로 부른다.
+- `POST /api/v1/files/{id}/crosscheck` `{other, whitelist?}` — 뷰어의 `statsByLayer()` 결과를
+  이 파일의 엔진 stats와 비교해 `drawing_file.parser_crosscheck`에 저장한다
+  (ADR-0002 결정 6).
 
 CORS는 `halocad://app`, `http://localhost:5173`, `http://127.0.0.1:5173`만 허용한다.
+WebSocket `/api/v1/ws`는 첫 프레임 `{"type":"auth","token":...}`으로 인증한다(계약,
+"Defaults for ambiguity"); 이벤트는 `job.progress` / `job.done` / `job.failed` /
+`convert.request`.
+
+```bash
+uv run halo-engine openapi --out <경로>
+```
+
+FastAPI 앱의 OpenAPI 스키마를 JSON으로 내보낸다(`packages/shared-types/openapi.json`으로
+`openapi-typescript` 타입 생성을 거는 것은 W3-08 몫 — `packages/**`는 이 태스크 소유가 아니라서
+`--out`은 기본값 없이 매번 명시해야 한다). stdout에는 쓴 경로 한 줄만 찍는다.
+
+## 프로젝트 번들 (bundle, `docs/PLAN.md` §4, W3-03)
+
+```
+<name>.halo/
+  project.json          # id, name, created_at (사람이 읽을 수 있는 사본)
+  project.sqlite        # SQLAlchemy 2 + Alembic, project/drawing_set/drawing_file/xref_link/entity_index
+  originals/<sha256>.<ext>   # 원본 복사본, 0444(CLAUDE.md 규칙 1 — 원본 자체는 절대 쓰지 않는다)
+  cache/dxf/<sha256>.working.dxf   # 정본 DXF (ADR-0002)
+  cache/mesh/                       # (P3+)
+  derivatives/  sidecars/  exports/
+```
+
+엔진 워크스페이스는 한 번에 프로젝트 하나만 연다(`bundle.create.BundleHandle`,
+`app.state.bundle`) — `apps/web`의 `workspace` Zustand 스토어(단수 project)와 대응.
+`bundle/guard.py`의 `assert_writable_path()`가 원본 쓰기 가드다: `originals/` 바깥 경로에
+쓰려고 하면 무조건 예외. "최근 프로젝트" 목록은 번들이 아니라 엔진 자신의 `--data-dir`
+아래 `recent-projects.json`에 저장한다(어느 번들도 열려 있지 않아도 나열할 수 있어야 하므로).
+
+## DWG 변환과 임포트 잡 (`docs/contracts/wave-3.md`, ADR-0002 2026-09-02 개정)
+
+`POST /projects/{id}/drawing-sets`가 예약하는 잡은 파일마다 다음을 순서대로 한다
+(`ingest/pipeline.py`의 순수 단계 + `api/jobs.py`의 오케스트레이션):
+
+1. **복사** — 원본을 `originals/<sha256><ext>`로 복사하고 0444로 잠근다.
+2. **DXF면 3으로.** DWG면 **변환**: WS로 연결된 데스크톱이 있으면 `convert.request`
+   `{file_id, dwg_path, out_path}`를 보내고 `POST /files/{id}/converted`를 최대 10분
+   기다린다. 없으면(또는 응답이 없으면) `--converter-fallback acad-ts`(서버 기본값 또는
+   요청의 `converter_fallback` 필드)가 설정된 경우에만 엔진이
+   `node packages/acad-bridge/bin/acad-bridge.mjs dwg2dxf`를 subprocess로 직접 실행한다.
+   둘 다 아니면 `NEEDS_MANUAL_CONVERSION`.
+3. **정본 DXF 생성** — `ingest/working_dxf.py`로 XREF 임베드 + 인코딩 보정 +
+   R2018/UTF-8 업그레이드, 통계 계산까지 한 번에.
+4. **교차검증 게이트**(DWG만, ADR-0002 개정 4항) — 감사기 삭제 건수 > 0 이거나 변환기가
+   보고한 엔티티 수와 엔진이 센 수의 차이가 ±0.5%를 넘으면 **그 변환은 실패**(경고 아님).
+   실패하면 다음 후보(데스크톱 실패 → acad-ts 폴백)로 넘어가고, 후보가 더 없으면
+   `NEEDS_MANUAL_CONVERSION` + 각 후보가 실패한 이유.
+5. 결과를 `drawing_file`에 쓰고 `job.progress`/`job.done` WS 이벤트를 보낸다.
+
+**중요한 실측:** acad-ts CLI 폴백은 두 가지 알려진 이유로 실제 도면에서 거의 항상
+`NEEDS_MANUAL_CONVERSION`으로 끝난다 — (a) ADR-0002 개정 1항이 이미 문서화한 대로 acad-ts가
+쓴 DXF에 ezdxf가 못 읽는 결함이 있다(ATTRIB 서브클래스 마커 누락, 중복 핸들 — `fixtures/generated`의
+F01/F02/F06.dwg로 재현), (b) `ingest/xref.py`의 XREF 임베드가 ezdxf 기반이라 **DXF만** 읽을 수
+있는데, `samples/2026-09-02-실시도서/`의 실제 도면은 표지 한 장까지도 포함해 거의 전부 다른
+DWG(주로 XR/ 폴더의 도곽·타이틀블록)를 XREF로 문다 — 그 DWG를 먼저 DXF로 변환해 두지 않는 한
+`FileNotFoundError`로 실패한다(중첩 XREF 변환은 W3-06 범위). 실측: `samples/.../XR/PLAN.dwg`
+(AC1024, 1656엔티티)와 `01_건축/A-100 평면도.dwg`(AC1024, 1488엔티티) 모두 acad-ts 자체 DWG
+읽기는 성공하지만(엔티티 수까지 정확히 보고) 정본 DXF 빌드 단계에서 중첩 XREF를 못 찾아
+`NEEDS_MANUAL_CONVERSION`으로 끝났다 — 실패 사유 문자열에 어느 XREF가 문제인지 그대로 남는다.
+`fixtures/generated/F10_host.dwg`처럼 XREF가 없고 acad-ts가 깨끗이 쓰는 도면은 폴백으로
+끝까지 성공한다. 결론은 ADR-0002가 이미 내린 것과 같다: **실제 운영 경로는 데스크톱의
+`dxfOut()`**이고, acad-ts subprocess 폴백은 데스크톱이 없는 개발/CI 환경에서 "아무것도 안
+하는 것보다 낫다" 수준의 보조 수단이다.
 
 ## 파일 인입 (ingest, `docs/adr/0002-working-dxf.md`)
 
@@ -136,6 +229,15 @@ uv run pytest -q
   `referencing`, `test_truth_schema.py`), 엔진 stats와 `fixtures_gen.stats`가 F01~F10에서
   일치하는지(`test_engine_crosscheck.py`)를 검증한다. `fixtures/generated`·`fixtures/truth`가
   없으면(`cd fixtures/gen && uv run python -m fixtures_gen` 실행 전) 해당 테스트는 skip된다.
+- `tests/bundle/` (W3-03) — 번들 레이아웃(`test_layout.py`), 원본 쓰기 가드
+  (`test_guard.py`), 원본 복사·불변성·0444(`test_originals.py`), 번들 생성/열기·Alembic
+  마이그레이션(`test_create.py`), `db/repos.py`·`db/ids.py` CRUD(`test_db.py`).
+- `tests/api/` (W3-03) — httpx `TestClient` 통합: 프로젝트 CRUD(`test_projects.py`),
+  DXF 임포트 end-to-end + F10 XREF 세트 + 파일별 crosscheck 저장(`test_drawing_sets_import.py`),
+  WS 인증 + `convert.request`/`converted` 왕복(가짜 변환기, `test_ws_convert.py`), acad-ts
+  CLI 폴백(빌드돼 있으면, `test_converter_fallback.py`), 잡 취소(`test_jobs_cancel.py`),
+  교차검증 게이트 순수 함수(`test_pipeline_gate.py`). acad-ts CLI가 빌드돼 있지 않으면
+  (`pnpm --filter @halo-cad/acad-bridge build` 전) 폴백 테스트만 skip된다.
 
 ## 린트·타입
 
@@ -153,13 +255,30 @@ strict mypy가 적용된다 — 첫 실제 모듈부터 타입 검사가 걸린�
 ```
 src/halo_engine/
   __init__.py      # __version__
-  cli.py           # typer: serve, ingest, stats, crosscheck
+  cli.py           # typer: serve, ingest, stats, crosscheck, openapi
   config.py        # pydantic-settings, env prefix HALO_ENGINE_
   api/
-    main.py        # FastAPI 앱 팩토리 create_app(settings)
+    main.py        # FastAPI 앱 팩토리 create_app(settings) -- 라우터 등록만
+    jobs.py        # JobManager(ProcessPoolExecutor spawn,2), 임포트 잡 오케스트레이션, GET/POST /jobs/* (W3-03)
+    ws.py          # /api/v1/ws, ConnectionManager(convert.request<->converted) (W3-03)
     routers/
-      system.py     # health / capabilities / shutdown
-      crosscheck.py # POST /api/v1/files/crosscheck
+      system.py       # health / capabilities / shutdown
+      crosscheck.py   # POST /api/v1/files/crosscheck (상태 없음, W2-04)
+      projects.py     # POST /projects, /projects/open, GET /projects/recent, /projects/{id} (W3-03)
+      drawing_sets.py # POST /projects/{id}/drawing-sets, GET /drawing-sets/{id}/files (W3-03)
+      files.py        # working-dxf 스트림, stats, converted 콜백, 파일별 crosscheck 저장 (W3-03)
+  bundle/          # <name>.halo 번들 (W3-03)
+    layout.py        # 고정 디렉터리 레이아웃 + 기본 위치
+    guard.py          # assert_writable_path -- 원본 쓰기 가드 (CLAUDE.md 규칙 1)
+    originals.py      # 원본 복사 -> originals/<sha256><ext>, 0444
+    create.py         # create_bundle / open_bundle -> BundleHandle
+  db/              # SQLite 영속화, 파일 계열 테이블만 (W3-03)
+    models.py         # SQLAlchemy 2 ORM: project/drawing_set/drawing_file/xref_link/entity_index
+    session.py        # 번들별 engine/session factory
+    repos.py          # ORM을 직접 만지는 유일한 곳
+    ids.py            # ULID
+    migrate.py        # 이 패키지의 Alembic 마이그레이션을 project.sqlite에 적용
+    alembic/          # env.py + versions/0001_initial.py (alembic.ini 없음, Config는 코드로 구성)
   ingest/          # DXF 로드·인코딩·XREF·정본·통계 (W2-03)
     dxf_loader.py    # ezdxf.readfile -> 실패 시 ezdxf.recover, 헤더/감사 추출
     encoding.py      # R2007 이전 코드페이지 모지바케 점수·cp949 재시도, \M+/\U+ 디코드
@@ -167,14 +286,20 @@ src/halo_engine/
     entity_index.py  # 최상위 엔티티 레코드 생성기(iterable/JSONL, SQLite는 W6-01)
     stats.py         # LayerStatsDocument (fixtures_gen/stats.py와 독립 구현)
     working_dxf.py   # 위 넷을 조합해 <sha256>.working.dxf/.json 생성
+    pipeline.py      # 임포트 잡의 순수 단계: 복사/acad-ts 폴백/working-dxf/교차검증 게이트 (W3-03)
   validate/        # 교차검증 (W2-04)
     crosscheck.py                    # 버킷 비교·임계·화이트리스트·마크다운 렌더
     whitelist.yaml                   # 알려진 파서 격차 (항목마다 reason 필수)
     crosscheck_report.schema.json    # CrosscheckReport의 JSON Schema (모델에서 생성)
-  model/           # 부재·공간·면 모델 (W3+); crosscheck.py = CrosscheckReport (mypy strict)
+  model/           # 부재·공간·면 모델 (W3+); mypy strict
+    crosscheck.py    # CrosscheckReport
+    project.py       # 프로젝트 API 리소스 모델 (W3-03)
+    drawing.py       # 드로잉셋/파일/잡 API 리소스 모델 (W3-03)
   rules/           # 적산 룰 엔진 (W4+)
   geometry/        # 3D 재구성 기하 (W3+)
 tests/
   ingest/          # ingest/** 단위·통합 테스트
   validate/        # 교차검증 단위·API·스키마 테스트
+  bundle/          # bundle/** + db/** 단위 테스트 (W3-03)
+  api/             # projects/drawing-sets/files/jobs/ws 통합 테스트 (W3-03)
 ```

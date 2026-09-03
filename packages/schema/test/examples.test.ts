@@ -1,6 +1,9 @@
 import type { ValidateFunction } from "ajv";
+import Ajv2020 from "ajv/dist/2020";
+import addFormats from "ajv-formats";
 import { describe, expect, it } from "vitest";
 
+import crosscheckReportSchema from "../src/stats/crosscheck-report.schema.json";
 import {
   formatErrors,
   validateBridgeMessage,
@@ -13,6 +16,15 @@ import {
   validateTagsSidecar,
 } from "../src/validate";
 import { listExamples, loadExample } from "./helpers";
+
+// `CrosscheckReport` (see test/crosscheck-report.test.ts for the full story) is
+// not registered in src/schemas.ts/src/validate.ts -- that file is outside this
+// task's "Files you own" glob (brief W3-08) -- so its example is checked here
+// with its own throwaway ajv instance instead of the shared `validateXxx` export
+// every other case in this table uses.
+const crosscheckReportAjv = new Ajv2020({ strict: true, allErrors: true });
+addFormats(crosscheckReportAjv);
+const validateCrosscheckReport = crosscheckReportAjv.compile(crosscheckReportSchema);
 
 interface ExampleCase {
   validate: ValidateFunction<unknown>;
@@ -66,12 +78,21 @@ const CASES: Record<string, ExampleCase> = {
   "consistency.ok.json": {
     validate: validateConsistencyCheckSet,
     valid: true,
-    reason: "same-basis equalities plus the cross-basis inequality ADR-0003 permits",
+    reason:
+      "same-basis equalities plus the cross-basis inequality ADR-0003 permits, plus the " +
+      "addendum's CH<->CH equality against a CEILING_PLAN source",
   },
   "consistency.bad.json": {
     validate: validateConsistencyCheckSet,
     valid: false,
     reason: "cross-basis equality between the finished floor level and the structural level",
+  },
+  "consistency.bad-ch-eq-no-ceiling-plan.json": {
+    validate: validateConsistencyCheckSet,
+    valid: false,
+    reason:
+      "ADR-0003 addendum proof: CH<->CH equality is still rejected when neither source is " +
+      "CEILING_PLAN",
   },
   "markup.json": { validate: validateMarkupSidecar, valid: true, reason: "cloud, arrow and note" },
   "tags.json": {
@@ -110,6 +131,13 @@ const CASES: Record<string, ExampleCase> = {
     validate: validateBridgeMessage,
     valid: false,
     reason: "message type outside the ADR-0004 list",
+  },
+  "crosscheck-report.f06.json": {
+    validate: validateCrosscheckReport,
+    valid: true,
+    reason:
+      "a real report from the engine's compare(), ezdxf vs. a perturbed mlightcad copy on F06 " +
+      "(one RED count_by_type difference on X-GRID)",
   },
 };
 

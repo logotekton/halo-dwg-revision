@@ -30,6 +30,7 @@ EXPECTATIONS = [
     ("levels.bad-ch-eq-sl.json", "consistency_check_set", False),
     ("consistency.ok.json", "consistency_check_set", True),
     ("consistency.bad.json", "consistency_check_set", False),
+    ("consistency.bad-ch-eq-no-ceiling-plan.json", "consistency_check_set", False),
     ("markup.json", "markup_sidecar", True),
     ("tags.json", "tags_sidecar", True),
     ("bridge.ready.json", "bridge_message", True),
@@ -49,9 +50,17 @@ def test_example_matches_expectation(name: str, key: str, expected: bool) -> Non
     assert is_valid(key, document) is expected, failures(key, document)
 
 
+#: Examples whose schema is not registered in `SCHEMA_FILES` (`halo_schema/__init__.py`
+#: is hand written, outside this task's "Files you own" glob -- brief W3-08), so
+#: `is_valid(key, ...)` above has no key for them. Each has its own dedicated test
+#: module instead: `test_crosscheck_report.py`.
+_EXAMPLES_COVERED_ELSEWHERE = frozenset({"crosscheck-report.f06.json"})
+
+
 def test_every_example_is_covered(examples_dir) -> None:
     on_disk = sorted(path.name for path in examples_dir.glob("*.json"))
-    assert on_disk == sorted(name for name, _, _ in EXPECTATIONS)
+    covered = sorted(name for name, _, _ in EXPECTATIONS) + sorted(_EXAMPLES_COVERED_ELSEWHERE)
+    assert on_disk == sorted(covered)
 
 
 def test_schema_files_are_all_present() -> None:
@@ -86,6 +95,44 @@ class TestHeightRules:
     def test_ceiling_height_equality_is_refused(self, other: str) -> None:
         assert not self.validator.is_valid(_check(left_kind="CH", right_kind=other))
         assert not self.validator.is_valid(_check(left_kind=other, right_kind="CH"))
+
+    def test_ceiling_height_equality_against_itself_is_refused_without_ceiling_plan(self) -> None:
+        assert not self.validator.is_valid(_check(left_kind="CH", right_kind="CH"))
+        assert not self.validator.is_valid(
+            _check(
+                left_kind="CH",
+                right_kind="CH",
+                left_source="LEVEL_TABLE",
+                right_source="FINISH_SCHEDULE",
+            )
+        )
+
+    @pytest.mark.parametrize("ceiling_plan_side", ["left_source", "right_source"])
+    def test_ceiling_height_equality_allowed_with_a_ceiling_plan_source(
+        self, ceiling_plan_side: str
+    ) -> None:
+        """ADR-0003 addendum (2026-09-03): a ceiling plan drawing that labels
+        its own CH may be checked for equality against the level/finish-
+        schedule CH.
+        """
+        other_side = "right_source" if ceiling_plan_side == "left_source" else "left_source"
+        assert self.validator.is_valid(
+            _check(
+                left_kind="CH",
+                right_kind="CH",
+                **{ceiling_plan_side: "CEILING_PLAN", other_side: "LEVEL_TABLE"},
+            )
+        )
+
+    def test_ceiling_plan_source_does_not_license_a_cross_basis_equality(self) -> None:
+        assert not self.validator.is_valid(
+            _check(
+                left_kind="CH",
+                right_kind="SL",
+                left_source="CEILING_PLAN",
+                right_source="ELEVATION",
+            )
+        )
 
     @pytest.mark.parametrize("operator", ["LT", "LE", "GT", "GE"])
     def test_ceiling_height_inequality_is_allowed(self, operator: str) -> None:

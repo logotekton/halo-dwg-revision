@@ -2,6 +2,8 @@ import { writeFileSync } from "node:fs";
 
 import { DwgWriter, DxfWriter, type CadDocument, type DxfWriteTarget } from "@node-projects/acad-ts";
 
+import { repairDxfText, type DxfRepairResult } from "./repair-dxf";
+
 /** `DwgWriter.writeToBuffer` auto-sizes; nothing to grow or retry here. */
 export function writeDwgFile(doc: CadDocument, outPath: string): void {
   const bytes = DwgWriter.writeToBuffer(doc);
@@ -22,8 +24,20 @@ export function writeDwgFile(doc: CadDocument, outPath: string): void {
  * `isUtf8EraVersion` and this package's README "Deviations". `dwg2dxf`'s
  * default and every conversion this task performs target AC1032 (R2018,
  * UTF-8 era), where this is exactly correct.
+ *
+ * Every write is repaired (`repair-dxf.ts`) before it reaches disk: three
+ * real acad-ts writer defects (a duplicate SEQEND, ATTRIB missing its
+ * `AcDbAttribute` subclass, a zero-length MTEXT direction vector -- see that
+ * module's docstring) otherwise make the file unreadable, or silently wrong,
+ * for another DXF parser (ezdxf) even though acad-ts's own reader tolerates
+ * its own output. The return value carries the repair counts so a caller
+ * (the CLI's `.drops.json` sidecar) can report what was fixed.
  */
-export function writeDxfFile(doc: CadDocument, outPath: string, binary = false): void {
+export function writeDxfFile(
+  doc: CadDocument,
+  outPath: string,
+  binary = false
+): DxfRepairResult {
   const chunks: string[] = [];
   const sink: DxfWriteTarget = {
     write(value: string) {
@@ -31,5 +45,7 @@ export function writeDxfFile(doc: CadDocument, outPath: string, binary = false):
     },
   };
   DxfWriter.writeToStream(sink, doc, binary);
-  writeFileSync(outPath, chunks.join(""), "utf8");
+  const repaired = repairDxfText(chunks.join(""), doc);
+  writeFileSync(outPath, repaired.text, "utf8");
+  return repaired;
 }

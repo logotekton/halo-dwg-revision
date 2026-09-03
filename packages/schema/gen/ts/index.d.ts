@@ -19,4 +19,5 @@ export type { NdjDocument } from "./ndj/document";
 export type { NdjEntity } from "./ndj/entity";
 export type { MarkupSidecar } from "./sidecar/markup";
 export type { TagsSidecar } from "./sidecar/tags";
+export type { CrosscheckReport } from "./stats/crosscheck-report";
 export type { LayerStatsDocument } from "./stats/layer-stats";

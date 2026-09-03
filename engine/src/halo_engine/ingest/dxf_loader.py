@@ -11,11 +11,26 @@ anything ezdxf has no dedicated wrapper for) are preserved by ezdxf as
 ``DXFTagStorage`` and round-trip through ``Drawing.saveas`` unchanged; this
 loader does not need to do anything special for that (verified in
 ``tests/ingest/test_dxf_loader.py::test_proxy_entity_is_preserved``).
+
+Duplicate-handle diagnostics (brief W3-08, G0 follow-up 2): a malformed
+producer can write two entities with the same DXF handle (observed on real
+acad-ts-written DXF, see ``packages/acad-bridge/README.md`` "Known acad-ts
+gaps" and ``halo_engine.ingest.stats``'s module docstring for the crash this
+causes further down the pipeline). ezdxf logs this as a plain
+``logger.warning`` during ``load_and_bind_dxf_content`` -- it never reaches
+:class:`~ezdxf.audit.Auditor` (``auditor.errors``/``.fixes`` stay empty for
+it) and would otherwise be silent noise on the engine's own log stream. This
+loader captures it as a ``LoadResult.diagnostics`` entry instead, so a caller
+gets the *cause* (duplicate handle at load time) alongside the *effect*
+(``halo_engine.ingest.stats``'s ``dead-attrib`` diagnostic, once one of the
+two entities has been fixed up -- destroyed -- by ``Drawing.audit()``).
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import logging
+import re
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +43,14 @@ from ezdxf.document import Drawing
 #: the sidecar surfaces this as a normal audit-style issue rather than a
 #: crash so the caller can report it to the user.
 MIN_SUPPORTED_ACADVER = "AC1014"
+
+#: Diagnostic ``code`` for a duplicate DXF handle caught while loading (see module docstring).
+DIAG_DUPLICATE_HANDLE = "duplicate-handle"
+#: Diagnostic ``code`` for a STYLE ``bigfont`` normalized from the literal string "0" to
+#: empty (W3-09 real-drawing measurement -- see ``_normalize_style_bigfont``).
+DIAG_STYLE_BIGFONT_NORMALIZED = "style-bigfont-normalized"
+
+_DUPLICATE_HANDLE_RE = re.compile(r"non-unique entity handle #([0-9A-Fa-f]+)")
 
 
 @dataclass(frozen=True)
@@ -53,6 +76,10 @@ class LoadResult:
     acadver: str
     insunits: int
     fingerprintguid: str | None
+    #: ``{code, message, handle?}`` entries for load-time issues that are not
+    #: :class:`~ezdxf.audit.Auditor` errors (module docstring: duplicate
+    #: handles). Never raised as an exception; empty on a clean file.
+    diagnostics: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def audit_error_count(self) -> int:
@@ -70,6 +97,39 @@ def _issue_from_entry(entry: ErrorEntry) -> AuditIssue:
     return AuditIssue(code=entry.code, message=entry.message, handle=handle)
 
 
+class _DuplicateHandleCapture(logging.Handler):
+    """Context manager that, while attached, turns ezdxf's
+    ``logger.warning("Found non-unique entity handle #...")``
+    (``lldxf/loader.py``, fired while binding entities to the document -- see
+    module docstring) into ``{code, message, handle}`` diagnostics on
+    :attr:`diagnostics`, ignoring every other ``ezdxf`` logger record.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(level=logging.WARNING)
+        self.diagnostics: list[dict[str, Any]] = []
+        self._logger = logging.getLogger("ezdxf")
+
+    def emit(self, record: logging.LogRecord) -> None:
+        message = record.getMessage()
+        match = _DUPLICATE_HANDLE_RE.search(message)
+        if match is None:
+            return
+        entry: dict[str, Any] = {
+            "code": DIAG_DUPLICATE_HANDLE,
+            "message": message,
+            "handle": match.group(1),
+        }
+        self.diagnostics.append(entry)
+
+    def __enter__(self) -> _DuplicateHandleCapture:
+        self._logger.addHandler(self)
+        return self
+
+    def __exit__(self, *exc_info: object) -> None:
+        self._logger.removeHandler(self)
+
+
 def _header_fields(doc: Drawing) -> tuple[str | None, str, int, str | None]:
     header = doc.header
     dwgcodepage = header.get("$DWGCODEPAGE", None)
@@ -80,6 +140,31 @@ def _header_fields(doc: Drawing) -> tuple[str | None, str, int, str | None]:
         insunits = 0
     fingerprintguid = header.get("$FINGERPRINTGUID", None)
     return dwgcodepage, acadver, insunits, fingerprintguid
+
+
+def _normalize_style_bigfont(doc: Drawing) -> list[dict[str, Any]]:
+    """A STYLE table entry's ``bigfont`` (DXF group 4) means "no big-font"
+    when empty (ezdxf default ``""``) -- but a dxfOut-produced DXF of a real
+    drawing (W3-09) writes it as the literal string ``"0"`` instead, the
+    same digit-as-null convention seen in a LEADER's ``dimstyle`` referencing
+    a nonexistent style named ``"0"`` (``halo_engine.ingest.stats``'s
+    ``BBOX_FAILED`` diagnostic guards that one). Normalized to empty here so
+    nothing downstream (font resolution, rendering) treats ``"0"`` as a real
+    big-font file name.
+    """
+    diagnostics: list[dict[str, Any]] = []
+    for style in doc.styles:
+        if style.dxf.get("bigfont", "") != "0":
+            continue
+        style.dxf.bigfont = ""
+        diagnostics.append(
+            {
+                "code": DIAG_STYLE_BIGFONT_NORMALIZED,
+                "message": f'STYLE {style.dxf.name!r} had bigfont="0"; normalized to empty',
+                "handle": style.dxf.handle,
+            }
+        )
+    return diagnostics
 
 
 def load_dxf(path: str | Path, *, encoding: str | None = None) -> LoadResult:
@@ -100,13 +185,19 @@ def load_dxf(path: str | Path, *, encoding: str | None = None) -> LoadResult:
     recovered = False
     auditor: Auditor
     try:
-        doc = (
-            ezdxf.readfile(str(path), encoding=encoding) if encoding else ezdxf.readfile(str(path))
-        )
-        auditor = doc.audit()
+        with _DuplicateHandleCapture() as capture:
+            doc = (
+                ezdxf.readfile(str(path), encoding=encoding)
+                if encoding
+                else ezdxf.readfile(str(path))
+            )
+            auditor = doc.audit()
     except (ezdxf.DXFError, OSError, UnicodeDecodeError):
-        doc, auditor = ezdxf.recover.readfile(str(path))
+        with _DuplicateHandleCapture() as capture:
+            doc, auditor = ezdxf.recover.readfile(str(path))
         recovered = True
+    diagnostics = capture.diagnostics
+    diagnostics += _normalize_style_bigfont(doc)
 
     audit_errors = [_issue_from_entry(e) for e in auditor.errors]
     dwgcodepage, acadver, insunits, fingerprintguid = _header_fields(doc)
@@ -119,7 +210,15 @@ def load_dxf(path: str | Path, *, encoding: str | None = None) -> LoadResult:
         acadver=acadver,
         insunits=insunits,
         fingerprintguid=fingerprintguid,
+        diagnostics=diagnostics,
     )
 
 
-__all__ = ["MIN_SUPPORTED_ACADVER", "AuditIssue", "LoadResult", "load_dxf"]
+__all__ = [
+    "DIAG_DUPLICATE_HANDLE",
+    "DIAG_STYLE_BIGFONT_NORMALIZED",
+    "MIN_SUPPORTED_ACADVER",
+    "AuditIssue",
+    "LoadResult",
+    "load_dxf",
+]

@@ -23,17 +23,23 @@ export type LevelKind = "SL" | "FL" | "FLOOR_HEIGHT" | "CH";
  */
 export type ConsistencyOperator = "EQ" | "LT" | "LE" | "GT" | "GE";
 /**
- * Which drawing or table a height value was read from. `LEVEL_TABLE` and `FINISH_SCHEDULE` are the sources that yield `CH`; `ELEVATION`, `SECTION` and `STRUCT_PLAN` yield `SL` and `FL` (ADR-0003).
+ * Which drawing or table a height value was read from. `LEVEL_TABLE` and `FINISH_SCHEDULE` are the sources that yield `CH`; `ELEVATION`, `SECTION` and `STRUCT_PLAN` yield `SL` and `FL` (ADR-0003). `CEILING_PLAN` also yields `CH`, only when the ceiling plan drawing itself labels a ceiling height (ADR-0003 addendum, 2026-09-03) -- it is the one source a `CH`<->`CH` consistency check may compare against `LEVEL_TABLE`/`FINISH_SCHEDULE` with `EQ` (`levels/consistency-check.schema.json`).
  */
 export type LevelSource =
-  "ELEVATION" | "SECTION" | "STRUCT_PLAN" | "LEVEL_TABLE" | "FINISH_SCHEDULE" | "USER";
+  | "ELEVATION"
+  | "SECTION"
+  | "STRUCT_PLAN"
+  | "LEVEL_TABLE"
+  | "FINISH_SCHEDULE"
+  | "CEILING_PLAN"
+  | "USER";
 /**
- * The two ADR-0003 constraints, expressed with `if` / `then` / `not`. Carries no fields of its own.
+ * The two ADR-0003 constraints (plus the 2026-09-03 addendum's one exception), expressed with `if` / `then` / `not`. Carries no fields of its own.
  */
 export type HeightComparisonRules = unknown;
 
 /**
- * Declarative definitions of the level cross-checks the engine runs. ADR-0003 is enforced here, in the schema itself, so a forbidden check cannot be written down at all: equality is only legal between two observations of the same structural basis (`SL` to `SL`, `FL` to `FL`, `FLOOR_HEIGHT` to `FLOOR_HEIGHT`), and any check that touches the ceiling height `CH` must be an inequality. A definition such as `{left_kind: CH, right_kind: SL, operator: EQ}` fails validation, which is what makes the rule impossible to reintroduce by hand, by a rule author, or by code generation.
+ * Declarative definitions of the level cross-checks the engine runs. ADR-0003 is enforced here, in the schema itself, so a forbidden check cannot be written down at all: equality is only legal between two observations of the same structural basis (`SL` to `SL`, `FL` to `FL`, `FLOOR_HEIGHT` to `FLOOR_HEIGHT`), and any check that touches the ceiling height `CH` must be an inequality -- except `CH` against `CH` itself, and only when at least one side's source is `CEILING_PLAN` (ADR-0003 addendum, 2026-09-03: a ceiling plan drawing that labels its own `CH` may be checked for equality against the level/finish-schedule `CH`; execution finds no matching `CEILING_PLAN` observation reports `SKIPPED`, never a failure -- that runtime behaviour lives outside this schema). A definition such as `{left_kind: CH, right_kind: SL, operator: EQ}` still fails validation, which is what makes that half of the rule impossible to reintroduce by hand, by a rule author, or by code generation.
  */
 export interface ConsistencyCheckSet {
   schema_version: SchemaVersion;

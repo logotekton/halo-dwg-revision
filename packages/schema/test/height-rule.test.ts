@@ -48,8 +48,65 @@ describe("ADR-0003 height comparison rules", () => {
   it("rejects an EQ check between two CH readings as well", () => {
     // The brief enumerates SL, FL and FLOOR_HEIGHT as the only bases that may be
     // compared with EQ. Two ceiling heights coming from different tables are
-    // compared with an inequality band instead (see consistency.ok.json).
+    // compared with an inequality band instead (see consistency.ok.json) --
+    // unless one of them is CEILING_PLAN (ADR-0003 addendum, below).
     expect(validateConsistencyCheck(check({ left_kind: "CH", right_kind: "CH" }))).toBe(false);
+  });
+
+  it("rejects an EQ check between two CH readings sourced from tables (no CEILING_PLAN)", () => {
+    expect(
+      validateConsistencyCheck(
+        check({
+          left_kind: "CH",
+          right_kind: "CH",
+          left_source: "LEVEL_TABLE",
+          right_source: "FINISH_SCHEDULE",
+        })
+      )
+    ).toBe(false);
+  });
+
+  // ADR-0003 addendum (2026-09-03): a ceiling plan drawing that labels its own
+  // CH may be checked for equality against the level/finish-schedule CH.
+  it("allows an EQ check between two CH readings when the left source is CEILING_PLAN", () => {
+    expect(
+      validateConsistencyCheck(
+        check({
+          left_kind: "CH",
+          right_kind: "CH",
+          left_source: "CEILING_PLAN",
+          right_source: "LEVEL_TABLE",
+        })
+      )
+    ).toBe(true);
+  });
+
+  it("allows an EQ check between two CH readings when the right source is CEILING_PLAN", () => {
+    expect(
+      validateConsistencyCheck(
+        check({
+          left_kind: "CH",
+          right_kind: "CH",
+          left_source: "FINISH_SCHEDULE",
+          right_source: "CEILING_PLAN",
+        })
+      )
+    ).toBe(true);
+  });
+
+  it("does not widen the CEILING_PLAN exception to a CH vs. a structural basis", () => {
+    // The addendum permits CH<->CH only. CEILING_PLAN as a source is not by
+    // itself enough to license comparing CH against SL/FL/FLOOR_HEIGHT.
+    expect(
+      validateConsistencyCheck(
+        check({
+          left_kind: "CH",
+          right_kind: "SL",
+          left_source: "CEILING_PLAN",
+          right_source: "ELEVATION",
+        })
+      )
+    ).toBe(false);
   });
 
   it("rejects a cross-basis EQ check that does not involve CH", () => {

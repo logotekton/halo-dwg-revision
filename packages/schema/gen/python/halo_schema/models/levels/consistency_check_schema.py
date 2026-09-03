@@ -4,8 +4,9 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 from ..common import primitives_schema
 
@@ -27,9 +28,34 @@ class Severity(StrEnum):
     ERROR = 'ERROR'
 
 
+class ChCeilingPlanEqCase1(BaseModel):
+    """
+    The one `CH`<->`CH` combination ADR-0003's 2026-09-03 addendum allows `EQ` for: both kinds `CH`, and at least one side's source is `CEILING_PLAN` (a ceiling plan drawing that labels its own ceiling height). Referenced from both `height_rules` branches below so the exception is stated once.
+    """
+    left_kind: Literal['CH']
+    right_kind: Literal['CH']
+    left_source: Literal['CEILING_PLAN']
+
+
+class ChCeilingPlanEqCase2(BaseModel):
+    """
+    The one `CH`<->`CH` combination ADR-0003's 2026-09-03 addendum allows `EQ` for: both kinds `CH`, and at least one side's source is `CEILING_PLAN` (a ceiling plan drawing that labels its own ceiling height). Referenced from both `height_rules` branches below so the exception is stated once.
+    """
+    left_kind: Literal['CH']
+    right_kind: Literal['CH']
+    right_source: Literal['CEILING_PLAN']
+
+
+class ChCeilingPlanEqCase(RootModel[ChCeilingPlanEqCase1 | ChCeilingPlanEqCase2]):
+    root: ChCeilingPlanEqCase1 | ChCeilingPlanEqCase2 = Field(..., title='ChCeilingPlanEqCase')
+    """
+    The one `CH`<->`CH` combination ADR-0003's 2026-09-03 addendum allows `EQ` for: both kinds `CH`, and at least one side's source is `CEILING_PLAN` (a ceiling plan drawing that labels its own ceiling height). Referenced from both `height_rules` branches below so the exception is stated once.
+    """
+
+
 class HeightRules(BaseModel):
     """
-    The two ADR-0003 constraints, expressed with `if` / `then` / `not`. Carries no fields of its own.
+    The two ADR-0003 constraints (plus the 2026-09-03 addendum's one exception), expressed with `if` / `then` / `not`. Carries no fields of its own.
     """
 
 
@@ -67,7 +93,7 @@ class Check(CheckFields, HeightRules):
 
 class ConsistencyCheckSet(BaseModel):
     """
-    Declarative definitions of the level cross-checks the engine runs. ADR-0003 is enforced here, in the schema itself, so a forbidden check cannot be written down at all: equality is only legal between two observations of the same structural basis (`SL` to `SL`, `FL` to `FL`, `FLOOR_HEIGHT` to `FLOOR_HEIGHT`), and any check that touches the ceiling height `CH` must be an inequality. A definition such as `{left_kind: CH, right_kind: SL, operator: EQ}` fails validation, which is what makes the rule impossible to reintroduce by hand, by a rule author, or by code generation.
+    Declarative definitions of the level cross-checks the engine runs. ADR-0003 is enforced here, in the schema itself, so a forbidden check cannot be written down at all: equality is only legal between two observations of the same structural basis (`SL` to `SL`, `FL` to `FL`, `FLOOR_HEIGHT` to `FLOOR_HEIGHT`), and any check that touches the ceiling height `CH` must be an inequality -- except `CH` against `CH` itself, and only when at least one side's source is `CEILING_PLAN` (ADR-0003 addendum, 2026-09-03: a ceiling plan drawing that labels its own `CH` may be checked for equality against the level/finish-schedule `CH`; execution finds no matching `CEILING_PLAN` observation reports `SKIPPED`, never a failure -- that runtime behaviour lives outside this schema). A definition such as `{left_kind: CH, right_kind: SL, operator: EQ}` still fails validation, which is what makes that half of the rule impossible to reintroduce by hand, by a rule author, or by code generation.
     """
     model_config = ConfigDict(
         extra='forbid',

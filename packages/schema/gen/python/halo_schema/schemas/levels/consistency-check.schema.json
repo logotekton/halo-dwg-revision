@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schema.halo-cad.internal/v0/levels/consistency-check.schema.json",
   "title": "ConsistencyCheckSet",
-  "description": "Declarative definitions of the level cross-checks the engine runs. ADR-0003 is enforced here, in the schema itself, so a forbidden check cannot be written down at all: equality is only legal between two observations of the same structural basis (`SL` to `SL`, `FL` to `FL`, `FLOOR_HEIGHT` to `FLOOR_HEIGHT`), and any check that touches the ceiling height `CH` must be an inequality. A definition such as `{left_kind: CH, right_kind: SL, operator: EQ}` fails validation, which is what makes the rule impossible to reintroduce by hand, by a rule author, or by code generation.",
+  "description": "Declarative definitions of the level cross-checks the engine runs. ADR-0003 is enforced here, in the schema itself, so a forbidden check cannot be written down at all: equality is only legal between two observations of the same structural basis (`SL` to `SL`, `FL` to `FL`, `FLOOR_HEIGHT` to `FLOOR_HEIGHT`), and any check that touches the ceiling height `CH` must be an inequality -- except `CH` against `CH` itself, and only when at least one side's source is `CEILING_PLAN` (ADR-0003 addendum, 2026-09-03: a ceiling plan drawing that labels its own `CH` may be checked for equality against the level/finish-schedule `CH`; execution finds no matching `CEILING_PLAN` observation reports `SKIPPED`, never a failure -- that runtime behaviour lives outside this schema). A definition such as `{left_kind: CH, right_kind: SL, operator: EQ}` still fails validation, which is what makes that half of the rule impossible to reintroduce by hand, by a rule author, or by code generation.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "checks"],
@@ -85,13 +85,33 @@
         "description": { "type": "string", "maxLength": 512 }
       }
     },
+    "ch_ceiling_plan_eq_case": {
+      "title": "ChCeilingPlanEqCase",
+      "description": "The one `CH`<->`CH` combination ADR-0003's 2026-09-03 addendum allows `EQ` for: both kinds `CH`, and at least one side's source is `CEILING_PLAN` (a ceiling plan drawing that labels its own ceiling height). Referenced from both `height_rules` branches below so the exception is stated once.",
+      "tsType": "unknown",
+      "required": ["left_kind", "right_kind"],
+      "properties": {
+        "left_kind": { "const": "CH" },
+        "right_kind": { "const": "CH" }
+      },
+      "anyOf": [
+        {
+          "required": ["left_source"],
+          "properties": { "left_source": { "const": "CEILING_PLAN" } }
+        },
+        {
+          "required": ["right_source"],
+          "properties": { "right_source": { "const": "CEILING_PLAN" } }
+        }
+      ]
+    },
     "height_rules": {
       "title": "HeightComparisonRules",
-      "description": "The two ADR-0003 constraints, expressed with `if` / `then` / `not`. Carries no fields of its own.",
+      "description": "The two ADR-0003 constraints (plus the 2026-09-03 addendum's one exception), expressed with `if` / `then` / `not`. Carries no fields of its own.",
       "tsType": "unknown",
       "allOf": [
         {
-          "$comment": "ADR-0003 rule 1. Equality is only meaningful between two readings of the same basis, so EQ forces left_kind and right_kind to be the same member of {SL, FL, FLOOR_HEIGHT}. CH is deliberately absent: a ceiling height read from a level table and one read from a finish schedule are compared with an inequality band, never with EQ.",
+          "$comment": "ADR-0003 rule 1 + addendum. Equality is only meaningful between two readings of the same basis, so EQ forces left_kind and right_kind to be the same member of {SL, FL, FLOOR_HEIGHT} -- or the addendum's CH<->CH-with-a-CEILING_PLAN-source case. A level-table CH and a finish-schedule CH, with no CEILING_PLAN source on either side, are still only ever compared with an inequality band, never EQ.",
           "if": {
             "required": ["operator"],
             "properties": { "operator": { "const": "EQ" } }
@@ -118,21 +138,33 @@
                   "left_kind": { "const": "FLOOR_HEIGHT" },
                   "right_kind": { "const": "FLOOR_HEIGHT" }
                 }
+              },
+              {
+                "$ref": "https://schema.halo-cad.internal/v0/levels/consistency-check.schema.json#/$defs/ch_ceiling_plan_eq_case"
               }
             ]
           }
         },
         {
-          "$comment": "ADR-0003 rule 2, stated from the other direction so the intent survives any future widening of the operator enum: a check with CH on either side must not be an equality.",
+          "$comment": "ADR-0003 rule 2 + addendum, stated from the other direction so the intent survives any future widening of the operator enum: a check with CH on either side must not be an equality, unless it is exactly the addendum's CH<->CH-with-a-CEILING_PLAN-source case rule 1 permits.",
           "if": {
-            "anyOf": [
+            "allOf": [
               {
-                "required": ["left_kind"],
-                "properties": { "left_kind": { "const": "CH" } }
+                "anyOf": [
+                  {
+                    "required": ["left_kind"],
+                    "properties": { "left_kind": { "const": "CH" } }
+                  },
+                  {
+                    "required": ["right_kind"],
+                    "properties": { "right_kind": { "const": "CH" } }
+                  }
+                ]
               },
               {
-                "required": ["right_kind"],
-                "properties": { "right_kind": { "const": "CH" } }
+                "not": {
+                  "$ref": "https://schema.halo-cad.internal/v0/levels/consistency-check.schema.json#/$defs/ch_ceiling_plan_eq_case"
+                }
               }
             ]
           },

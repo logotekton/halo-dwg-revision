@@ -52,9 +52,18 @@ def test_acad_ts_fallback_succeeds_on_a_clean_dwg(
         shutdown_app(app)
 
 
-def test_acad_ts_fallback_fails_safe_on_a_dxf_it_cannot_round_trip(
+def test_acad_ts_fallback_round_trips_an_attrib_drawing_after_writer_repair(
     generated_dir: Path, tmp_path: Path, acad_bridge_bin: Path
 ) -> None:
+    """F06.dwg (ATTRIB-bearing) now imports through the acad-ts fallback.
+
+    W3-08 repaired the acad-ts DXF writer (ATTRIB subclass/tag, duplicate SEQEND,
+    MTEXT direction vector), so the engine reads its output. The one remaining
+    acad-ts gap (an INSERT dropped when a block and a layer share a name, here
+    X-TITLE) is invisible to the engine gate because the converter's own report
+    and the engine count are both downstream of the same loss (85 instead of 86).
+    The independent check is the viewer-side crosscheck against libredwg-web.
+    """
     app = make_app(tmp_path)
     try:
         with TestClient(app) as client:
@@ -66,11 +75,14 @@ def test_acad_ts_fallback_fails_safe_on_a_dxf_it_cannot_round_trip(
                 converter_fallback="acad-ts",
             )
             job = wait_for_job(client, created["job_id"])
-            assert job["status"] == "DONE"  # the job completes; this one row needs manual help
+            assert job["status"] == "DONE"
 
             row = list_files(client, created["drawing_set_id"])[0]
-            assert row["import_status"] == "NEEDS_MANUAL_CONVERSION"
-            assert "acad-ts" in row["error_message"]
+            assert row["import_status"] == "DONE", row
+            assert row["working_dxf_path"]
+            # Known acad-ts gap: X-TITLE INSERT is lost (86 -> 85). Keep this pinned so a
+            # change in either direction is noticed.
+            assert row["entity_count"] == 85, row["entity_count"]
     finally:
         shutdown_app(app)
 

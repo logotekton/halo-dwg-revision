@@ -697,10 +697,10 @@
       <tr><td>도면 읽기가 검증돼 있다</td><td>두 가지 DWG 리더가 실도면 59/68장에서 완전히 같은 결과. 한글 텍스트 20,435개에서 깨짐 0건</td></tr>
       <tr><td>부품이 이미 있다</td><td>파일 인입·정본화, 통계와 3중 교차검증, XREF 해석(115/115), 한글 렌더가 확인된 브라우저 뷰어, 앱 셸과 엔진 연결</td></tr>
       <tr><td>원본은 손대지 않는다</td><td>원본은 읽기 전용 사본으로 보관하고 마크업은 항상 새 파일에 쓴다. 코드가 원본 경로 쓰기를 거부한다</td></tr>
-      <tr><td>비용이 없다</td><td>무료·오픈소스 스택, 사내 전용 사용 조건과 라이선스 준수. ZWCAD는 열람·검증·COM 연동·2차 애드인에 쓴다</td></tr>
+      <tr><td>비용이 없다</td><td>무료·오픈소스 스택, 사내 전용 사용 조건과 라이선스 준수. ZWCAD는 열람·검증·변환·COM 연동·2차 애드인에 쓴다</td></tr>
     </tbody>
   </table></div>
-  <p class="note">"도면에 바로 넣기"는 ZWCAD SDK를 확인한 결과 클립보드가 아니라 COM 연동으로 푼다. ZWCAD는 LISP·VBA·COM(ActiveX)·ZRX.NET·ZRX(C++) 다섯 가지 API와 문서를 무료로 공개하며(<a href="https://www.zwsoft.com/support/zwcad-devdoc">ZWCAD 개발 문서</a>), COM API는 외부 프로그램이 실행 중인 ZWCAD를 직접 조작하는 용도다. 외부 앱이 이 API로 열린 도면에 클라우드 마크·번호·리비전 표를 바로 그려 넣을 수 있어 애드인 없이도 삽입이 된다. ZWCAD가 꺼져 있을 때는 표 텍스트(엑셀·ZWCAD 표에 붙여넣기)와 DXF 조각 삽입으로 대신한다. 클립보드 형식 자체는 비공개라 쓰지 않는다. 개발 전반에서 이 SDK를 적극 활용하고 2차 애드인은 ZRX.NET으로 만든다.</p>
+  <p class="note">"도면에 바로 넣기"는 ZWCAD SDK를 확인한 결과 클립보드가 아니라 COM 연동으로 푼다. ZWCAD는 LISP·VBA·COM(ActiveX)·ZRX.NET·ZRX(C++) 다섯 가지 API와 문서를 무료로 공개하며(<a href="https://www.zwsoft.com/support/zwcad-devdoc">ZWCAD 개발 문서</a>), COM API는 외부 프로그램이 실행 중인 ZWCAD를 직접 조작하는 용도다. 외부 앱이 이 API로 열린 도면에 클라우드 마크·번호·리비전 표를 바로 그려 넣을 수 있어 애드인 없이도 삽입이 된다. DWG를 DXF 사본으로 바꾸는 일도 같은 길이다. 변환은 백그라운드 ZWCAD가 세트당 한 번 하고, ZWCAD가 없으면 자체 변환기가 한다. ZWCAD가 꺼져 있을 때는 표 텍스트(엑셀·ZWCAD 표에 붙여넣기)와 DXF 조각 삽입으로 대신한다. 클립보드 형식 자체는 비공개라 쓰지 않는다. 개발 전반에서 이 SDK를 적극 활용하고 2차 애드인은 ZRX.NET으로 만든다.</p>
 
   <h2 id="sec-6"><span class="num">6</span>단계와 확인 방법</h2>
   <p>개발은 착수 시점을 정한 뒤 시작한다. 기간은 착수 후 상대 주차다.</p>

@@ -277,10 +277,28 @@ def serve(
     log_dir: Annotated[
         Path | None, typer.Option("--log-dir", help="Directory for rotating log files.")
     ] = None,
+    converter_fallback: Annotated[
+        str | None,
+        typer.Option(
+            "--converter-fallback",
+            help=(
+                "DWG->DXF converter to run as a subprocess (currently only 'acad-ts') "
+                "when a drawing-set import needs one and no desktop is connected over "
+                "WS (brief W3-03). A POST /projects/{id}/drawing-sets request's own "
+                "`converter_fallback` field overrides this per import."
+            ),
+        ),
+    ] = None,
 ) -> None:
     """Bind 127.0.0.1:<port>, print the READY handshake line, then serve."""
     resolved_token = _resolve_token(token, dev=dev)
-    settings = Settings(data_dir=data_dir, dev=dev, log_dir=log_dir, token=resolved_token)
+    settings = Settings(
+        data_dir=data_dir,
+        dev=dev,
+        log_dir=log_dir,
+        token=resolved_token,
+        converter_fallback=converter_fallback,
+    )
     _configure_logging(settings)
 
     # A --reload worker re-imports the app factory in a fresh process, so hand
@@ -290,6 +308,8 @@ def serve(
     os.environ["HALO_ENGINE_TOKEN"] = settings.token or ""
     if settings.log_dir is not None:
         os.environ["HALO_ENGINE_LOG_DIR"] = str(settings.log_dir)
+    if settings.converter_fallback is not None:
+        os.environ["HALO_ENGINE_CONVERTER_FALLBACK"] = settings.converter_fallback
 
     sock = _bind(port)
     actual_port = sock.getsockname()[1]
@@ -333,6 +353,36 @@ def serve(
                 watcher.cancel()
 
     asyncio.run(_serve())
+
+
+@app.command()
+def openapi(
+    out: Annotated[
+        Path,
+        typer.Option(
+            "--out",
+            help=(
+                "Output path for the OpenAPI JSON. The W3-08 codegen script "
+                "reads this from `packages/shared-types/openapi.json`, but "
+                "that directory is outside this task's owned files, so "
+                "nothing defaults there -- pass it explicitly."
+            ),
+        ),
+    ],
+) -> None:
+    """Export the running app's OpenAPI schema as JSON (brief W3-03, Definition of done).
+
+    Builds the app with a throwaway dev token -- the schema does not depend
+    on runtime settings. Prints only the output path to stdout.
+    """
+    settings = Settings(dev=True, token="unused")
+    fastapi_app = create_app(settings)
+    schema = fastapi_app.openapi()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
+        json.dumps(schema, indent=2, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    typer.echo(str(out))
 
 
 if __name__ == "__main__":

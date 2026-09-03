@@ -1,0 +1,1514 @@
+{
+  "components": {
+    "schemas": {
+      "ConvertedAck": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted": {
+            "title": "Accepted",
+            "type": "boolean"
+          },
+          "file_id": {
+            "title": "File Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "accepted",
+          "file_id"
+        ],
+        "title": "ConvertedAck",
+        "type": "object"
+      },
+      "ConvertedRequest": {
+        "additionalProperties": false,
+        "description": "``POST /files/{id}/converted`` body -- the desktop's DWG->DXF conversion result.",
+        "properties": {
+          "converter": {
+            "enum": [
+              "mlightcad-dxfout",
+              "acad-ts"
+            ],
+            "title": "Converter",
+            "type": "string"
+          },
+          "dxf_path": {
+            "description": "Absolute path to the converted DXF, written by the desktop.",
+            "title": "Dxf Path",
+            "type": "string"
+          },
+          "entity_count": {
+            "description": "Converter-reported entity count (crosscheck gate).",
+            "minimum": 0.0,
+            "title": "Entity Count",
+            "type": "integer"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "dxf_path",
+          "entity_count",
+          "converter"
+        ],
+        "title": "ConvertedRequest",
+        "type": "object"
+      },
+      "CrosscheckPersistRequest": {
+        "additionalProperties": false,
+        "description": "``POST /files/{id}/crosscheck`` body: the viewer's own ``LayerStatsDocument``.",
+        "properties": {
+          "other": {
+            "additionalProperties": true,
+            "description": "LayerStatsDocument computed client-side by CadHost's statsByLayer().",
+            "title": "Other",
+            "type": "object"
+          },
+          "whitelist": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whitelist YAML path. Omit for the shipped default; pass \"\" for none.",
+            "title": "Whitelist"
+          }
+        },
+        "required": [
+          "other"
+        ],
+        "title": "CrosscheckPersistRequest",
+        "type": "object"
+      },
+      "CrosscheckReport": {
+        "additionalProperties": false,
+        "description": "Full comparison of two ``LayerStatsDocument``s.\n\nStored as-is on ``drawing_file.parser_crosscheck``.",
+        "properties": {
+          "amber_layers": {
+            "description": "Sorted layer names whose worst difference is AMBER.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Amber Layers",
+            "type": "array"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Layer counts by status: keys `GREEN`, `AMBER`, `RED`.",
+            "title": "Counts",
+            "type": "object"
+          },
+          "file_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "sha256 the two documents agree on, or null when they disagree.",
+            "title": "File Sha256"
+          },
+          "file_sha256_mismatch": {
+            "default": false,
+            "description": "True when the two documents were computed from different bytes (DWG vs. its DXF conversion). Never fatal on its own — the comparison still runs (brief W2-04, Defaults for ambiguity).",
+            "title": "File Sha256 Mismatch",
+            "type": "boolean"
+          },
+          "layers": {
+            "description": "One entry per bucket, ordered by (layer, space).",
+            "items": {
+              "$ref": "#/components/schemas/LayerResult"
+            },
+            "title": "Layers",
+            "type": "array"
+          },
+          "other": {
+            "$ref": "#/components/schemas/ProducerInfo"
+          },
+          "red_layers": {
+            "description": "Sorted, deduplicated layer names carrying at least one RED difference. Confidence routing input (ADR-0002 6: 적색 레이어에 근거를 둔 항목은 신뢰도를 감점한다).",
+            "items": {
+              "type": "string"
+            },
+            "title": "Red Layers",
+            "type": "array"
+          },
+          "reference": {
+            "$ref": "#/components/schemas/ProducerInfo"
+          },
+          "schema_version": {
+            "description": "Version of this report shape, not of the inputs.",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Severity",
+            "description": "Worst status across every layer and the totals row."
+          },
+          "totals": {
+            "$ref": "#/components/schemas/LayerResult",
+            "description": "The same comparison applied to `totals`."
+          },
+          "warnings": {
+            "description": "Non-fatal notes, e.g. the sha256 mismatch.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "whitelist_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whitelist file used, if any (as given on the command line).",
+            "title": "Whitelist Path"
+          }
+        },
+        "required": [
+          "schema_version",
+          "status",
+          "reference",
+          "other",
+          "totals"
+        ],
+        "title": "CrosscheckReport",
+        "type": "object"
+      },
+      "CrosscheckRequest": {
+        "additionalProperties": false,
+        "description": "Two inline ``LayerStatsDocument``s plus an optional whitelist path.\n\nThe documents are passed through as plain mappings rather than re-modelled\nhere: ``packages/schema`` owns the ``LayerStatsDocument`` shape, the\ncomparer only reads the seven contract measures, and an unknown extra key\nmust not turn a crosscheck into a 422.",
+        "properties": {
+          "other": {
+            "additionalProperties": true,
+            "description": "LayerStatsDocument compared against it.",
+            "title": "Other",
+            "type": "object"
+          },
+          "reference": {
+            "additionalProperties": true,
+            "description": "LayerStatsDocument taken as the reference.",
+            "title": "Reference",
+            "type": "object"
+          },
+          "whitelist": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Path to a known-parser-gap whitelist YAML. Omit for the shipped `halo_engine/validate/whitelist.yaml`; pass `\"\"` to compare with no whitelist.",
+            "title": "Whitelist"
+          }
+        },
+        "required": [
+          "reference",
+          "other"
+        ],
+        "title": "CrosscheckRequest",
+        "type": "object"
+      },
+      "DiffField": {
+        "description": "The compared measure a :class:`Difference` is about.\n\nOne member per row of ``docs/contracts/stats-definition.md`` \"비교 임계\",\nplus ``bucket`` for a ``(space, layer)`` bucket that exists on one side\nonly (always ``RED``: a missing bucket is never a tolerance question).",
+        "enum": [
+          "bucket",
+          "count_by_type",
+          "insert_by_block",
+          "length_sum_mm",
+          "hatch_area_sum_mm2",
+          "text_count",
+          "text_hash",
+          "bbox"
+        ],
+        "title": "DiffField",
+        "type": "string"
+      },
+      "Difference": {
+        "additionalProperties": false,
+        "description": "One measured disagreement inside one bucket.",
+        "properties": {
+          "absolute_delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Largest absolute corner delta in mm for `bbox`; null otherwise.",
+            "title": "Absolute Delta"
+          },
+          "detail": {
+            "description": "Human-readable cause, e.g. `count_by_type.LINE 24→22`. Rendered verbatim into the markdown report.",
+            "title": "Detail",
+            "type": "string"
+          },
+          "entity_types": {
+            "description": "DXF record names present in this bucket (union of both sides, plus ATTRIB when the bucket's text_count exceeds its TEXT+MTEXT count). This is what a whitelist entry's `entity_type` matches against.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Entity Types",
+            "type": "array"
+          },
+          "field": {
+            "$ref": "#/components/schemas/DiffField",
+            "description": "Which measure disagrees."
+          },
+          "other_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The other document's value, as text.",
+            "title": "Other Value"
+          },
+          "reference_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The reference document's value, as text.",
+            "title": "Reference Value"
+          },
+          "relative_delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "|a-b| / max(|a|,|b|) for the numeric measures; null otherwise.",
+            "title": "Relative Delta"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/Severity",
+            "description": "RED unless a whitelist entry explains it."
+          },
+          "whitelist_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Id of the whitelist entry that downgraded this difference (e.g. `W03`).",
+            "title": "Whitelist Id"
+          },
+          "whitelist_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Reason quoted from the whitelist entry that downgraded this to AMBER.",
+            "title": "Whitelist Reason"
+          }
+        },
+        "required": [
+          "field",
+          "severity",
+          "detail"
+        ],
+        "title": "Difference",
+        "type": "object"
+      },
+      "DrawingFileSummary": {
+        "additionalProperties": false,
+        "description": "One row of ``GET /drawing-sets/{id}/files``.",
+        "properties": {
+          "codepage_effective": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Codepage Effective"
+          },
+          "dwg_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dwg Version"
+          },
+          "entity_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Count"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "format": {
+            "$ref": "#/components/schemas/DrawingFormat"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "import_status": {
+            "$ref": "#/components/schemas/ImportStatus"
+          },
+          "original_name": {
+            "title": "Original Name",
+            "type": "string"
+          },
+          "parser_crosscheck": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parser Crosscheck"
+          },
+          "working_dxf_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Working Dxf Path"
+          }
+        },
+        "required": [
+          "id",
+          "original_name",
+          "format",
+          "import_status"
+        ],
+        "title": "DrawingFileSummary",
+        "type": "object"
+      },
+      "DrawingFormat": {
+        "enum": [
+          "DWG",
+          "DXF"
+        ],
+        "title": "DrawingFormat",
+        "type": "string"
+      },
+      "DrawingSetCreateRequest": {
+        "additionalProperties": false,
+        "description": "``POST /projects/{id}/drawing-sets`` body.",
+        "properties": {
+          "converter_fallback": {
+            "anyOf": [
+              {
+                "const": "acad-ts",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When set and no desktop is connected over WS for a DWG file, the engine runs the acad-ts CLI itself as a subprocess instead of waiting on `convert.request`/`converted` (brief W3-03: `--converter-fallback acad-ts`). Overrides the server's own `--converter-fallback` default for this import only.",
+            "title": "Converter Fallback"
+          },
+          "files": {
+            "description": "Absolute source paths to import. Never written to.",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Files",
+            "type": "array"
+          },
+          "search_paths": {
+            "description": "Extra directories to search for XREFs.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Search Paths",
+            "type": "array"
+          }
+        },
+        "required": [
+          "files"
+        ],
+        "title": "DrawingSetCreateRequest",
+        "type": "object"
+      },
+      "DrawingSetCreateResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "drawing_set_id": {
+            "title": "Drawing Set Id",
+            "type": "string"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "drawing_set_id"
+        ],
+        "title": "DrawingSetCreateResponse",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ImportStatus": {
+        "description": "One file's progress through ``ingest/pipeline.py``.",
+        "enum": [
+          "PENDING",
+          "COPYING",
+          "CONVERTING",
+          "BUILDING_WORKING_DXF",
+          "CROSSCHECKING",
+          "DONE",
+          "FAILED",
+          "NEEDS_MANUAL_CONVERSION"
+        ],
+        "title": "ImportStatus",
+        "type": "string"
+      },
+      "JobStatus": {
+        "enum": [
+          "QUEUED",
+          "RUNNING",
+          "DONE",
+          "FAILED",
+          "CANCELLED"
+        ],
+        "title": "JobStatus",
+        "type": "string"
+      },
+      "JobSummary": {
+        "additionalProperties": false,
+        "description": "``GET /jobs/{id}`` response.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "drawing_set_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Drawing Set Id"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "progress": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Progress",
+            "type": "number"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "progress",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "JobSummary",
+        "type": "object"
+      },
+      "LayerResult": {
+        "additionalProperties": false,
+        "description": "Verdict for one ``(space, layer)`` bucket.",
+        "properties": {
+          "differences": {
+            "items": {
+              "$ref": "#/components/schemas/Difference"
+            },
+            "title": "Differences",
+            "type": "array"
+          },
+          "layer": {
+            "description": "Layer name, or `(totals)` for the document totals row.",
+            "title": "Layer",
+            "type": "string"
+          },
+          "space": {
+            "description": "`MODEL` or `PAPER:<layout>`, or `(all)` for the totals row.",
+            "title": "Space",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Severity"
+          }
+        },
+        "required": [
+          "layer",
+          "space",
+          "status"
+        ],
+        "title": "LayerResult",
+        "type": "object"
+      },
+      "ProducerInfo": {
+        "additionalProperties": false,
+        "description": "``producer`` of the compared ``LayerStatsDocument`` (schema `$defs/producer`).",
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "version"
+        ],
+        "title": "ProducerInfo",
+        "type": "object"
+      },
+      "ProjectCreateRequest": {
+        "additionalProperties": false,
+        "description": "``POST /projects`` body.",
+        "properties": {
+          "name": {
+            "description": "Project display name.",
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Absolute path for the new `<name>.halo` bundle. Omit for the default location, `~/Documents/Halo CAD/<name>.halo` (brief W3-03, Defaults for ambiguity).",
+            "title": "Path"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "ProjectCreateRequest",
+        "type": "object"
+      },
+      "ProjectCreateResponse": {
+        "additionalProperties": false,
+        "description": "``POST /projects`` / ``POST /projects/open`` response: ``{id, bundle_path}``.",
+        "properties": {
+          "bundle_path": {
+            "title": "Bundle Path",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "bundle_path"
+        ],
+        "title": "ProjectCreateResponse",
+        "type": "object"
+      },
+      "ProjectOpenRequest": {
+        "additionalProperties": false,
+        "description": "``POST /projects/open`` body.",
+        "properties": {
+          "bundle_path": {
+            "description": "Absolute path to an existing `<name>.halo` bundle.",
+            "title": "Bundle Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bundle_path"
+        ],
+        "title": "ProjectOpenRequest",
+        "type": "object"
+      },
+      "ProjectSummary": {
+        "additionalProperties": false,
+        "description": "``GET /projects/{id}`` response.",
+        "properties": {
+          "bundle_path": {
+            "title": "Bundle Path",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "bundle_path",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ProjectSummary",
+        "type": "object"
+      },
+      "RecentProjectEntry": {
+        "additionalProperties": false,
+        "description": "One row of ``GET /projects/recent``.",
+        "properties": {
+          "bundle_path": {
+            "title": "Bundle Path",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "last_opened_at": {
+            "format": "date-time",
+            "title": "Last Opened At",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "bundle_path",
+          "last_opened_at"
+        ],
+        "title": "RecentProjectEntry",
+        "type": "object"
+      },
+      "Severity": {
+        "description": "Traffic-light verdict of ADR-0002 6.",
+        "enum": [
+          "GREEN",
+          "AMBER",
+          "RED"
+        ],
+        "title": "Severity",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "halo_engine",
+    "version": "0.0.1"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/drawing-sets/{drawing_set_id}/files": {
+      "get": {
+        "operationId": "list_drawing_set_files_api_v1_drawing_sets__drawing_set_id__files_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drawing_set_id",
+            "required": true,
+            "schema": {
+              "title": "Drawing Set Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DrawingFileSummary"
+                  },
+                  "title": "Response List Drawing Set Files Api V1 Drawing Sets  Drawing Set Id  Files Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Drawing Set Files",
+        "tags": [
+          "drawing-sets"
+        ]
+      }
+    },
+    "/api/v1/files/crosscheck": {
+      "post": {
+        "description": "Compare the two documents and return the report.",
+        "operationId": "crosscheck_api_v1_files_crosscheck_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrosscheckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrosscheckReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Crosscheck",
+        "tags": [
+          "files"
+        ]
+      }
+    },
+    "/api/v1/files/{file_id}/converted": {
+      "post": {
+        "description": "The desktop's answer to a ``convert.request`` WS event (``docs/PLAN.md`` §3.6).",
+        "operationId": "post_converted_api_v1_files__file_id__converted_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "file_id",
+            "required": true,
+            "schema": {
+              "title": "File Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConvertedRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConvertedAck"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Converted",
+        "tags": [
+          "files"
+        ]
+      }
+    },
+    "/api/v1/files/{file_id}/crosscheck": {
+      "post": {
+        "description": "Compare the viewer's stats against this file's engine-computed reference and persist it.\n\nADR-0002 decision 6: \"임포트 후 뷰어의 statsByLayer()와 엔진의 stats.py를\n비교해 레이어별 녹/황/적을 표시한다\" -- the comparison itself is\n``validate.crosscheck.compare()`` (W2-04, untouched here); this endpoint\nis what makes it file-scoped and durable on ``drawing_file.parser_crosscheck``.",
+        "operationId": "post_file_crosscheck_api_v1_files__file_id__crosscheck_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "file_id",
+            "required": true,
+            "schema": {
+              "title": "File Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrosscheckPersistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrosscheckReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post File Crosscheck",
+        "tags": [
+          "files"
+        ]
+      }
+    },
+    "/api/v1/files/{file_id}/stats": {
+      "get": {
+        "operationId": "get_file_stats_api_v1_files__file_id__stats_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "file_id",
+            "required": true,
+            "schema": {
+              "title": "File Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get File Stats Api V1 Files  File Id  Stats Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get File Stats",
+        "tags": [
+          "files"
+        ]
+      }
+    },
+    "/api/v1/files/{file_id}/working-dxf": {
+      "get": {
+        "operationId": "get_working_dxf_api_v1_files__file_id__working_dxf_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "file_id",
+            "required": true,
+            "schema": {
+              "title": "File Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Working Dxf",
+        "tags": [
+          "files"
+        ]
+      }
+    },
+    "/api/v1/jobs/{job_id}": {
+      "get": {
+        "operationId": "get_job_api_v1_jobs__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Job",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/v1/jobs/{job_id}/cancel": {
+      "post": {
+        "operationId": "cancel_job_api_v1_jobs__job_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Cancel Job Api V1 Jobs  Job Id  Cancel Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Job",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/v1/projects": {
+      "post": {
+        "operationId": "create_project_api_v1_projects_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectCreateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Project",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/open": {
+      "post": {
+        "operationId": "open_project_api_v1_projects_open_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectOpenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectCreateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Open Project",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/recent": {
+      "get": {
+        "operationId": "recent_projects_api_v1_projects_recent_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RecentProjectEntry"
+                  },
+                  "title": "Response Recent Projects Api V1 Projects Recent Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Recent Projects",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}": {
+      "get": {
+        "operationId": "get_project_api_v1_projects__project_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Project",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/drawing-sets": {
+      "post": {
+        "description": "Copy-in + convert + build-working-DXF + stats for every file in ``body.files``.\n\nReturns immediately with a ``job_id`` -- the actual work runs as a\nbackground ``asyncio.Task`` (``api/jobs.py``), reported over\n``/api/v1/ws`` and pollable via ``GET /jobs/{job_id}``. Existence of\neach source path is checked while the job runs, not here (a missing\nfile fails just that one row, not the whole request).",
+        "operationId": "create_drawing_set_api_v1_projects__project_id__drawing_sets_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DrawingSetCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DrawingSetCreateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Drawing Set",
+        "tags": [
+          "drawing-sets"
+        ]
+      }
+    },
+    "/api/v1/system/capabilities": {
+      "get": {
+        "description": "Honest, current feature flags — no aspirational values.",
+        "operationId": "capabilities_api_v1_system_capabilities_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Capabilities Api V1 System Capabilities Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Capabilities",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/v1/system/health": {
+      "get": {
+        "description": "Unauthenticated liveness probe. Returns dependency versions for diagnostics.",
+        "operationId": "health_api_v1_system_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Health Api V1 System Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/v1/system/shutdown": {
+      "post": {
+        "description": "Graceful shutdown, used by the sidecar protocol's step 5 (parent-initiated stop).",
+        "operationId": "shutdown_api_v1_system_shutdown_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Shutdown Api V1 System Shutdown Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Shutdown",
+        "tags": [
+          "system"
+        ]
+      }
+    }
+  }
+}

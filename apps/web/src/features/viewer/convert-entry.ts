@@ -13,7 +13,7 @@
  * `@halo-cad/dwg-io-gpl`'s `registerLibreDwgConverter`.
  */
 
-import { dispose, exportDxf, openDwg, postProcessDxfOut } from '@halo-cad/cad-core';
+import { dispose, exportDxf, openDwg, postProcessDxfOut, repairDanglingReferences } from '@halo-cad/cad-core';
 import { registerLibreDwgConverter } from '@halo-cad/dwg-io-gpl';
 
 interface ConvertRequest {
@@ -69,7 +69,28 @@ async function convert(request: ConvertRequest): Promise<ConvertReply> {
   const bytes = request.bytes.slice().buffer;
   const document = await openDwg(bytes);
   try {
+    // Repair before writing, not after: references the DWG read left pointing
+    // at table entries that do not exist make `ezdxf.bbox` raise, which fails
+    // `halo-engine stats` and therefore the whole conversion under the
+    // crosscheck gate (ADR-0002 개정 §4). Measured on the real DWG set — see
+    // `repairDanglingReferences`.
+    const repair = repairDanglingReferences(document);
+    if (repair.droppedInserts > 0 || repair.retargetedDimStyles > 0) {
+      warnings.push(
+        `repaired dangling references (${String(repair.droppedInserts)} INSERT dropped, ` +
+          `${String(repair.retargetedDimStyles)} dimstyle retargeted): ${repair.names.join(', ')}`
+      );
+    }
+    const raw = exportDxf(document, { version: 'AC1032', precision: 6 });
+    // Counted after the repair so the number matches the file that is written;
+    // the engine compares it with its own `stats.totals.entity_count` inside a
+    // ±0.5% band.
     const entityCount = countEntities(document);
+    const processed = postProcessDxfOut(raw);
+    warnings.push(
+      `post-process: ${String(processed.insertsFlagged)} INSERT(66), ` +
+        `${String(processed.hatchLoopsFlagged)}/${String(processed.hatchCount)} HATCH(92)`
+    );
     if (entityCount === 0) {
       // libredwg-web returned 85 of 200 006 entities on F11 without reporting
       // an error (`docs/spikes/large-file.md` §4.4). An empty parse is the
@@ -81,12 +102,6 @@ async function convert(request: ConvertRequest): Promise<ConvertReply> {
         error: `libredwg parsed ${request.name} without producing any entity`,
       };
     }
-    const raw = exportDxf(document, { version: 'AC1032', precision: 6 });
-    const processed = postProcessDxfOut(raw);
-    warnings.push(
-      `post-process: ${String(processed.insertsFlagged)} INSERT(66), ` +
-        `${String(processed.hatchLoopsFlagged)}/${String(processed.hatchCount)} HATCH(92)`
-    );
     return {
       requestId: request.requestId,
       ok: true,

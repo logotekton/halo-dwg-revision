@@ -888,6 +888,50 @@ class SurfaceDocument implements CadDocumentHandle {
     throw new Error('cad-core: dxfOut did not return ASCII DXF text');
   }
 
+  /** See the exported {@link repairDanglingReferences}. */
+  repairDanglingReferences(): DanglingReferenceRepair {
+    const database = this.db();
+    const blocks = new Set<string>();
+    for (const record of database.tables.blockTable.newIterator()) blocks.add(record.name);
+    const dimStyles: string[] = [];
+    for (const record of database.tables.dimStyleTable.newIterator()) dimStyles.push(record.name);
+    const fallbackStyle = dimStyles.includes('Standard') ? 'Standard' : dimStyles[0];
+    const names = new Set<string>();
+    let droppedInserts = 0;
+    let retargetedDimStyles = 0;
+
+    for (const record of database.tables.blockTable.newIterator()) {
+      const doomed: AcDbEntity[] = [];
+      for (const entity of record.newIterator()) {
+        if (entity instanceof AcDbBlockReference) {
+          if (blocks.has(entity.blockName)) continue;
+          doomed.push(entity);
+          names.add(entity.blockName);
+          continue;
+        }
+        if (fallbackStyle === undefined) continue;
+        if (entity instanceof AcDbLeader) {
+          if (dimStyles.includes(entity.dimensionStyle)) continue;
+          names.add(entity.dimensionStyle);
+          entity.dimensionStyle = fallbackStyle;
+          retargetedDimStyles += 1;
+          continue;
+        }
+        if (entity instanceof AcDbDimension) {
+          const style = entity.dimensionStyleName;
+          if (style === null || dimStyles.includes(style)) continue;
+          names.add(style);
+          entity.dimensionStyleName = fallbackStyle;
+          retargetedDimStyles += 1;
+        }
+      }
+      for (const entity of doomed) {
+        if (entity.erase()) droppedInserts += 1;
+      }
+    }
+    return { droppedInserts, retargetedDimStyles, names: [...names].sort() };
+  }
+
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
@@ -930,6 +974,46 @@ export function writeDxfText(
     throw new Error('cad-core: exportDxf needs a handle returned by openDxf/CadHost');
   }
   return document.writeDxf(options);
+}
+
+/** What {@link repairDanglingReferences} changed. */
+export interface DanglingReferenceRepair {
+  /** INSERTs erased because no BLOCK defines their block name. */
+  droppedInserts: number;
+  /** DIMENSION/LEADER entities re-pointed at an existing dimension style. */
+  retargetedDimStyles: number;
+  /** The offending names, sorted — for the conversion's warning list. */
+  names: string[];
+}
+
+/**
+ * Repairs references that point at table entries the DWG read did not produce.
+ *
+ * Both defects below were measured on the real drawing set
+ * (`samples/2026-09-02-실시도서`, `01_건축/A-810 천장 평면도.dwg`, AC1024) and
+ * neither exists in what acad-ts reads from the same file — acad-ts resolves
+ * all 571 INSERTs to 59 real blocks — so they are artefacts of the
+ * LibreDWG/data-model path, not of the drawing:
+ *
+ * 1. **One INSERT names a block `"0"` that no BLOCK record defines.**
+ *    `ezdxf.bbox` explodes block references and raises
+ *    `DXFStructureError: Required block definition for "0" does not exist`.
+ * 2. **LEADER (and DIMENSION) entities name a dimension style `"0"` that the
+ *    DIMSTYLE table does not contain.** `ezdxf.bbox` builds a
+ *    `DimStyleOverride` per leader and raises `DXFTableEntryError: 0`.
+ *
+ * Either one makes `halo-engine stats` fail outright, and a failed stats run
+ * is a failed conversion under the ADR-0002 개정 §4 gate — the import would
+ * fall back to acad-ts for a file the default converter otherwise handles
+ * perfectly. The repairs are therefore applied before `dxfOut()` writes, and
+ * every change is counted so the conversion reports what it did instead of
+ * quietly altering the drawing.
+ */
+export function repairDanglingReferences(document: CadDocumentHandle): DanglingReferenceRepair {
+  if (!(document instanceof SurfaceDocument)) {
+    throw new Error('cad-core: repairDanglingReferences needs a handle from openDxf/openDwg');
+  }
+  return document.repairDanglingReferences();
 }
 
 /**
@@ -1460,7 +1544,12 @@ class MlightcadViewSurface implements ViewSurface {
    * "no extents" sentinel. `null` means neither is usable.
    */
   private drawingExtents(): ViewBox | null {
-    const sceneBox: { min: Vec3; max: Vec3 } | undefined = this.view().cadScene.box;
+    // `AcTrScene.box` is a `THREE.Box3`; three's types are not part of this
+    // package's program (only mlightcad's are), so the value arrives untyped
+    // and is narrowed to the two vectors that are read.
+    const sceneBox = this.view().cadScene.box as unknown as
+      | { min: Vec3; max: Vec3 }
+      | undefined;
     if (sceneBox && usableExtents(sceneBox.min, sceneBox.max)) {
       return {
         min: { x: sceneBox.min.x, y: sceneBox.min.y },

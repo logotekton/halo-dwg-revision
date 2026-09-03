@@ -40,7 +40,8 @@ export type {
 } from './surface-types';
 
 export { SCHEMA_VERSION, VIEWER_PRODUCER } from './constants';
-export { normaliseEntityType, mtextToPlain } from './mlightcad-surface';
+export { normaliseEntityType, mtextToPlain, repairDanglingReferences } from './mlightcad-surface';
+export type { DanglingReferenceRepair } from './mlightcad-surface';
 export { sha1Hex, textHash, compareByCodePoint } from './sha1';
 export { statsByLayer } from './stats';
 export type { StatsMeta } from './stats';

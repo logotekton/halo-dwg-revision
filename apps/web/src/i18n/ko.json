@@ -63,6 +63,46 @@
     "label": "명령줄",
     "placeholder": "명령 입력..."
   },
+  "xref": {
+    "panelTitle": "XREF",
+    "empty": "XREF 참조 없음",
+    "loading": "XREF 정보를 불러오는 중...",
+    "loadError": "XREF 정보를 불러오지 못했습니다",
+    "status": {
+      "resolved": "해석됨",
+      "unresolved": "미해석"
+    },
+    "visibility": {
+      "unload": "언로드",
+      "reload": "리로드",
+      "hint": "표시 전용 — 정본은 바뀌지 않습니다"
+    },
+    "excludedBadge": "제외됨(복구 파일)",
+    "dialog": {
+      "title": "해석되지 않은 XREF",
+      "description": "다음 참조를 찾을 수 없습니다. 폴더를 검색 경로에 추가하거나 파일을 직접 매칭하세요.",
+      "close": "닫기",
+      "reimporting": "재임포트 중...",
+      "reimportFailed": "재임포트에 실패했습니다",
+      "matchFile": "파일 매칭...",
+      "addFolderPlaceholder": "폴더 경로 붙여넣기",
+      "addFolder": "검색 경로 추가"
+    },
+    "settings": {
+      "title": "가져오기 설정",
+      "searchPathsTitle": "XREF 검색 경로",
+      "searchPathsEmpty": "검색 경로 없음",
+      "searchPathsPlaceholder": "폴더 경로 붙여넣기",
+      "addPath": "경로 추가",
+      "removePath": "제거",
+      "ignorePatternsTitle": "가져오기 제외 패턴",
+      "ignorePatternsPlaceholder": "예: *.bak",
+      "addPattern": "패턴 추가",
+      "removePattern": "제거",
+      "saved": "저장됨",
+      "saveError": "설정을 저장하지 못했습니다"
+    }
+  },
   "status": {
     "engineDisconnected": "엔진: 연결 안 됨",
     "engine": {

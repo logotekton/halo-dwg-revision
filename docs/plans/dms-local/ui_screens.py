@@ -103,7 +103,7 @@ def screen_c():
     # segmented view control
     b += [R(470, 8, 220, 20, rx=3), R(470, 8, 70, 20, stroke="none", fill=SOFT_A, rx=3), T(505, 22, "겹쳐 보기", 10.5, AFTER, "middle", 600),
           L(540, 8, 540, 28), T(565, 22, "전", 10.5, INK, "middle"), L(590, 8, 590, 28), T(615, 22, "후", 10.5, INK, "middle"), L(640, 8, 640, 28), T(665, 22, "나란히", 10.5, INK, "middle"),
-          BTN(700, 8, 64, 20, "레이어 ▾", size=10.5), BTN(772, 8, 64, 20, "1 : 100", size=10.5)]
+          BTN(772, 8, 64, 20, "레이어 ▾", size=10.5)]
     # canvas: always dark like a CAD screen, so its colors are literal on purpose (they do not follow the page theme)
     BG, WALL, ROOM, ADD, DEL, LEG, TOOL = "#101418", "#C9CED3", "#D9C25A", "#FF5A5A", "#3FD0E3", "#B8C0C6", "#D8DCE0"
     b += [R(12, 40, 560, 420, stroke="#3A444C", fill=BG)]

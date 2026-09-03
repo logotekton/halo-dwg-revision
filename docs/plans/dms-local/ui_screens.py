@@ -30,7 +30,7 @@ def BADGE(cx, cy, n, filled=True, r=8):
     if filled:
         return f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{RED}"/>' + T(cx, cy + 3.5, str(n), 10, "#fff", "middle", mono=True)
     return f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" style="stroke:{BEFORE}"/>' + T(cx, cy + 3.5, str(n), 10, BEFORE, "middle", mono=True)
-def CLOUD(x, y, w, h, r=7, n=None):
+def CLOUD(x, y, w, h, r=7, n=None, color=None):
     nw, nh = max(2, round(w / (2*r))), max(2, round(h / (2*r)))
     w, h = nw*2*r, nh*2*r; d = 1.35*r
     p = [f"M{x} {y}"]
@@ -38,7 +38,7 @@ def CLOUD(x, y, w, h, r=7, n=None):
     p += [f"q{d:.1f} {r} 0 {2*r}"] * nh
     p += [f"q{-r} {d:.1f} {-2*r} 0"] * nw
     p += [f"q{-d:.1f} {-r} 0 {-2*r}"] * nh
-    s = f'<path d="{" ".join(p)} z" fill="none" stroke-width="1.5" style="stroke:{ACCENT}"/>'
+    s = f'<path d="{" ".join(p)} z" fill="none" stroke-width="1.5" style="stroke:{color or ACCENT}"/>'
     if n is not None: s += BADGE(x + w, y, n)
     return s
 def SVG(w, h, label, body):
@@ -104,24 +104,28 @@ def screen_c():
     b += [R(470, 8, 220, 20, rx=3), R(470, 8, 70, 20, stroke="none", fill=SOFT_A, rx=3), T(505, 22, "겹쳐 보기", 10.5, AFTER, "middle", 600),
           L(540, 8, 540, 28), T(565, 22, "전", 10.5, INK, "middle"), L(590, 8, 590, 28), T(615, 22, "후", 10.5, INK, "middle"), L(640, 8, 640, 28), T(665, 22, "나란히", 10.5, INK, "middle"),
           BTN(700, 8, 64, 20, "레이어 ▾", size=10.5), BTN(772, 8, 64, 20, "1 : 100", size=10.5)]
-    # canvas
-    b += [R(12, 40, 560, 420)]
-    plan_before = [R(60, 80, 420, 320, stroke=BEFORE, sw=1.4), L(60, 240, 480, 240, BEFORE, 1.4), L(250, 80, 250, 240, BEFORE, 1.4),
-                   R(325, 235, 10, 10, stroke=BEFORE, fill=BEFORE), L(60, 412, 480, 412, BEFORE), L(60, 406, 60, 418, BEFORE), L(480, 406, 480, 418, BEFORE),
-                   T(270, 408, "8,400", 10, BEFORE, "middle", mono=True), T(120, 300, "주기: 방화문 FD-1", 10, BEFORE)]
-    plan_after = [R(60, 80, 420, 320, stroke=AFTER, sw=1.4), L(60, 240, 480, 240, AFTER, 1.4), L(290, 80, 290, 240, AFTER, 1.4), L(400, 80, 400, 240, AFTER, 1.4),
-                  R(355, 235, 10, 10, stroke=AFTER, fill=AFTER), L(60, 424, 480, 424, AFTER), L(60, 418, 60, 430, AFTER), L(480, 418, 480, 430, AFTER),
-                  T(270, 437, "8,700", 10, AFTER, "middle", mono=True), T(120, 316, "주기: 방화문 FD-2", 10, AFTER)]
-    b += plan_before + plan_after
-    b += [CLOUD(236, 92, 68, 154, 7, 1), CLOUD(318, 226, 52, 30, 6, 2), CLOUD(232, 396, 90, 46, 7, 3), CLOUD(108, 286, 130, 40, 7, 4), CLOUD(386, 68, 32, 180, 7, 5)]
+    # canvas: always dark like a CAD screen, so its colors are literal on purpose (they do not follow the page theme)
+    BG, WALL, ROOM, ADD, DEL, LEG, TOOL = "#101418", "#C9CED3", "#D9C25A", "#FF5A5A", "#3FD0E3", "#B8C0C6", "#D8DCE0"
+    b += [R(12, 40, 560, 420, stroke="#3A444C", fill=BG)]
+    common = [R(60, 80, 420, 320, stroke=WALL, sw=1.4), L(60, 240, 480, 240, WALL, 1.4),
+              f'<path d="M200 240 A30 30 0 0 0 170 210" fill="none" stroke-width="1.2" style="stroke:{WALL}"/>', L(170, 210, 170, 240, WALL, 1.2),
+              T(150, 190, "거실", 10, ROOM), T(350, 150, "침실", 10, ROOM), T(150, 370, "주방", 10, ROOM), T(440, 285, "욕실", 10, ROOM)]
+    before_only = [L(250, 80, 250, 240, DEL, 1.4), R(325, 235, 10, 10, stroke=DEL, fill=DEL), L(60, 412, 480, 412, DEL), L(60, 406, 60, 418, DEL), L(480, 406, 480, 418, DEL),
+                   T(270, 408, "8,400", 10, DEL, "middle", mono=True), T(120, 300, "주기: 방화문 FD-1", 10, DEL)]
+    after_only = [L(290, 80, 290, 240, ADD, 1.4), L(400, 80, 400, 240, ADD, 1.4), R(355, 235, 10, 10, stroke=ADD, fill=ADD), L(60, 424, 480, 424, ADD), L(60, 418, 60, 430, ADD), L(480, 418, 480, 430, ADD),
+                  T(270, 437, "8,700", 10, ADD, "middle", mono=True), T(120, 316, "주기: 방화문 FD-2", 10, ADD)]
+    b += common + before_only + after_only
+    b += [CLOUD(236, 92, 68, 154, 7, 1, ADD), CLOUD(318, 226, 52, 30, 6, 2, ADD), CLOUD(232, 396, 90, 46, 7, 3, ADD), CLOUD(108, 286, 130, 40, 7, 4, ADD), CLOUD(386, 68, 32, 180, 7, 5, ADD)]
     # a cloud the user drew as a polyline, with a text note
-    b += [CLOUD(330, 300, 120, 54, 9, 8), T(392, 332, "배수구 위치 확인 요망", 10, ACCENT, "middle", 600)]
+    b += [CLOUD(330, 300, 120, 54, 9, 8, ADD), T(392, 332, "배수구 위치 확인 요망", 10, ADD, "middle", 600)]
     # tool strip inside the canvas: select / draw cloud (polyline) / text / erase
-    b += [R(20, 46, 52, 20, stroke=AFTER, fill=SOFT_A, rx=3), T(46, 60, "선택", 10.5, AFTER, "middle", 600), BTN(80, 46, 124, 20, "마크 그리기 (폴리라인)", size=10.5), BTN(212, 46, 56, 20, "텍스트", size=10.5), BTN(276, 46, 56, 20, "지우기", size=10.5)]
+    b += [R(20, 46, 52, 20, stroke="#4FB3C4", fill="#1E3A43", rx=3), T(46, 60, "선택", 10.5, "#4FB3C4", "middle", 600)]
+    for x, w, label in [(80, 124, "마크 그리기 (폴리라인)"), (212, 56, "텍스트"), (276, 56, "지우기")]:
+        b += [R(x, 46, w, 20, stroke="#6B7680", rx=3), T(x + w/2, 60, label, 10.5, TOOL, "middle")]
     # legend + navigation inside the canvas
-    b += [L(24, 448, 44, 448, BEFORE, 1.6), T(50, 452, "전", 10, BEFORE), L(70, 448, 90, 448, AFTER, 1.6), T(96, 452, "후", 10, AFTER),
-          f'<circle cx="122" cy="448" r="5" fill="none" stroke-width="1.5" style="stroke:{ACCENT}"/>', T(132, 452, "변경 영역 · 번호를 누르면 확대", 10, MUTED),
-          R(440, 436, 124, 18, rx=3, fill=CODEBG), T(502, 449, "‹  번호 2 / 7  ›", 10.5, INK, "middle", mono=True)]
+    b += [L(24, 448, 44, 448, WALL, 1.6), T(50, 452, "안 바뀜 · 레이어 원색", 10, LEG), L(160, 448, 180, 448, ADD, 1.6), T(186, 452, "후에만 · 추가", 10, LEG),
+          L(268, 448, 288, 448, DEL, 1.6), T(294, 452, "전에만 · 삭제", 10, LEG), f'<circle cx="382" cy="448" r="5" fill="none" stroke-width="1.5" style="stroke:{ADD}"/>', T(392, 452, "변경 영역", 10, LEG),
+          R(440, 436, 124, 18, rx=3, stroke="#6B7680", fill="#1C2328"), T(502, 449, "‹  번호 2 / 8  ›", 10.5, TOOL, "middle", mono=True)]
     # right panel: change list (7 automatic + 1 manual)
     b += [R(584, 40, 264, 420), T(596, 60, "변경 리스트 · 8건 (자동 7 · 수동 1)", 12, INK, weight=600), T(596, 78, "승인 6 · 무시 1 · 미결 1", 10.5, MUTED), L(584, 86, 848, 86)]
     items = [(1, "기하", "내벽 이동 (동쪽 400mm)", "승인", "전 x=250 → 후 x=290"), (2, "기하", "기둥 C3 이동 300mm", "승인", "블록 COL-600"),
@@ -141,7 +145,7 @@ def screen_c():
     # footer
     b += [R(12, 470, 836, 40, fill=CODEBG), BTN(24, 479, 124, 22, "전체 도곽 출력…", primary=True), BTN(156, 479, 116, 22, "선택 도곽 출력…"), BTN(280, 479, 110, 22, "표 텍스트 복사"),
           T(836, 494, "출력은 승인 항목만 · 원본은 수정하지 않는다", 10.5, MUTED, "end")]
-    return SVG(860, 520, "비교 작업 화면. 왼쪽 캔버스에 변경 전 회색과 변경 후 청록 도면이 겹쳐 있고 다섯 개의 붉은 클라우드 마크에 번호가 붙어 있다. 캔버스 위에는 선택, 마크 그리기(폴리라인), 텍스트, 지우기 도구가 있고 사용자가 직접 그린 여덟 번째 클라우드 마크와 텍스트가 있다. 오른쪽 변경 리스트에는 자동 7건과 수동 1건이 있고 항목마다 종류, 설명, 승인과 무시 버튼이 있으며 아래에 사소한 변경이 접혀 있다. 하단에 전체 도곽 출력, 선택 도곽 출력, 표 텍스트 복사 버튼", b)
+    return SVG(860, 520, "비교 작업 화면. 왼쪽은 검정 바탕 캔버스로 안 바뀐 선은 레이어 원색, 후에만 있는 선은 빨강, 전에만 있는 선은 시안으로 겹쳐 있고 다섯 개의 붉은 클라우드 마크에 번호가 붙어 있다. 캔버스 위에는 선택, 마크 그리기(폴리라인), 텍스트, 지우기 도구가 있고 사용자가 직접 그린 여덟 번째 클라우드 마크와 텍스트가 있다. 오른쪽 변경 리스트에는 자동 7건과 수동 1건이 있고 항목마다 종류, 설명, 승인과 무시 버튼이 있으며 아래에 사소한 변경이 접혀 있다. 하단에 전체 도곽 출력, 선택 도곽 출력, 표 텍스트 복사 버튼", b)
 
 # ---------- Screen D: 출력 ----------
 def screen_d():
@@ -182,7 +186,7 @@ section = "\n".join([
   '  <h3>화면 B · 도곽 목록</h3>',
   fig(screen_b(), "짝이 맞은 도곽을 변경 많은 순으로 보여준다. 신규·삭제·짝 없음은 따로 표시하고, 짝 없음은 이 화면에서 수동으로 맞춘다. 검토가 끝나면 여기서 전체 도곽 또는 선택 도곽을 출력한다."),
   '  <h3>화면 C · 비교 작업 화면</h3>',
-  fig(screen_c(), "왼쪽은 전(회색)·후(청록) 겹쳐 보기와 클라우드 마크, 오른쪽은 변경 리스트다. 번호를 누르면 그 자리로 확대되고 항목마다 승인·무시를 정한다. 자동 비교가 놓친 곳은 클라우드 마크를 폴리라인으로 직접 그리고 텍스트를 붙이며, 직접 그린 항목은 리스트에 수동으로 들어간다. 사소한 변경은 접혀 있다. 도곽을 하나씩 검토한 뒤 출력으로 넘어간다."),
+  fig(screen_c(), "왼쪽은 검정 바탕의 겹쳐 보기다. 안 바뀐 선은 레이어 원색, 후에만 있는 선(추가·이동 후)은 빨강, 전에만 있는 선(삭제·이동 전)은 시안으로 그리고 변경 영역에 클라우드 마크가 붙는다. 색과 보기 방식(차이 강조·전후 단색·원색 겹치기)은 설정에서 고른다. 오른쪽은 변경 리스트다. 번호를 누르면 그 자리로 확대되고 항목마다 승인·무시를 정한다. 자동 비교가 놓친 곳은 클라우드 마크를 폴리라인으로 직접 그리고 텍스트를 붙이며, 직접 그린 항목은 리스트에 수동으로 들어간다. 사소한 변경은 접혀 있다. 도곽을 하나씩 검토한 뒤 출력으로 넘어간다."),
   '  <h3>화면 D · 출력</h3>',
   fig(screen_d(), "화면 C에서 넘어오는 순간 리비전 이력 엑셀에 실행 날짜 이름의 시트가 자동으로 추가된다. 출력 범위는 전체 도곽이 기본이다. 변경된 도곽 전부의 마크업 DWG와 전체 변경 리스트(도곽별 묶음)를 한 번에 만들고, 일부만 필요하면 선택 도곽으로 고른다. ZWCAD가 실행 중이면 COM 연동으로 바로 삽입하고, 아니면 DXF 조각이나 표 텍스트로 넘긴다."),
   '  <p class="note"><strong>도곽 선택 대화상자.</strong> 출력 범위를 선택 도곽으로 고르면 변경된 도곽의 목록이 대화상자로 뜬다. 도면번호·도면명·승인 건수가 체크 목록으로 나오고 전체 선택·해제와 검색이 있다. 체크한 도곽만 마크업 DWG와 변경 리스트로 나간다.</p>',

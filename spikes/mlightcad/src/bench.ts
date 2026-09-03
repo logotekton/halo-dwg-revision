@@ -25,6 +25,13 @@ import {
   type AcDbEntity,
 } from '@mlightcad/data-model';
 import { AcDbLibreDwgConverter } from '@mlightcad/libredwg-converter';
+import { AcGeBox2d } from '@mlightcad/geometry-engine';
+
+/** Minimal shape of the OCS point pair `geometricExtents` returns. */
+interface AcGePoint {
+  x: number;
+  y: number;
+}
 
 interface ParseResult {
   ok: boolean;
@@ -91,6 +98,8 @@ declare global {
       runAll: (url: string, sinkName: string, settleMs?: number) => Promise<RunAllResult>;
       dxfOut: (sinkName: string, version?: string, precision?: number) => Promise<DxfOutResult>;
       render: (url: string, settleMs?: number) => Promise<RenderResult>;
+      zoomToText: (nth?: number, expand?: number) => { ok: boolean; box?: number[]; error?: string };
+      zoomBox: (x0: number, y0: number, x1: number, y1: number) => { ok: boolean; error?: string };
       release: () => void;
       setSinkLimit: (bytes: number) => void;
       log: string[];
@@ -350,6 +359,54 @@ window.__bench = {
     } catch (e) {
       line('bad', `render failed: ${errText(e)}`);
       return { ok: false, ms: performance.now() - t0, error: errText(e) };
+    }
+  },
+
+  /** W3-09 -- frame an explicit model-space window (mm). */
+  zoomBox(x0: number, y0: number, x1: number, y1: number) {
+    try {
+      const mgr = docManager;
+      if (!mgr) return { ok: false, error: 'call render() first' };
+      const view = mgr.curView as unknown as { zoomTo: (b: AcGeBox2d, m?: number) => void };
+      view.zoomTo(new AcGeBox2d({ x: x0, y: y0 }, { x: x1, y: y1 }), 0);
+      line('ok', `zoomBox [${String(x0)}, ${String(y0)}, ${String(x1)}, ${String(y1)}]`);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: errText(e) };
+    }
+  },
+
+  /**
+   * W3-09 -- frame a text entity so a screenshot can be compared with the
+   * office's own PDF page at a legible scale. At zoom-to-extents a sheet set is
+   * tens of metres wide and 3 mm text is sub-pixel, which says nothing about
+   * whether the font resolved.
+   */
+  zoomToText(nth = 0, expand = 40) {
+    try {
+      const mgr = docManager;
+      if (!mgr) return { ok: false, error: 'call render() first' };
+      const database = mgr.curDocument.database;
+      let seen = 0;
+      for (const e of database.tables.blockTable.modelSpace.newIterator()) {
+        const t = (e as AcDbEntity).dxfTypeName;
+        if (t !== 'TEXT' && t !== 'MTEXT') continue;
+        if (seen++ < nth) continue;
+        const box = (e as unknown as { geometricExtents?: { min: AcGePoint; max: AcGePoint } }).geometricExtents;
+        if (!box || !Number.isFinite(box.min.x)) continue;
+        const w = Math.max(box.max.x - box.min.x, 1) * expand;
+        const h = Math.max(box.max.y - box.min.y, 1) * expand;
+        const cx = (box.min.x + box.max.x) / 2;
+        const cy = (box.min.y + box.max.y) / 2;
+        const view = mgr.curView as unknown as { zoomTo: (b: AcGeBox2d, m?: number) => void };
+        const b = new AcGeBox2d({ x: cx - w / 2, y: cy - h / 2 }, { x: cx + w / 2, y: cy + h / 2 });
+        view.zoomTo(b, 0);
+        line('ok', `zoomToText #${String(nth)} -> [${String(cx - w / 2)}, ${String(cy - h / 2)}, ${String(cx + w / 2)}, ${String(cy + h / 2)}]`);
+        return { ok: true, box: [cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2] };
+      }
+      return { ok: false, error: 'no TEXT/MTEXT with finite extents in model space' };
+    } catch (e) {
+      return { ok: false, error: errText(e) };
     }
   },
 

@@ -45,6 +45,19 @@ const files = j(join(A.reports, 'files.json'), []).map((f) => ({
 }));
 const cells = j(join(A.reports, 'cells.json'), {});
 const fontIndex = j(join(A.reports, 'mlightcad-font-index.json'), { files: [], names: [] });
+const render = new Map();
+if (existsSync(join(A.reports, 'render', 'render.jsonl'))) {
+  for (const l of readFileSync(join(A.reports, 'render', 'render.jsonl'), 'utf8').split('\n')) {
+    if (!l.trim()) continue;
+    try {
+      const r = JSON.parse(l);
+      // Later rows win: a retried drawing overwrites its earlier attempt.
+      if (r.zoom === undefined) render.set(r.id, r);
+    } catch {
+      /* torn line */
+    }
+  }
+}
 const browser = new Map();
 if (existsSync(join(A.reports, 'browser.jsonl'))) {
   for (const l of readFileSync(join(A.reports, 'browser.jsonl'), 'utf8').split('\n')) {
@@ -71,7 +84,8 @@ const rows = files.map((f) => {
   const e = cells[`${f.id}|engine`] ?? {};
   const b = browser.get(f.id) ?? {};
   const bEnt = b.survey?.ok ? b.survey.totalEntities : (b.parse?.entityCount ?? null);
-  return { f, a, cv, e, b, bEnt };
+  const rn = render.get(f.id) ?? null;
+  return { f, a, cv, e, b, bEnt, rn };
 });
 
 // --------------------------------------------------------------------------
@@ -402,6 +416,39 @@ for (const r of [...rows].sort((x, y) => y.f.bytes - x.f.bytes).slice(0, 5)) {
 }
 out.push('');
 
+out.push('## 11. 뷰어(WebGL) 렌더 실측');
+out.push('');
+out.push(
+  '`spikes/mlightcad/scripts/render-real.mjs`가 68장을 각각 새 헤드리스 Chromium에서 ' +
+    '`AcApDocManager.openDocument()`로 열고 6초 대기 후 결과를 기록했다(SwiftShader 소프트웨어 GL, 1600×1100). ' +
+    '`부하`는 최상위 엔티티 + 블록 정의 안 엔티티다 — INSERT가 렌더 시 전개되기 때문에 이쪽이 실제 지오메트리 양에 가깝다.'
+);
+out.push('');
+const renderRows = rows.filter((r) => r.rn !== null);
+const crashed = renderRows.filter((r) => r.rn.ok !== true);
+out.push(
+  `렌더 성공 ${String(renderRows.filter((r) => r.rn.ok === true).length)}/${String(renderRows.length)}, ` +
+    `실패 ${String(crashed.length)}건(전부 렌더러 프로세스 crash).`
+);
+out.push('');
+out.push('| id | 파일 | MB | 최상위 | 블록내 | 부하 | 결과 | 렌더 s |');
+out.push('|---|---|---:|---:|---:|---:|---|---:|');
+const load = (r) => (r.a.entityCount ?? 0) + (r.cv.scan?.inBlockEntities ?? 0);
+for (const r of [...renderRows].sort((x, y) => load(y) - load(x)).slice(0, 14)) {
+  out.push(
+    `| ${r.f.id} | ${r.f.name} | ${mb(r.f.bytes)} | ${n(r.a.entityCount)} | ${n(r.cv.scan?.inBlockEntities)} | ${n(load(r))} | ` +
+      `${r.rn.ok === true ? 'ok' : `crash: ${String(r.rn.error ?? r.rn.render?.error ?? '?').slice(0, 40)}`} | ${s(r.rn.render?.ms)} |`
+  );
+}
+out.push('');
+const okLoads = renderRows.filter((r) => r.rn.ok === true).map(load).sort((x, y) => x - y);
+const badLoads = crashed.map(load).sort((x, y) => x - y);
+out.push(
+  `성공한 도면의 최대 부하 ${n(okLoads[okLoads.length - 1] ?? 0)}, crash한 도면의 최소 부하 ${n(badLoads[0] ?? 0)}. ` +
+    `즉 이 구성의 뷰어 상한은 대략 **5만 렌더 엔티티**이고, ADR-0002 개정 §5의 A 티어 경계 25만과 5배 차이가 난다.`
+);
+out.push('');
+
 out.push('## 9. 크기 밀도 (티어 1차 추정 계수)');
 out.push('');
 out.push('| 형식 | 중앙값 B/엔티티 | 최소 | 최대 | 표본 |');
@@ -502,3 +549,8 @@ log(`hangul strings acad-ts ${String(hangulAcad)} / dxfOut ${String(hangulDxfOut
 log(`text agreement (both stats ok, n=${String(textCmp.both)}): count ${String(textCmp.sameCount)}, hash ${String(textCmp.sameHash)}`);
 log(`xref unresolvable after NFC: ${unresolvable.join('|') || '(none)'}`);
 log(`layers: ${String(layerFreq.size)} unique of ${String(layerTotal)} records`);
+log(
+  `viewer render ok ${String(renderRows.filter((r) => r.rn.ok === true).length)}/${String(renderRows.length)}; ` +
+    `max ok load ${String(okLoads[okLoads.length - 1] ?? 0)}, min crash load ${String(badLoads[0] ?? 0)}`
+);
+log(`crashed: ${crashed.map((r) => `${r.f.id}(${String(load(r))})`).join(', ')}`);

@@ -12,8 +12,7 @@
  * PNGs land in `--out-dir` (samples/_reports/render, gitignored — a render of a
  * real drawing is drawing content and never enters the repo).
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
@@ -22,7 +21,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..');
 
 function parseArgs(argv) {
-  const a = { ids: [], settle: 8000, width: 2000, height: 1400, timeout: 240 };
+  const a = { ids: [], settle: 8000, width: 2000, height: 1400, timeout: 240, all: false, screenshot: true, redo: false };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     if (k === '--manifest') a.manifest = resolve(argv[++i]);
@@ -32,9 +31,17 @@ function parseArgs(argv) {
     else if (k === '--width') a.width = Number(argv[++i]);
     else if (k === '--height') a.height = Number(argv[++i]);
     else if (k === '--timeout') a.timeout = Number(argv[++i]);
+    else if (k === '--all') a.all = true;
+    else if (k === '--no-screenshot') a.screenshot = false;
+    else if (k === '--redo') a.redo = true;
+    else if (k === '--zoom-text') a.zoomText = Number(argv[++i]);
+    else if (k === '--zoom-expand') a.zoomExpand = Number(argv[++i]);
+    else if (k === '--suffix') a.suffix = argv[++i];
+    else if (k === '--zoom-box') a.zoomBox = argv[++i].split(',').map(Number);
     else throw new Error(`unknown argument: ${k}`);
   }
-  if (!a.manifest || !a.outDir || a.ids.length === 0) throw new Error('--manifest, --ids and --out-dir are required');
+  if (!a.manifest || !a.outDir || (a.ids.length === 0 && !a.all))
+    throw new Error('--manifest, --out-dir and either --ids or --all are required');
   return a;
 }
 
@@ -43,6 +50,21 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const args = parseArgs(process.argv.slice(2));
 const manifest = JSON.parse(readFileSync(args.manifest, 'utf8'));
 mkdirSync(args.outDir, { recursive: true });
+// One JSONL line per drawing: a renderer crash kills the page, not the record,
+// and a re-run resumes instead of starting the sweep over.
+const jsonl = join(args.outDir, 'render.jsonl');
+const done = new Set();
+if (existsSync(jsonl) && !args.redo) {
+  for (const l of readFileSync(jsonl, 'utf8').split('\n')) {
+    if (!l.trim()) continue;
+    try {
+      done.add(JSON.parse(l).id);
+    } catch {
+      /* torn line */
+    }
+  }
+}
+const wanted = (args.all ? Object.keys(manifest) : args.ids).filter((id) => !done.has(id));
 
 process.env.BENCH_MANIFEST = args.manifest;
 process.env.BENCH_SINK_DIR = args.outDir;
@@ -61,14 +83,17 @@ for (let i = 0; i < 240; i++) {
 }
 
 const report = [];
-const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
 try {
-  for (const id of args.ids) {
+  for (const id of wanted) {
     const abs = manifest[id];
     if (!abs) {
       report.push({ id, ok: false, error: 'not in manifest' });
       continue;
     }
+    // A fresh browser per drawing: a renderer crash leaves the previous browser
+    // in a state where the next page load hangs, and it also keeps peak RSS
+    // attributable to one drawing.
+    const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
     const page = await browser.newPage({
       viewport: { width: args.width, height: args.height },
       deviceScaleFactor: 1,
@@ -86,9 +111,22 @@ try {
         sleep(args.timeout * 1000).then(() => ({ ok: false, error: `timeout after ${String(args.timeout)}s` })),
       ]);
       row.render = r;
-      const png = join(args.outDir, `${id}.viewer.png`);
-      await page.locator('#cad').screenshot({ path: png });
-      row.png = png;
+      if (r.ok && args.zoomBox) {
+        row.zoom = await page.evaluate((b) => window.__bench.zoomBox(b[0], b[1], b[2], b[3]), args.zoomBox);
+        await sleep(3000);
+      }
+      if (r.ok && args.zoomText !== undefined) {
+        row.zoom = await page.evaluate(
+          ([nth, exp]) => window.__bench.zoomToText(nth, exp),
+          [args.zoomText, args.zoomExpand ?? 40]
+        );
+        await sleep(2500);
+      }
+      if (args.screenshot) {
+        const png = join(args.outDir, `${id}${args.suffix ?? ''}.viewer.png`);
+        await page.locator('#cad').screenshot({ path: png });
+        row.png = png;
+      }
       row.ok = r.ok === true;
     } catch (e) {
       row.error = String(e?.message ?? e).slice(0, 400);
@@ -97,13 +135,12 @@ try {
     row.fontWarnings = messages.filter((m) => /font|shx|ttf|glyph/i.test(m)).slice(0, 40);
     row.messages = messages.slice(-30);
     report.push(row);
+    appendFileSync(jsonl, `${JSON.stringify(row)}\n`);
     process.stderr.write(`[render-real] ${id} ${row.ok ? 'ok' : `FAIL ${row.error ?? row.render?.error ?? ''}`}\n`);
-    await page.close();
+    await browser.close().catch(() => {});
   }
 } finally {
-  await browser.close().catch(() => {});
   await Promise.race([server.close(), sleep(5000)]);
 }
-writeFileSync(join(args.outDir, 'render-report.json'), JSON.stringify(report, null, 1));
-process.stdout.write(`${join(args.outDir, 'render-report.json')}\n`);
+process.stdout.write(`${jsonl}: +${String(report.length)} rows\n`);
 process.exit(0);

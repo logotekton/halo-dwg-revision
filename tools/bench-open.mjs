@@ -36,9 +36,11 @@ import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } 
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { compareStats, fidelityCell } from './bench/compare-stats.mjs';
+import { enumerateSet, versionMarker } from './bench/real-set.mjs';
+import { scanDxf } from './bench/scan-dxf.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const ALL_PATHS = ['acad', 'dxfout', 'browser', 'engine'];
+const ALL_PATHS = ['acad', 'dxfout', 'browser', 'engine', 'acadconv'];
 
 // --------------------------------------------------------------------------
 // args
@@ -59,6 +61,14 @@ function parseArgs(argv) {
     timeout: 1800,
     browserRender: false,
     label: '',
+    // W3-09 --dir mode
+    dir: null,
+    summary: false,
+    fresh: false,
+    ids: [],
+    budgetMs: 0,
+    reports: join(ROOT, 'samples', '_reports'),
+    runBrowser: false,
   };
   const list = (v) => v.split(',').map((s) => s.trim()).filter(Boolean);
   for (let i = 0; i < argv.length; i++) {
@@ -80,11 +90,18 @@ function parseArgs(argv) {
     else if (k === '--timeout') a.timeout = Number(next());
     else if (k === '--browser-render') a.browserRender = true;
     else if (k === '--label') a.label = next();
+    else if (k === '--dir') a.dir = resolve(next());
+    else if (k === '--summary') a.summary = true;
+    else if (k === '--fresh') a.fresh = true;
+    else if (k === '--ids') a.ids = list(next());
+    else if (k === '--budget-ms') a.budgetMs = Number(next());
+    else if (k === '--reports') a.reports = resolve(next());
+    else if (k === '--run-browser') a.runBrowser = true;
     else if (k === '--help' || k === '-h') a.help = true;
     else throw new Error(`unknown argument: ${k}`);
   }
   if (a.help) return a;
-  if (a.files.length === 0) throw new Error('--files is required');
+  if (a.files.length === 0 && !a.dir) throw new Error('--files or --dir is required');
   for (const p of a.paths) if (!ALL_PATHS.includes(p)) throw new Error(`unknown path: ${p}`);
   return a;
 }
@@ -96,6 +113,15 @@ const USAGE = `usage: node tools/bench-open.mjs --paths ${ALL_PATHS.join(',')} -
   --no-fidelity       skip the halo-engine stats / fixtures-truth comparison
   --browser-render    browser path opens through the full viewer instead of parse-only
   --keep              keep the converted DXF/DWG files under --work
+
+W3-09 batch mode (a real, read-only drawing folder outside the repo):
+  --dir <folder>      measure every .dwg/.dxf under <folder> (recursive, .bak skipped)
+  --summary           one row per drawing instead of one row per (drawing, path)
+  --ids S001,S004     restrict to these ids
+  --fresh             recompute cells instead of resuming from the cell store
+  --budget-ms N       stop starting new work after N ms (resumable; run again)
+  --run-browser       run the Chromium/libredwg batch for ids that have no row yet
+  --reports <dir>     scratch + cell store (default samples/_reports, gitignored)
 `;
 
 // --------------------------------------------------------------------------
@@ -307,8 +333,429 @@ if (args.help) {
   process.stdout.write(USAGE);
   process.exit(0);
 }
+// --------------------------------------------------------------------------
+// W3-09 --dir: a whole real drawing folder, resumable
+//
+// The set is read-only and lives outside the repo, so every product of this
+// mode goes under `--reports` (default `samples/_reports`, gitignored). Cells
+// are keyed `<id>|<path>` and cached in `cells.json`: a run that is killed (or
+// hits `--budget-ms`) resumes where it stopped, which is what makes a 68-file
+// matrix survivable inside a 3-minute command budget.
+// --------------------------------------------------------------------------
+const TIER = (n) => (n == null ? '—' : n <= 250_000 ? 'A' : n <= 800_000 ? 'B' : 'C');
+
+function loadJson(p, fallback) {
+  try {
+    return JSON.parse(readFileSync(p, 'utf8'));
+  } catch {
+    return fallback;
+  }
+}
+
+function readBrowserRows(p) {
+  const rows = new Map();
+  if (!existsSync(p)) return rows;
+  for (const line of readFileSync(p, 'utf8').split('\n')) {
+    if (!line.trim()) continue;
+    try {
+      const r = JSON.parse(line);
+      rows.set(r.id, r);
+    } catch {
+      /* torn last line of a killed run */
+    }
+  }
+  return rows;
+}
+
+/** acad-ts (a): read the DWG directly -- `info` for header facts, `stats` for the contract document. */
+function acadCell(f, workDir, args) {
+  const cli = 'packages/acad-bridge/bin/acad-bridge.mjs';
+  const statsOut = join(workDir, `${f.id}.acad.json`);
+  const info = runTimed(process.execPath, [cli, 'info', f.abs], { timeout: args.timeout });
+  const cell = { path: 'acad', mode: 'acad-ts info+stats', versionMarker: versionMarker(f.abs) };
+  if (info.ok) {
+    try {
+      const j = JSON.parse(info.stdout);
+      cell.version = j.version;
+      cell.codePage = j.code_page;
+      cell.spaces = j.spaces;
+      cell.infoEntityCount = j.entity_count;
+    } catch {
+      cell.infoParseError = true;
+    }
+  } else {
+    cell.infoError = causeOf(info);
+  }
+  const st = runTimed(process.execPath, [cli, 'stats', f.abs, '--out', statsOut], { timeout: args.timeout });
+  cell.ok = st.ok;
+  cell.timeMs = st.realMs;
+  cell.peakRssBytes = st.peakRssBytes;
+  if (!st.ok) {
+    cell.error = st.timedOut ? `timeout after ${String(args.timeout)}s` : causeOf(st);
+    return cell;
+  }
+  const doc = loadJson(statsOut, null);
+  if (doc) {
+    cell.entityCount = doc.totals.entity_count;
+    cell.textCount = doc.totals.text_count;
+    cell.textHash = doc.totals.text_hash;
+    cell.countByType = doc.totals.count_by_type;
+    cell.insertByBlock = Object.keys(doc.totals.insert_by_block ?? {}).length;
+    cell.buckets = doc.buckets.length;
+    cell.layers = [...new Set(doc.buckets.map((b) => b.layer))].length;
+    cell.spacesSeen = [...new Set(doc.buckets.map((b) => b.space))].sort();
+    cell.lengthSumMm = doc.totals.length_sum_mm;
+    cell.hatchAreaMm2 = doc.totals.hatch_area_sum_mm2;
+  }
+  const drops = loadJson(statsOut.replace(/\.json$/, '.drops.json'), null);
+  if (drops) {
+    cell.drops = Array.isArray(drops.drops) ? drops.drops.length : (drops.count ?? null);
+    const kinds = {};
+    for (const d of drops.drops ?? []) kinds[d.reason] = (kinds[d.reason] ?? 0) + 1;
+    cell.dropKinds = kinds;
+  }
+  return cell;
+}
+
+/**
+ * acad-ts (b'): the *other* converter. `dwg2dxf` writes a DXF from the same DWG;
+ * the engine is then asked to read it (W2-06 found it could not, on synthetic
+ * fixtures) and the group-code scanner reads the tables `dxfOut()` is suspected
+ * of flattening (STYLE fonts + XDATA typeface, XREF path names, INSERT 66,
+ * HATCH External). The converted DXF is deleted after the scan unless --keep:
+ * it is several times the size of the DWG and carries drawing content.
+ */
+async function acadConvCell(f, workDir, args) {
+  const out = join(workDir, `${f.id}.acadconv.dxf`);
+  const cli = 'packages/acad-bridge/bin/acad-bridge.mjs';
+  const cell = { path: 'acadconv', mode: 'acad-ts dwg2dxf' };
+  const r = runTimed(process.execPath, [cli, 'dwg2dxf', f.abs, out], { timeout: args.timeout });
+  cell.ok = r.ok;
+  cell.timeMs = r.realMs;
+  cell.peakRssBytes = r.peakRssBytes;
+  if (!r.ok) {
+    cell.error = r.timedOut ? `timeout after ${String(args.timeout)}s` : causeOf(r);
+    return cell;
+  }
+  cell.outputBytes = existsSync(out) ? statSync(out).size : null;
+  const drops = loadJson(out.replace(/\.dxf$/, '.drops.json'), null);
+  if (drops) {
+    cell.drops = Array.isArray(drops.drops) ? drops.drops.length : (drops.count ?? null);
+    const kinds = {};
+    for (const d of drops.drops ?? []) kinds[d.reason] = (kinds[d.reason] ?? 0) + 1;
+    cell.dropKinds = kinds;
+  }
+  const statsOut = join(workDir, `${f.id}.acadconv.engine.json`);
+  const e = runTimed('uv', ['run', '--project', 'engine', 'halo-engine', 'stats', out, '--out', statsOut], {
+    timeout: args.timeout,
+  });
+  cell.engineReads = e.ok;
+  cell.engineReadMs = e.realMs;
+  if (!e.ok) cell.engineError = e.timedOut ? 'timeout' : causeOf(e);
+  const doc = e.ok ? loadJson(statsOut, null) : null;
+  if (doc) {
+    cell.engineEntityCount = doc.totals.entity_count;
+    cell.engineTextCount = doc.totals.text_count;
+    cell.engineTextHash = doc.totals.text_hash;
+  }
+  try {
+    const scan = await scanDxf(out);
+    writeFileSync(join(workDir, `${f.id}.acadconv.scan.json`), JSON.stringify(scan, null, 1));
+    cell.scan = {
+      header: scan.header,
+      styles: scan.styles,
+      layerCount: scan.layers.length,
+      layerNames: scan.layerNames,
+      blocks: scan.blocks,
+      xrefs: scan.xrefs,
+      insert: scan.insert,
+      hatch: scan.hatch,
+      attrib: scan.attrib,
+      text: scan.text,
+      topLevel: scan.entities.topLevel,
+      byType: scan.entities.byType,
+      inBlockEntities: scan.inBlockEntities,
+    };
+  } catch (err) {
+    cell.scanError = String(err?.message ?? err).slice(0, 200);
+  }
+  if (!args.keep && existsSync(out)) rmSync(out, { force: true });
+  return cell;
+}
+
+/** ezdxf (c): read the DXF the browser's dxfOut() produced, plus a group-code scan. */
+async function engineCell(f, workDir, args) {
+  const dxf = join(workDir, `${f.id}.dxf`);
+  if (!existsSync(dxf)) return { path: 'engine', ok: null, error: 'no dxfOut output yet (run --run-browser)' };
+  const cell = { path: 'engine', mode: 'ezdxf stats on dxfOut DXF', dxfBytes: statSync(dxf).size };
+  const out = join(workDir, `${f.id}.engine.json`);
+  const r = runTimed('uv', ['run', '--project', 'engine', 'halo-engine', 'stats', dxf, '--out', out], {
+    timeout: args.timeout,
+  });
+  cell.ok = r.ok;
+  cell.timeMs = r.realMs;
+  cell.peakRssBytes = r.peakRssBytes;
+  if (!r.ok) cell.error = r.timedOut ? `timeout after ${String(args.timeout)}s` : causeOf(r);
+  const doc = r.ok ? loadJson(out, null) : null;
+  if (doc) {
+    cell.entityCount = doc.totals.entity_count;
+    cell.textCount = doc.totals.text_count;
+    cell.textHash = doc.totals.text_hash;
+    cell.countByType = doc.totals.count_by_type;
+    cell.insertByBlock = Object.keys(doc.totals.insert_by_block ?? {}).length;
+    cell.layers = [...new Set(doc.buckets.map((b) => b.layer))].length;
+    cell.spacesSeen = [...new Set(doc.buckets.map((b) => b.space))].sort();
+    cell.lengthSumMm = doc.totals.length_sum_mm;
+    cell.hatchAreaMm2 = doc.totals.hatch_area_sum_mm2;
+  }
+  try {
+    const scan = await scanDxf(dxf);
+    writeFileSync(join(workDir, `${f.id}.scan.json`), JSON.stringify(scan, null, 1));
+    cell.scan = {
+      header: scan.header,
+      styles: scan.styles,
+      layerCount: scan.layers.length,
+      layerNames: scan.layerNames,
+      blocks: scan.blocks,
+      xrefs: scan.xrefs,
+      insert: scan.insert,
+      hatch: scan.hatch,
+      attrib: scan.attrib,
+      text: scan.text,
+      topLevel: scan.entities.topLevel,
+      byType: scan.entities.byType,
+      inBlockEntities: scan.inBlockEntities,
+    };
+  } catch (e) {
+    cell.scanError = String(e?.message ?? e).slice(0, 200);
+  }
+  return cell;
+}
+
+async function runDirMode(args) {
+  const files = enumerateSet(args.dir);
+  mkdirSync(args.reports, { recursive: true });
+  const workDir = join(args.reports, 'work');
+  mkdirSync(workDir, { recursive: true });
+  writeFileSync(
+    join(args.reports, 'manifest.json'),
+    JSON.stringify(Object.fromEntries(files.map((f) => [f.id, f.abs])), null, 1)
+  );
+  writeFileSync(join(args.reports, 'files.json'), JSON.stringify(files, null, 1));
+
+  const sel = args.ids.length ? files.filter((f) => args.ids.includes(f.id)) : files;
+  const cellsPath = join(args.reports, 'cells.json');
+  const cells = args.fresh ? {} : loadJson(cellsPath, {});
+  const started = Date.now();
+  const overBudget = () => args.budgetMs > 0 && Date.now() - started > args.budgetMs;
+  const flush = () => writeFileSync(cellsPath, JSON.stringify(cells, null, 1));
+
+  if (args.runBrowser && args.paths.includes('dxfout')) {
+    const have = readBrowserRows(join(args.reports, 'browser.jsonl'));
+    const pending = sel.filter((f) => !have.has(f.id)).map((f) => f.id);
+    if (pending.length) {
+      process.stderr.write(`[bench] browser batch: ${String(pending.length)} pending\n`);
+      const r = runTimed(
+        process.execPath,
+        [
+          'scripts/bench-real.mjs',
+          '--manifest', join(args.reports, 'manifest.json'),
+          '--out', join(args.reports, 'browser.jsonl'),
+          '--sink-dir', workDir,
+          '--ids', pending.join(','),
+          '--timeout', String(args.timeout),
+          ...(args.budgetMs ? ['--budget-ms', String(args.budgetMs)] : []),
+        ],
+        { cwd: join(ROOT, 'spikes', 'mlightcad'), timeout: args.timeout * pending.length + 600 }
+      );
+      if (!r.ok) process.stderr.write(`[bench] browser batch ended: ${causeOf(r)}\n`);
+    }
+  }
+  const browserRows = readBrowserRows(join(args.reports, 'browser.jsonl'));
+
+  for (const f of sel) {
+    if (args.paths.includes('acad')) {
+      const key = `${f.id}|acad`;
+      if (!cells[key] && !overBudget()) {
+        cells[key] = acadCell(f, workDir, args);
+        flush();
+        process.stderr.write(
+          `[bench] ${f.id} acad ${cells[key].ok ? 'ok' : 'FAIL'} ${String(cells[key].entityCount ?? '-')} ents\n`
+        );
+      }
+    }
+    if (args.paths.includes('acadconv')) {
+      const key = `${f.id}|acadconv`;
+      if (!cells[key] && !overBudget()) {
+        cells[key] = await acadConvCell(f, workDir, args);
+        flush();
+        process.stderr.write(
+          `[bench] ${f.id} acadconv ${cells[key].ok ? 'ok' : 'FAIL'} engine-reads=${String(cells[key].engineReads)}\n`
+        );
+      }
+    }
+    if (args.paths.includes('engine')) {
+      const key = `${f.id}|engine`;
+      if (!cells[key] && !overBudget()) {
+        cells[key] = await engineCell(f, workDir, args);
+        flush();
+        process.stderr.write(
+          `[bench] ${f.id} engine ${cells[key].ok === null ? 'n/a' : cells[key].ok ? 'ok' : 'FAIL'} ${String(cells[key].entityCount ?? '-')} ents\n`
+        );
+      }
+    }
+  }
+  flush();
+
+  // ------------------------------------------------------------------ report
+  const rows = sel.map((f) => {
+    const a = cells[`${f.id}|acad`] ?? {};
+    const e = cells[`${f.id}|engine`] ?? {};
+    const b = browserRows.get(f.id) ?? null;
+    const bEnt = b?.survey?.ok ? b.survey.totalEntities : (b?.parse?.entityCount ?? null);
+    return {
+      id: f.id,
+      file: f.name,
+      dir: f.dir,
+      bytes: f.bytes,
+      versionMarker: a.versionMarker ?? versionMarker(f.abs),
+      version: a.version ?? null,
+      codePage: a.codePage ?? null,
+      acad: {
+        ok: a.ok ?? null,
+        entityCount: a.entityCount ?? null,
+        textCount: a.textCount ?? null,
+        textHash: a.textHash ?? null,
+        layers: a.layers ?? null,
+        spaces: a.spacesSeen ?? null,
+        timeMs: a.timeMs ?? null,
+        peakRssBytes: a.peakRssBytes ?? null,
+        drops: a.drops ?? null,
+        error: a.error ?? a.infoError ?? null,
+      },
+      browser: b
+        ? {
+            ok: b.ok === true,
+            entityCount: bEnt,
+            modelSpace: b.parse?.entityCount ?? null,
+            spaces: b.survey?.spaces ? Object.keys(b.survey.spaces).length : null,
+            layers: b.survey?.layerNames?.length ?? b.parse?.layerCount ?? null,
+            blocks: b.survey?.blockCount ?? b.parse?.blockCount ?? null,
+            xrefBlocks: b.survey?.xrefBlocks?.length ?? null,
+            lastOpenError: b.parse?.lastOpenError ?? null,
+            parseMs: b.parse?.ms ? Math.round(b.parse.ms) : null,
+            dxfOutMs: b.dxfOut?.ms ? Math.round(b.dxfOut.ms) : null,
+            outputBytes: b.dxfOut?.bytes ?? null,
+            peakRssBytes: b.peakRssBytes ?? null,
+            error: b.error ?? null,
+          }
+        : { ok: null, error: 'not measured' },
+      engine: {
+        ok: e.ok ?? null,
+        entityCount: e.entityCount ?? null,
+        textCount: e.textCount ?? null,
+        textHash: e.textHash ?? null,
+        layers: e.layers ?? null,
+        spaces: e.spacesSeen ?? null,
+        timeMs: e.timeMs ?? null,
+        peakRssBytes: e.peakRssBytes ?? null,
+        dxfBytes: e.dxfBytes ?? null,
+        error: e.error ?? null,
+      },
+      scan: e.scan ?? null,
+      acadconv: cells[`${f.id}|acadconv`]
+        ? {
+            ok: cells[`${f.id}|acadconv`].ok,
+            outputBytes: cells[`${f.id}|acadconv`].outputBytes ?? null,
+            timeMs: cells[`${f.id}|acadconv`].timeMs ?? null,
+            drops: cells[`${f.id}|acadconv`].drops ?? null,
+            dropKinds: cells[`${f.id}|acadconv`].dropKinds ?? null,
+            engineReads: cells[`${f.id}|acadconv`].engineReads ?? null,
+            engineError: cells[`${f.id}|acadconv`].engineError ?? null,
+            engineEntityCount: cells[`${f.id}|acadconv`].engineEntityCount ?? null,
+            engineTextCount: cells[`${f.id}|acadconv`].engineTextCount ?? null,
+            scan: cells[`${f.id}|acadconv`].scan ?? null,
+          }
+        : null,
+      tier: TIER(e.entityCount ?? a.entityCount ?? null),
+    };
+  });
+
+  const date = new Date().toISOString().slice(0, 10);
+  const jsonPath = args.json ?? join(args.outDir, `results-real-${date}.json`);
+  writeFileSync(
+    jsonPath,
+    JSON.stringify(
+      {
+        tool: 'tools/bench-open.mjs --dir',
+        date,
+        label: args.label,
+        host: { platform: process.platform, arch: process.arch, node: process.version },
+        set: { dir: basename(args.dir), files: files.length },
+        note: 'aggregate numbers, file names and name statistics only -- no drawing content (W3-09 brief)',
+        rows,
+      },
+      null,
+      1
+    )
+  );
+
+  if (args.summary) {
+    const head = [
+      '| id | file | folder | MB | ver | codepage | acad-ts | libredwg | ezdxf(dxfOut) | text a/e | layers a/e | tier | acad s | browser s | ezdxf s |',
+      '|---|---|---|---:|---|---|---:|---:|---:|---|---|---|---:|---:|---:|',
+    ];
+    const body = rows.map((r) =>
+      [
+        r.id,
+        r.file,
+        r.dir,
+        (r.bytes / 1048576).toFixed(2),
+        r.version ?? r.versionMarker ?? '—',
+        r.codePage ?? '—',
+        r.acad.ok === false ? `FAIL` : (r.acad.entityCount ?? '—'),
+        r.browser.ok === false ? `FAIL` : (r.browser.entityCount ?? '—'),
+        r.engine.ok === false ? `FAIL` : (r.engine.entityCount ?? '—'),
+        `${String(r.acad.textCount ?? '—')}/${String(r.engine.textCount ?? '—')}`,
+        `${String(r.acad.layers ?? '—')}/${String(r.engine.layers ?? '—')}`,
+        r.tier,
+        secs(r.acad.timeMs),
+        secs(r.browser.parseMs != null ? r.browser.parseMs + (r.browser.dxfOutMs ?? 0) : null),
+        secs(r.engine.timeMs),
+      ].join(' | ')
+    );
+    process.stdout.write([...head, ...body.map((b) => `| ${b} |`)].join('\n') + '\n');
+  } else {
+    const head = ['| id | file | path | entities | text | time | peak RSS | result |', '|---|---|---|---:|---:|---:|---:|---|'];
+    const body = [];
+    for (const r of rows) {
+      for (const [k, c] of [['acad', r.acad], ['dxfout(browser)', r.browser], ['engine', r.engine]]) {
+        body.push(
+          [
+            r.id,
+            r.file,
+            k,
+            c.entityCount ?? '—',
+            c.textCount ?? '—',
+            secs(c.timeMs ?? (c.parseMs != null ? c.parseMs + (c.dxfOutMs ?? 0) : null)),
+            c.peakRssBytes ? `${mb(c.peakRssBytes)} MB` : '—',
+            c.ok === null ? `n/a: ${c.error ?? ''}` : c.ok ? 'ok' : `FAIL: ${String(c.error ?? '?').slice(0, 80)}`,
+          ].join(' | ')
+        );
+      }
+    }
+    process.stdout.write([...head, ...body.map((b) => `| ${b} |`)].join('\n') + '\n');
+  }
+  process.stdout.write(`\nrows: ${String(rows.length)}\nresults: ${jsonPath}\ncells: ${cellsPath}\n`);
+}
+
 mkdirSync(args.outDir, { recursive: true });
 mkdirSync(args.work, { recursive: true });
+
+if (args.dir) {
+  await runDirMode(args);
+  process.exit(0);
+}
 
 const rows = [];
 

@@ -31,7 +31,7 @@ fixtures/**/F11*.dwg
 fixtures/**/F12*.dwg
 
 # Real drawings and project bundles never enter the repo
-samples/
+/samples/
 *.halo/
 *.dwg.bak
 *.sv$
@@ -49,3 +49,4 @@ test-results/
 .claude/settings.local.json
 fixtures/**/F11*.drops.json
 fixtures/**/F12*.drops.json
+samples/_reports/

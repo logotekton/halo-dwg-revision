@@ -68,6 +68,10 @@ if [ -f pnpm-lock.yaml ]; then
     node tools/license-check.mjs && ok "licenses" || bad "licenses"
   fi
   if [ "$E2E" = 1 ]; then
+    # e2e launches the BUILT app (apps/desktop/out + apps/web/dist): build first so a stale dist
+    # never masquerades as the current source.
+    step "build (for e2e)"
+    pnpm build >/dev/null && ok "built" || bad "build"
     step "e2e"
     pnpm -r --if-present run e2e && ok "e2e" || bad "e2e"
   fi
@@ -81,13 +85,13 @@ if [ -f engine/pyproject.toml ]; then
   if ! command -v uv >/dev/null 2>&1; then
     bad "uv not installed"
   else
-    ( cd engine
+    pushd engine >/dev/null
       if [ -f uv.lock ]; then uv sync --frozen --quiet && ok "uv sync" || bad "uv sync"; fi
       uv run ruff check . && ok "ruff" || bad "ruff"
       uv run ruff format --check . && ok "ruff format" || bad "ruff format"
       if grep -q '\[tool.mypy\]' pyproject.toml; then uv run mypy && ok "mypy" || bad "mypy"; fi
       uv run pytest -q && ok "pytest" || bad "pytest"
-    )
+    popd >/dev/null
   fi
 else
   step "Python engine"; ok "skipped (no engine/pyproject.toml yet)"

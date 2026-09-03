@@ -50,8 +50,8 @@ async def capabilities() -> dict[str, bool]:
     return {
         "dwg2dxf": False,
         "ifc_export": True,
-        "job_runner": False,
-        "websocket": False,
+        "job_runner": True,
+        "websocket": True,
         "dms_sync": False,
     }
 

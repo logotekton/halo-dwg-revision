@@ -40,3 +40,17 @@ P1 첫 묶음(W3-01 셸, W3-02 CadHost·뷰 통합, W3-03 프로젝트·임포�
 - **W3-05 폰트:** SHX 동봉 없음. 기본 Noto Sans KR(OFL). **사용자가 폰트 파일(SHX/TTF/WOFF)을 추가하는 UI**를 넣는다: 설정 → 폰트 → 파일 추가 → `<userData>/fonts/`에 복사 + `fonts.json` 갱신 + 워커 폰트 풀 동기화 + SHX 이름 매핑 표 편집. 누락 폰트 패널에서 "이 폰트 추가"로 바로 진입.
 - **실제 DWG 세트**가 `samples/2026-09-02-실시도서/`에 있다(gitignore). 모든 P1 태스크는 픽스처 외에 이 세트로도 검증하고 결과를 보고서에 적는다.
 - **W3-08 스키마 항목 추가:** `level_source`에 `CEILING_PLAN`, CH↔CH EQ 조건부 허용(ADR-0003 보충).
+
+## 계약 갱신 (2026-09-03, W3-09 실측 반영)
+- `POST /files/{id}/converted` 본문에 두 필드 추가: `xrefs: [{block_name, path}]`(원본 DWG의 XREF 참조, 윈도 경로 원문 그대로), `styles: [{name, font, bigfont, typeface?}]`(STYLE 테이블 + XDATA typeface). dxfOut 산출 DXF는 이 둘을 잃으므로 데스크톱 변환기(W3-02)가 acad-ts `info`에서 뽑아 보내고, 엔진(W3-06)이 정본 생성 시 XREF 해석과 폰트 매핑에 쓴다.
+- `halocad:convert:dwg-to-dxf` 결과에 같은 두 필드 포함.
+- dxfOut 후처리 목록 확장: INSERT `66`, HATCH `92` External 비트, LEADER dimstyle 복원, STYLE bigfont `0`→빈 문자열, 핸들 유일성.
+- 시트 단위 = 도곽 INSERT(실세트 68장 전부 모델공간 단독, 표제란 수 = PDF 페이지 수). 시트 그래프(P3)와 DMS 검색(P2)은 도곽 단위로 설계한다.
+- XREF 경로는 윈도 상대경로가 표준이며 엔진이 슬래시·NFC 정규화한다.
+- 티어 변수는 "렌더 부하(최상위 + 블록 정의 내 엔티티)"로 변경 예정. 헤드리스 실측 A ≤ 5만; 실제 GPU 값은 W3-02가 확정.
+
+## 사용자 판정 반영 2 (2026-09-03, G1 질문 답변)
+- **폰트 대체 순서:** 도면 요청 폰트 → 사용자 추가 폰트(`<userData>/fonts`) → **맑은 고딕**(시스템에 설치돼 있을 때: macOS `/Library/Fonts/Malgun Gothic*`, Windows `C:\Windows\Fonts\malgun*.ttf`; 동봉 금지) → Noto Sans KR(동봉). 매핑 표 기본값에 이 순서를 반영(W3-05).
+- **설비 도서(기계·전기·통신·소방) 6장은 반드시 열려야 한다**(적산 대상은 아님). W3-02의 렌더 부하 대책(블록 인스턴싱, 도곽 단위 로딩, 단순화 표시)은 이 6장을 기준으로 검증한다.
+- **`*_recover.dwg`는 임포트 기본 제외**(설정 `import.ignore_patterns`, 기본 `["*_recover.dwg", "*.bak"]`). 파일 목록에는 "제외됨"으로 표시만(W3-06/W3-03 후속).
+- 시트 라벨은 표제란 ATTRIB에서 자동 추출한 초안을 기본값으로 쓴다(P3 시트그래프 입력).

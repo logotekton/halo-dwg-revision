@@ -22,3 +22,14 @@ class Settings(BaseSettings):
     dev: bool = False
     log_dir: Path | None = None
     token: str | None = None
+
+    # W3-03: DWG->DXF conversion falls back to the acad-ts CLI, run as a
+    # subprocess, when no desktop is connected over WS. `converter_fallback`
+    # is the server-wide default (`serve --converter-fallback acad-ts`); a
+    # `POST /projects/{id}/drawing-sets` request can override it per import.
+    # `acad_bridge_bin` overrides the repo-relative default path to
+    # `packages/acad-bridge/bin/acad-bridge.mjs` (built via
+    # `pnpm --filter @halo-cad/acad-bridge build`) -- unset in a packaged
+    # build, where that repo layout does not exist.
+    converter_fallback: str | None = None
+    acad_bridge_bin: Path | None = None

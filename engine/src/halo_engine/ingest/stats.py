@@ -85,6 +85,10 @@ _EXTERNAL_OR_OUTERMOST = 0b10001
 DIAG_DEAD_ATTRIB = "dead-attrib"
 #: Diagnostic ``code`` for a computation excluded by a zero-length OCS/direction vector.
 DIAG_ZERO_LENGTH_OCS_VECTOR = "zero-length-ocs-vector"
+#: Diagnostic ``code`` for any other per-entity bbox failure with no more specific code
+#: above (W3-09 real-drawing measurement: a LEADER/DIMENSION referencing a DIMSTYLE table
+#: entry a dxfOut-produced DXF never defined, e.g. named literally "0").
+DIAG_BBOX_FAILED = "BBOX_FAILED"
 #: Diagnostic ``code`` for an ATTRIB/SEQEND/VERTEX handed to us as a top-level entity.
 DIAG_UNEXPECTED_OWNED_ENTITY = "unexpected-owned-entity-at-top-level"
 #: Types the contract (stats-definition.md) says are never counted at the top level --
@@ -95,9 +99,15 @@ _OWNED_ENTITY_TYPES = frozenset({"ATTRIB", "SEQEND", "VERTEX"})
 
 
 def _diagnostic(
-    code: str, message: str, *, handle: str | None = None, layer: str | None = None
+    code: str,
+    message: str,
+    *,
+    handle: str | None = None,
+    layer: str | None = None,
+    etype: str | None = None,
 ) -> dict[str, Any]:
-    """One ``{code, message, handle?, layer?}`` entry (brief W3-08 "Defaults for ambiguity").
+    """One ``{code, message, handle?, layer?, etype?}`` entry (brief W3-08 "Defaults
+    for ambiguity"; ``etype`` added for :data:`DIAG_BBOX_FAILED`, W3-09).
 
     Optional keys are omitted rather than written as ``null`` -- keeps the
     ``*.working.json`` meta a caller eventually writes this into terse.
@@ -107,6 +117,8 @@ def _diagnostic(
         entry["handle"] = handle
     if layer is not None:
         entry["layer"] = layer
+    if etype is not None:
+        entry["etype"] = etype
     return entry
 
 
@@ -264,9 +276,9 @@ def _bbox_of(
     ``ezdxf.bbox.extents()`` normally takes the whole list in one call, but
     that means a single bad entity takes the *entire* bucket's bbox down
     with it. Excluding just that entity keeps the rest of the union intact.
-    Two ways one entity can fail here (module docstring):
+    Three ways one entity can fail here (module docstring):
 
-    * ``ZeroDivisionError`` -- a zero-length OCS/direction vector.
+    * ``ZeroDivisionError`` on an MTEXT -- a zero-length OCS/direction vector.
     * ``AttributeError`` -- an INSERT whose bbox ``ezdxf.bbox.extents()``
       computes by disassembling into the block's geometry *and the INSERT's
       own ATTRIBs* (attributes are visual, so they count towards the bbox
@@ -274,19 +286,50 @@ def _bbox_of(
       module's own attrib loop does, so a dead ATTRIB (see
       ``compute_layer_stats``) blows up here even though ``entity`` itself
       -- the INSERT -- is perfectly alive.
+    * ``DXFTableEntryError``, or ``ZeroDivisionError`` on anything other than
+      an MTEXT (W3-09 real-drawing measurement) -- a LEADER or DIMENSION
+      referencing a DIMSTYLE table entry a dxfOut-produced DXF never
+      defined (observed named literally ``"0"``); ezdxf's bbox/disassemble
+      machinery looks the style up while rendering and raises rather than
+      falling back to a default. Reported as :data:`DIAG_BBOX_FAILED` with
+      the entity type, since -- unlike the two cases above -- this is not
+      one specific, named field's fault.
     """
     box = BoundingBox()
     for entity in entities:
+        etype = entity.dxftype()
         try:
             entity_box = ezdxf.bbox.extents([entity])
         except ZeroDivisionError:
+            if etype == "MTEXT":
+                diagnostics.append(
+                    _diagnostic(
+                        DIAG_ZERO_LENGTH_OCS_VECTOR,
+                        f"{etype} has a zero-length OCS/direction vector; excluded from bbox",
+                        handle=_safe_handle(entity),
+                        layer=_safe_layer(entity),
+                    )
+                )
+            else:
+                diagnostics.append(
+                    _diagnostic(
+                        DIAG_BBOX_FAILED,
+                        f"{etype} bbox computation raised ZeroDivisionError; excluded from bbox",
+                        handle=_safe_handle(entity),
+                        layer=_safe_layer(entity),
+                        etype=etype,
+                    )
+                )
+            continue
+        except ezdxf.DXFTableEntryError as exc:
             diagnostics.append(
                 _diagnostic(
-                    DIAG_ZERO_LENGTH_OCS_VECTOR,
-                    f"{entity.dxftype()} has a zero-length OCS/direction vector; "
-                    "excluded from bbox",
+                    DIAG_BBOX_FAILED,
+                    f"{etype} bbox computation referenced a missing table entry "
+                    f"({exc}); excluded from bbox",
                     handle=_safe_handle(entity),
                     layer=_safe_layer(entity),
+                    etype=etype,
                 )
             )
             continue
@@ -294,7 +337,7 @@ def _bbox_of(
             diagnostics.append(
                 _diagnostic(
                     DIAG_DEAD_ATTRIB,
-                    f"{entity.dxftype()} #{_safe_handle(entity)} bbox computation touched "
+                    f"{etype} #{_safe_handle(entity)} bbox computation touched "
                     "a destroyed sub-entity (duplicate-handle ATTRIB fixed up by ezdxf's "
                     "audit); excluded from bbox",
                     handle=_safe_handle(entity),
@@ -471,6 +514,7 @@ def compute_layer_stats(
 
 
 __all__ = [
+    "DIAG_BBOX_FAILED",
     "DIAG_DEAD_ATTRIB",
     "DIAG_UNEXPECTED_OWNED_ENTITY",
     "DIAG_ZERO_LENGTH_OCS_VECTOR",

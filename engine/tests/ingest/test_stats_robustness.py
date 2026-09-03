@@ -1,22 +1,31 @@
-"""Robustness regression tests (brief W3-08 goal 1, G0 follow-up 2).
+"""Robustness regression tests (brief W3-08 goal 1, G0 follow-up 2; extended for
+a W3-09 real-drawing measurement mid-task).
 
-``compute_layer_stats`` must turn two malformations into a ``diagnostics[]``
-entry and keep going, never an uncaught exception -- see the "Robustness"
-section of ``engine/src/halo_engine/ingest/stats.py``'s module docstring for
-the full mechanism of each:
+``compute_layer_stats`` must turn each of these malformations into a
+``diagnostics[]`` entry and keep going, never an uncaught exception -- see
+the "Robustness" section of ``engine/src/halo_engine/ingest/stats.py``'s
+module docstring for the full mechanism of each:
 
 * a dead ATTRIB (``is_alive is False``) still referenced by its owning
   INSERT's ``attribs``;
 * a zero-length OCS/direction vector (e.g. an MTEXT ``text_direction`` of
-  ``(0, 0, 0)``).
+  ``(0, 0, 0)``);
+* a LEADER or DIMENSION referencing a DIMSTYLE table entry that does not
+  exist (``ezdxf.DXFTableEntryError``), or any other per-entity bbox
+  failure not covered by a more specific diagnostic above
+  (``ZeroDivisionError`` on a non-MTEXT entity) -- observed on a
+  dxfOut-produced DXF of a real drawing (W3-09), where the missing
+  DIMSTYLE is written literally as ``"0"``.
 
-Both are reproduced two ways: a hermetic synthetic file (fast, deterministic,
-exercises the exact guarded code path regardless of environment) and the
-real ``acad-ts``-written ``F06.dxf``/``F03.dxf`` the brief names, obtained by
-round-tripping the DWG fixtures through ``packages/acad-bridge``'s
-``dwg2dxf`` CLI -- skipped when that CLI has not been built (``pnpm --filter
-@halo-cad/acad-bridge build``), since a bare ``cd engine && uv run pytest``
-checkout has no Node toolchain guarantee.
+The first two are reproduced two ways: a hermetic synthetic file (fast,
+deterministic, exercises the exact guarded code path regardless of
+environment) and the real ``acad-ts``-written ``F06.dxf``/``F03.dxf`` the
+brief names, obtained by round-tripping the DWG fixtures through
+``packages/acad-bridge``'s ``dwg2dxf`` CLI -- skipped when that CLI has not
+been built (``pnpm --filter @halo-cad/acad-bridge build``), since a bare
+``cd engine && uv run pytest`` checkout has no Node toolchain guarantee. The
+third (W3-09) has no acad-ts angle -- it comes from mlightcad's ``dxfOut()``
+-- so it is covered by a hermetic synthetic file only.
 """
 
 from __future__ import annotations
@@ -32,6 +41,7 @@ import pytest
 
 from halo_engine.ingest.dxf_loader import load_dxf
 from halo_engine.ingest.stats import (
+    DIAG_BBOX_FAILED,
     DIAG_DEAD_ATTRIB,
     DIAG_UNEXPECTED_OWNED_ENTITY,
     DIAG_ZERO_LENGTH_OCS_VECTOR,
@@ -155,6 +165,36 @@ def test_seqend_at_top_level_is_diagnosed_and_excluded(tmp_path: Path) -> None:
     assert unexpected, f"expected a {DIAG_UNEXPECTED_OWNED_ENTITY} diagnostic"
     assert "SEQEND" not in result["totals"]["count_by_type"]
     assert result["totals"]["count_by_type"] == {"LINE": 1}
+
+
+def test_leader_missing_dimstyle_bbox_is_diagnosed_not_raised() -> None:
+    """W3-09 real-drawing measurement: a LEADER referencing a DIMSTYLE table
+    entry that does not exist. ``dimstyle``'s own validator
+    (``is_valid_table_name``) only checks the string looks like a legal
+    table name -- it never checks the name is actually a registered
+    DIMSTYLE, and unlike most such fields there is no fixer -- so setting it
+    through the normal API is enough to reproduce this (no raw-tag
+    injection needed, unlike the ATTRIB/MTEXT cases above).
+    """
+    doc = ezdxf.new("R2018", setup=True)
+    msp = doc.modelspace()
+    leader = msp.add_leader([(0, 0), (10, 10), (20, 10)], dxfattribs={"layer": "X-LEADER"})
+    leader.dxf.dimstyle = "0"
+    assert "0" not in doc.dimstyles, (
+        "fixture setup must reference a DIMSTYLE that is not registered"
+    )
+
+    diagnostics: list[dict[str, Any]] = []
+    result = compute_layer_stats(doc, file_sha256="0" * 64, diagnostics=diagnostics)
+
+    bbox_failed = [d for d in diagnostics if d["code"] == DIAG_BBOX_FAILED]
+    assert bbox_failed, f"expected a {DIAG_BBOX_FAILED} diagnostic, got {diagnostics}"
+    assert all(d.get("etype") == "LEADER" for d in bbox_failed)
+    assert all("0" in d["message"] for d in bbox_failed)
+    # The rest of the file's stats are unaffected -- only the bbox contribution is skipped.
+    assert result["totals"]["count_by_type"] == {"LEADER": 1}
+    leader_bucket = next(b for b in result["buckets"] if b["layer"] == "X-LEADER")
+    assert "bbox" not in leader_bucket["aggregate"]
 
 
 # ---------------------------------------------------------------------------

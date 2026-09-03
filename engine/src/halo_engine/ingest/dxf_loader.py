@@ -46,6 +46,9 @@ MIN_SUPPORTED_ACADVER = "AC1014"
 
 #: Diagnostic ``code`` for a duplicate DXF handle caught while loading (see module docstring).
 DIAG_DUPLICATE_HANDLE = "duplicate-handle"
+#: Diagnostic ``code`` for a STYLE ``bigfont`` normalized from the literal string "0" to
+#: empty (W3-09 real-drawing measurement -- see ``_normalize_style_bigfont``).
+DIAG_STYLE_BIGFONT_NORMALIZED = "style-bigfont-normalized"
 
 _DUPLICATE_HANDLE_RE = re.compile(r"non-unique entity handle #([0-9A-Fa-f]+)")
 
@@ -139,6 +142,31 @@ def _header_fields(doc: Drawing) -> tuple[str | None, str, int, str | None]:
     return dwgcodepage, acadver, insunits, fingerprintguid
 
 
+def _normalize_style_bigfont(doc: Drawing) -> list[dict[str, Any]]:
+    """A STYLE table entry's ``bigfont`` (DXF group 4) means "no big-font"
+    when empty (ezdxf default ``""``) -- but a dxfOut-produced DXF of a real
+    drawing (W3-09) writes it as the literal string ``"0"`` instead, the
+    same digit-as-null convention seen in a LEADER's ``dimstyle`` referencing
+    a nonexistent style named ``"0"`` (``halo_engine.ingest.stats``'s
+    ``BBOX_FAILED`` diagnostic guards that one). Normalized to empty here so
+    nothing downstream (font resolution, rendering) treats ``"0"`` as a real
+    big-font file name.
+    """
+    diagnostics: list[dict[str, Any]] = []
+    for style in doc.styles:
+        if style.dxf.get("bigfont", "") != "0":
+            continue
+        style.dxf.bigfont = ""
+        diagnostics.append(
+            {
+                "code": DIAG_STYLE_BIGFONT_NORMALIZED,
+                "message": f'STYLE {style.dxf.name!r} had bigfont="0"; normalized to empty',
+                "handle": style.dxf.handle,
+            }
+        )
+    return diagnostics
+
+
 def load_dxf(path: str | Path, *, encoding: str | None = None) -> LoadResult:
     """Load a DXF file, falling back to :mod:`ezdxf.recover` on structural errors.
 
@@ -169,6 +197,7 @@ def load_dxf(path: str | Path, *, encoding: str | None = None) -> LoadResult:
             doc, auditor = ezdxf.recover.readfile(str(path))
         recovered = True
     diagnostics = capture.diagnostics
+    diagnostics += _normalize_style_bigfont(doc)
 
     audit_errors = [_issue_from_entry(e) for e in auditor.errors]
     dwgcodepage, acadver, insunits, fingerprintguid = _header_fields(doc)
@@ -187,6 +216,7 @@ def load_dxf(path: str | Path, *, encoding: str | None = None) -> LoadResult:
 
 __all__ = [
     "DIAG_DUPLICATE_HANDLE",
+    "DIAG_STYLE_BIGFONT_NORMALIZED",
     "MIN_SUPPORTED_ACADVER",
     "AuditIssue",
     "LoadResult",

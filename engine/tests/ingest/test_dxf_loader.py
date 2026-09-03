@@ -4,7 +4,11 @@ from pathlib import Path
 
 import ezdxf
 
-from halo_engine.ingest.dxf_loader import DIAG_DUPLICATE_HANDLE, load_dxf
+from halo_engine.ingest.dxf_loader import (
+    DIAG_DUPLICATE_HANDLE,
+    DIAG_STYLE_BIGFONT_NORMALIZED,
+    load_dxf,
+)
 
 
 def _write_minimal_dxf(path: Path, *, extra_entities_tags: str = "") -> None:
@@ -137,3 +141,39 @@ def test_load_dxf_extracts_dwgcodepage_for_pre2007(tmp_path: Path) -> None:
     result = load_dxf(p)
     assert result.dwgcodepage == "ANSI_949"
     assert result.acadver == "AC1015"
+
+
+def test_load_dxf_normalizes_style_bigfont_zero_to_empty(tmp_path: Path) -> None:
+    """W3-09 real-drawing measurement: a dxfOut-produced DXF wrote a STYLE's
+    ``bigfont`` (group 4) as the literal string ``"0"`` instead of leaving
+    it empty (the DXF spec's own "no big-font" value, and ezdxf's default).
+    ``load_dxf`` normalizes it so nothing downstream treats ``"0"`` as a
+    real big-font file name.
+    """
+    doc = ezdxf.new("R2018", setup=True)
+    doc.styles.new("BIGFONT_TEST", dxfattribs={"font": "txt", "bigfont": "0"})
+    doc.modelspace().add_line((0, 0), (10, 10))
+    p = tmp_path / "bigfont.dxf"
+    doc.saveas(str(p))
+
+    result = load_dxf(p)
+
+    style = result.doc.styles.get("BIGFONT_TEST")
+    assert style.dxf.bigfont == ""
+    normalized = [d for d in result.diagnostics if d["code"] == DIAG_STYLE_BIGFONT_NORMALIZED]
+    assert normalized, f"expected a {DIAG_STYLE_BIGFONT_NORMALIZED} diagnostic"
+    assert normalized[0]["handle"] == style.dxf.handle
+
+
+def test_load_dxf_leaves_other_style_bigfont_values_untouched(tmp_path: Path) -> None:
+    doc = ezdxf.new("R2018", setup=True)
+    doc.styles.new("REAL_BIGFONT", dxfattribs={"font": "txt", "bigfont": "bigfont.shx"})
+    doc.modelspace().add_line((0, 0), (10, 10))
+    p = tmp_path / "real_bigfont.dxf"
+    doc.saveas(str(p))
+
+    result = load_dxf(p)
+
+    style = result.doc.styles.get("REAL_BIGFONT")
+    assert style.dxf.bigfont == "bigfont.shx"
+    assert not [d for d in result.diagnostics if d["code"] == DIAG_STYLE_BIGFONT_NORMALIZED]

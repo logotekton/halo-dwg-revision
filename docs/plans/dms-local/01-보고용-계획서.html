@@ -7,6 +7,7 @@
     --ink: #1F262B;
     --muted: #5C6870;
     --line: #D7DCDF;
+    --rule: #4F5A62;
     --accent: #B6304F;
     --accent-soft: #F6E3E8;
     --after: #1F7A8C;
@@ -22,6 +23,7 @@
       --ink: #E6EAED;
       --muted: #98A3AA;
       --line: #2E383F;
+      --rule: #7E8A92;
       --accent: #E06C86;
       --accent-soft: #3A2129;
       --after: #4FB3C4;
@@ -37,6 +39,7 @@
     --ink: #E6EAED;
     --muted: #98A3AA;
     --line: #2E383F;
+    --rule: #7E8A92;
     --accent: #E06C86;
     --accent-soft: #3A2129;
     --after: #4FB3C4;
@@ -55,12 +58,14 @@
     line-height: 1.7;
     word-break: keep-all;
   }
-  .page { max-width: 76ch; margin: 0 auto; padding: 48px 24px 96px; }
+  .page { max-width: 900px; margin: 0 auto; padding: 48px 24px 96px; }
   header { border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 36px; }
   .eyebrow { font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; display: flex; gap: 16px; flex-wrap: wrap; }
   h1 { font-family: "IBM Plex Sans KR", "Noto Sans KR", sans-serif; font-weight: 700; font-size: 30px; line-height: 1.25; margin: 12px 0 14px; text-wrap: balance; }
   .thesis { font-size: 17px; font-weight: 500; margin: 0; padding: 14px 18px; border-left: 4px solid var(--accent); background: var(--surface); }
   h2 { font-family: "IBM Plex Sans KR", "Noto Sans KR", sans-serif; font-weight: 600; font-size: 20px; margin: 44px 0 12px; display: flex; align-items: baseline; gap: 12px; text-wrap: balance; }
+  .page > h2 { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--rule); }
+  .page > h2:first-of-type { margin-top: 44px; padding-top: 0; border-top: 0; }
   h2 .num { font-family: "IBM Plex Mono", monospace; font-size: 13px; color: var(--muted); font-weight: 500; }
   h3 { font-family: "IBM Plex Sans KR", "Noto Sans KR", sans-serif; font-weight: 600; font-size: 16px; margin: 24px 0 8px; }
   p { margin: 0 0 12px; }

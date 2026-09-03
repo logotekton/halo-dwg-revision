@@ -35,7 +35,14 @@ function args(argv) {
 const A = args(process.argv.slice(2));
 
 const j = (p, d) => (existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : d);
-const files = j(join(A.reports, 'files.json'), []);
+// macOS returns NFD file names; the committed document uses NFC so a reader can
+// grep it against the office's own file list.
+const files = j(join(A.reports, 'files.json'), []).map((f) => ({
+  ...f,
+  name: f.name.normalize('NFC'),
+  dir: f.dir.normalize('NFC'),
+  rel: f.rel.normalize('NFC'),
+}));
 const cells = j(join(A.reports, 'cells.json'), {});
 const fontIndex = j(join(A.reports, 'mlightcad-font-index.json'), { files: [], names: [] });
 const browser = new Map();

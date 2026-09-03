@@ -1,0 +1,84 @@
+{
+  "amber_layers": [],
+  "counts": {
+    "AMBER": 0,
+    "GREEN": 4,
+    "RED": 1
+  },
+  "file_sha256": "2706059e78972d12e4166884310dab70157ad90210f5a9f800e5f7578bdff403",
+  "file_sha256_mismatch": false,
+  "layers": [
+    {
+      "differences": [],
+      "layer": "A-TEXT",
+      "space": "MODEL",
+      "status": "GREEN"
+    },
+    {
+      "differences": [],
+      "layer": "S-BEAM",
+      "space": "MODEL",
+      "status": "GREEN"
+    },
+    {
+      "differences": [],
+      "layer": "S-COL",
+      "space": "MODEL",
+      "status": "GREEN"
+    },
+    {
+      "differences": [
+        {
+          "detail": "count_by_type.LINE 7→6",
+          "entity_types": [
+            "LINE"
+          ],
+          "field": "count_by_type",
+          "other_value": "6",
+          "reference_value": "7",
+          "severity": "RED"
+        }
+      ],
+      "layer": "X-GRID",
+      "space": "MODEL",
+      "status": "RED"
+    },
+    {
+      "differences": [],
+      "layer": "X-TITLE",
+      "space": "MODEL",
+      "status": "GREEN"
+    }
+  ],
+  "other": {
+    "name": "viewer.mlightcad",
+    "version": "1.6.3"
+  },
+  "red_layers": [
+    "X-GRID"
+  ],
+  "reference": {
+    "name": "engine.ezdxf",
+    "version": "1.4.4"
+  },
+  "schema_version": "0.1",
+  "status": "RED",
+  "totals": {
+    "differences": [
+      {
+        "detail": "count_by_type.LINE 24→23",
+        "entity_types": [
+          "LINE"
+        ],
+        "field": "count_by_type",
+        "other_value": "23",
+        "reference_value": "24",
+        "severity": "RED"
+      }
+    ],
+    "layer": "(totals)",
+    "space": "(all)",
+    "status": "RED"
+  },
+  "warnings": []
+}

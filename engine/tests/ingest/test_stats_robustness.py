@@ -25,6 +25,7 @@ import hashlib
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Any
 
 import ezdxf
 import pytest
@@ -73,7 +74,7 @@ def test_dead_attrib_in_insert_attribs_is_diagnosed_not_raised(tmp_path: Path) -
     assert not attrib.is_alive
     assert insert.attribs[0] is attrib, "the dead object must still be reachable via attribs"
 
-    diagnostics: list[dict] = []
+    diagnostics: list[dict[str, Any]] = []
     result = compute_layer_stats(doc, file_sha256="0" * 64, diagnostics=diagnostics)
 
     dead_diags = [d for d in diagnostics if d["code"] == DIAG_DEAD_ATTRIB]
@@ -114,7 +115,7 @@ def test_zero_length_mtext_direction_is_diagnosed_not_raised(tmp_path: Path) -> 
         "fixture setup must actually produce the zero vector, not exercise the validator"
     )
 
-    diagnostics: list[dict] = []
+    diagnostics: list[dict[str, Any]] = []
     result = compute_layer_stats(reloaded, file_sha256=_sha256_of(p), diagnostics=diagnostics)
 
     zero_vector_diags = [d for d in diagnostics if d["code"] == DIAG_ZERO_LENGTH_OCS_VECTOR]
@@ -147,7 +148,7 @@ def test_seqend_at_top_level_is_diagnosed_and_excluded(tmp_path: Path) -> None:
     types = {e.dxftype() for e in doc2.modelspace()}
     assert "SEQEND" in types, "fixture setup must actually put a stray SEQEND at top level"
 
-    diagnostics: list[dict] = []
+    diagnostics: list[dict[str, Any]] = []
     result = compute_layer_stats(doc2, file_sha256=_sha256_of(p), diagnostics=diagnostics)
 
     unexpected = [d for d in diagnostics if d["code"] == DIAG_UNEXPECTED_OWNED_ENTITY]
@@ -158,7 +159,65 @@ def test_seqend_at_top_level_is_diagnosed_and_excluded(tmp_path: Path) -> None:
 
 # ---------------------------------------------------------------------------
 # Real acad-ts-written DXF (brief: "acad-ts 산출 DXF F06/F03으로 회귀 테스트")
+#
+# Two generations of this regression:
+#
+# 1. Static, committed snapshots (`fixtures/*.acad-unrepaired.dxf`) of what
+#    `node packages/acad-bridge/bin/acad-bridge.mjs dwg2dxf` produced on
+#    F06.dwg/F03.dwg *before* that package's W3-08 goal 3 (`repair-dxf.ts`)
+#    landed -- captured with `grep -c '^SEQEND$'`/`grep -c '^AcDbAttribute$'`
+#    confirmed still showing the malformed shape (14 SEQEND, 0
+#    AcDbAttribute for F06). Kept so this module's own robustness holds
+#    regardless of whatever acad-bridge's writer currently does -- the two
+#    tasks' regression tests should not depend on each other staying broken.
+# 2. A live round trip through the *current* acad-bridge build, which now
+#    repairs its own output (goal 3) -- this is the acceptance check the
+#    brief literally shows (`dwg2dxf ... && halo-engine stats ...
+#    # readable`), and demonstrates goals 1 and 3 composing: the live output
+#    no longer needs any diagnostic at all, because the source is fixed.
 # ---------------------------------------------------------------------------
+
+FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
+
+
+def test_f06_acad_unrepaired_snapshot_no_exception_and_diagnostics_listed() -> None:
+    """Acceptance check: ``halo-engine stats`` on acad-ts-written F06 must not
+    raise, and must list the dead-ATTRIB diagnostic (acad-bridge README
+    "Known acad-ts gaps" #1/#5/#6: F06's ``X-TITLE`` layer/block name
+    collision, plus the duplicate-SEQEND and missing-ATTRIB-subclass writer
+    bugs repair-dxf.ts now fixes at the source -- see the sibling live-round-
+    trip test below).
+    """
+    path = FIXTURES_DIR / "F06.acad-unrepaired.dxf"
+    load_result = load_dxf(path)
+
+    diagnostics: list[dict[str, Any]] = []
+    result = compute_layer_stats(
+        load_result.doc, file_sha256=_sha256_of(path), diagnostics=diagnostics
+    )
+
+    assert diagnostics, "F06's known acad-ts gaps must produce at least one diagnostic"
+    codes = {d["code"] for d in diagnostics}
+    assert codes & {DIAG_DEAD_ATTRIB, DIAG_UNEXPECTED_OWNED_ENTITY}
+    assert result["totals"]["entity_count"] > 0
+
+
+def test_f03_acad_unrepaired_snapshot_no_exception_and_diagnostics_listed() -> None:
+    """Same acceptance check for F03: acad-ts's MTEXT writer produced a
+    zero-length ``text_direction`` vector (repair-dxf.ts's
+    ``normalizeZeroLengthMTextDirection`` now fixes this at the source).
+    """
+    path = FIXTURES_DIR / "F03.acad-unrepaired.dxf"
+    load_result = load_dxf(path)
+
+    diagnostics: list[dict[str, Any]] = []
+    result = compute_layer_stats(
+        load_result.doc, file_sha256=_sha256_of(path), diagnostics=diagnostics
+    )
+
+    assert diagnostics, "F03's known acad-ts gaps must produce at least one diagnostic"
+    assert any(d["code"] == DIAG_ZERO_LENGTH_OCS_VECTOR for d in diagnostics)
+    assert result["totals"]["entity_count"] > 0
 
 
 def _acad_written_dxf(tmp_path: Path, generated_dir: Path, name: str) -> Path:
@@ -182,42 +241,43 @@ def _acad_written_dxf(tmp_path: Path, generated_dir: Path, name: str) -> Path:
     return out
 
 
-def test_f06_acad_ts_dxf_no_exception_and_diagnostics_listed(
+def test_f06_acad_ts_dxf_live_round_trip_is_readable_with_no_diagnostics(
     tmp_path: Path, generated_dir: Path
 ) -> None:
-    """Acceptance check: ``halo-engine stats`` on acad-ts-written F06 must not
-    raise, and must list the dead-ATTRIB diagnostic (acad-bridge README
-    "Known acad-ts gaps" #1: F06's ``X-TITLE`` layer/block name collision
-    makes acad-ts drop and duplicate-handle its own INSERT/ATTRIB output).
+    """The brief's literal acceptance check: ``dwg2dxf`` then ``stats`` is
+    "readable". Goal 3's ``repair-dxf.ts`` fixes F06's writer bugs at the
+    source now, so unlike the static snapshot above, the *current*
+    acad-bridge build needs no diagnostic at all here -- goals 1 and 3
+    composing correctly. (The one known, still-open, unrelated gap is the
+    X-TITLE INSERT itself, dropped by an acad-ts *reader* bug this task does
+    not touch -- packages/acad-bridge/README.md "Known acad-ts gaps" #1 --
+    so entity counts, not diagnostics, are what would show it.)
     """
     out = _acad_written_dxf(tmp_path, generated_dir, "F06")
     load_result = load_dxf(out)
 
-    diagnostics: list[dict] = []
+    diagnostics: list[dict[str, Any]] = []
     result = compute_layer_stats(
         load_result.doc, file_sha256=_sha256_of(out), diagnostics=diagnostics
     )
 
-    assert diagnostics, "F06's known acad-ts gaps must produce at least one diagnostic"
-    codes = {d["code"] for d in diagnostics}
-    assert codes & {DIAG_DEAD_ATTRIB, DIAG_UNEXPECTED_OWNED_ENTITY}
+    assert diagnostics == []
     assert result["totals"]["entity_count"] > 0
 
 
-def test_f03_acad_ts_dxf_no_exception_and_diagnostics_listed(
+def test_f03_acad_ts_dxf_live_round_trip_is_readable_with_no_diagnostics(
     tmp_path: Path, generated_dir: Path
 ) -> None:
-    """Same acceptance check for F03: acad-ts's MTEXT writer round trip is
-    the source of the zero-length ``text_direction`` vector.
+    """Same as above for F03: goal 3's MTEXT direction fix means the current
+    acad-bridge build's own output needs no diagnostic either.
     """
     out = _acad_written_dxf(tmp_path, generated_dir, "F03")
     load_result = load_dxf(out)
 
-    diagnostics: list[dict] = []
+    diagnostics: list[dict[str, Any]] = []
     result = compute_layer_stats(
         load_result.doc, file_sha256=_sha256_of(out), diagnostics=diagnostics
     )
 
-    assert diagnostics, "F03's known acad-ts gaps must produce at least one diagnostic"
-    assert any(d["code"] == DIAG_ZERO_LENGTH_OCS_VECTOR for d in diagnostics)
+    assert diagnostics == []
     assert result["totals"]["entity_count"] > 0

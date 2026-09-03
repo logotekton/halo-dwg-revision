@@ -267,49 +267,50 @@
   </table></div>
 
   <h2><span class="num">3</span>화면 구상</h2>
-  <p>화면은 네 장이다. 세트 지정 → 도곽 목록 → 비교 작업 → 출력 순서로 이어지고, 시간은 대부분 세 번째 화면에서 쓴다. 출력 범위는 전체 도곽이 기본이고 선택 도곽도 된다. 그림은 배치와 동작을 잡기 위한 초안이라 세부 모양은 개발하면서 바뀐다.</p>
+  <p>화면은 네 장이다. 세트 지정 → 도곽 목록 → 비교 작업 → 출력 순서로 이어지고, 시간은 대부분 세 번째 화면에서 쓴다. 출력 범위는 전체 도곽이 기본이고 선택 도곽도 된다. 앱 전체는 CAD 화면과 같은 어두운 톤이다. 레이어 원색이 검정 배경 전제라 캔버스와 주변 UI의 톤을 맞추고, 조명이 고르지 않은 현장 사무실에서 반사에 강하다. 그림은 배치와 동작을 잡기 위한 초안이라 세부 모양은 개발하면서 바뀐다.</p>
   <h3>화면 A · 세트 지정</h3>
   <figure>
     <svg viewBox="0 0 860 360" role="img" aria-label="세트 지정 화면. 변경 전 폴더와 변경 후 폴더를 지정하는 두 영역, 사소한 변경 기준과 클라우드 마크 규격과 리비전 표 양식 옵션, 최근 비교 목록, 비교 시작 버튼">
+<rect x="0" y="0" width="860" height="360" style="fill:#14181C"/>
 <g font-family="Noto Sans KR, sans-serif" font-size="11">
-<rect x="0.5" y="0.5" width="859" height="30" stroke-width="1" style="stroke:currentColor;fill:var(--code-bg)"/>
-<text x="16" y="20" font-size="12" font-weight="600" style="fill:currentColor">리비전 도면 관리 앱 · 세트 지정</text>
-<line x1="0" y1="30.5" x2="860" y2="30.5" stroke-width="1" style="stroke:currentColor"/>
-<rect x="24" y="50" width="396" height="150" rx="4" stroke-width="1.5" stroke-dasharray="6 4" style="stroke:var(--before);fill:none"/>
-<text x="40" y="76" font-size="13" font-weight="600" style="fill:var(--before)">변경 전 폴더</text>
-<text x="40" y="102" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:currentColor">D:\현장\김화공고\실시도서_REV2\</text>
-<text x="40" y="126" font-size="11" style="fill:var(--muted)">DWG 68 · XR 폴더 27 자동 인식</text>
-<text x="40" y="148" font-size="11" style="fill:var(--muted)">표제란 읽기 완료 · 도곽 74장</text>
-<rect x="324" y="164" width="80" height="22" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/><text x="364.0" y="178.96" font-size="11" text-anchor="middle" style="fill:currentColor">폴더 선택…</text>
-<rect x="440" y="50" width="396" height="150" rx="4" stroke-width="1.5" stroke-dasharray="6 4" style="stroke:var(--after);fill:none"/>
-<text x="456" y="76" font-size="13" font-weight="600" style="fill:var(--after)">변경 후 폴더</text>
-<text x="456" y="102" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:currentColor">D:\현장\김화공고\실시도서_REV3\</text>
-<text x="456" y="126" font-size="11" style="fill:var(--muted)">DWG 69 · XR 폴더 27 자동 인식</text>
-<text x="456" y="148" font-size="11" style="fill:var(--muted)">표제란 읽기 완료 · 도곽 74장</text>
-<rect x="740" y="164" width="80" height="22" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/><text x="780.0" y="178.96" font-size="11" text-anchor="middle" style="fill:currentColor">폴더 선택…</text>
-<text x="24" y="238" font-size="11" style="fill:var(--muted)">사소한 변경 기준</text>
-<rect x="128" y="222" width="64" height="22" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/>
-<text x="160" y="237" font-size="11" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:currentColor">1 mm</text>
-<text x="216" y="238" font-size="11" style="fill:var(--muted)">클라우드 마크 규격</text>
-<rect x="332" y="222" width="124" height="22" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/>
-<text x="342" y="237" font-size="11" style="fill:currentColor">회사 표준</text>
-<text x="446" y="237" font-size="11" text-anchor="end" style="fill:var(--muted)">▾</text>
-<text x="480" y="238" font-size="11" style="fill:var(--muted)">리비전 표 양식</text>
-<rect x="572" y="222" width="124" height="22" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/>
-<text x="582" y="237" font-size="11" style="fill:currentColor">표제란 옆</text>
-<text x="686" y="237" font-size="11" text-anchor="end" style="fill:var(--muted)">▾</text>
-<text x="24" y="276" font-size="11" font-weight="600" style="fill:currentColor">최근 비교</text>
-<line x1="24" y1="284" x2="660" y2="284" stroke-width="1" style="stroke:currentColor"/>
-<text x="24" y="304" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">08-28</text>
-<text x="84" y="304" font-size="11" style="fill:currentColor">실시도서 REV1 → REV2</text>
-<text x="660" y="304" font-size="10.5" text-anchor="end" style="fill:var(--muted)">변경 9 / 도곽 74</text>
-<text x="24" y="326" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">08-12</text>
-<text x="84" y="326" font-size="11" style="fill:currentColor">골조샵 REV0 → REV1</text>
-<text x="660" y="326" font-size="10.5" text-anchor="end" style="fill:var(--muted)">변경 4 / 도곽 5</text>
-<text x="24" y="348" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">07-30</text>
-<text x="84" y="348" font-size="11" style="fill:currentColor">실시도서 REV0 → REV1</text>
-<text x="660" y="348" font-size="10.5" text-anchor="end" style="fill:var(--muted)">변경 21 / 도곽 72</text>
-<rect x="704" y="304" width="132" height="36" rx="3" stroke-width="1" style="stroke:#B6304F;fill:#B6304F"/><text x="770.0" y="326.68" font-size="13" text-anchor="middle" font-weight="500" style="fill:#fff">비교 시작</text>
+<rect x="0" y="0" width="860" height="31" stroke-width="1" style="stroke:none;fill:#1C2228"/>
+<text x="16" y="20" font-size="12" font-weight="600" style="fill:#E3E8EC">리비전 도면 관리 앱 · 세트 지정</text>
+<line x1="0" y1="30.5" x2="860" y2="30.5" stroke-width="1" style="stroke:#2E3840"/>
+<rect x="24" y="50" width="396" height="150" rx="4" stroke-width="1.5" stroke-dasharray="6 4" style="stroke:#8A949B;fill:none"/>
+<text x="40" y="76" font-size="13" font-weight="600" style="fill:#8A949B">변경 전 폴더</text>
+<text x="40" y="102" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:#E3E8EC">D:\현장\김화공고\실시도서_REV2\</text>
+<text x="40" y="126" font-size="11" style="fill:#93A0A9">DWG 68 · XR 폴더 27 자동 인식</text>
+<text x="40" y="148" font-size="11" style="fill:#93A0A9">표제란 읽기 완료 · 도곽 74장</text>
+<rect x="324" y="164" width="80" height="22" rx="3" stroke-width="1" style="stroke:#4A5560;fill:none"/><text x="364.0" y="178.96" font-size="11" text-anchor="middle" style="fill:#E3E8EC">폴더 선택…</text>
+<rect x="440" y="50" width="396" height="150" rx="4" stroke-width="1.5" stroke-dasharray="6 4" style="stroke:#4FB3C4;fill:none"/>
+<text x="456" y="76" font-size="13" font-weight="600" style="fill:#4FB3C4">변경 후 폴더</text>
+<text x="456" y="102" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:#E3E8EC">D:\현장\김화공고\실시도서_REV3\</text>
+<text x="456" y="126" font-size="11" style="fill:#93A0A9">DWG 69 · XR 폴더 27 자동 인식</text>
+<text x="456" y="148" font-size="11" style="fill:#93A0A9">표제란 읽기 완료 · 도곽 74장</text>
+<rect x="740" y="164" width="80" height="22" rx="3" stroke-width="1" style="stroke:#4A5560;fill:none"/><text x="780.0" y="178.96" font-size="11" text-anchor="middle" style="fill:#E3E8EC">폴더 선택…</text>
+<text x="24" y="238" font-size="11" style="fill:#93A0A9">사소한 변경 기준</text>
+<rect x="128" y="222" width="64" height="22" rx="3" stroke-width="1" style="stroke:#4A5560;fill:none"/>
+<text x="160" y="237" font-size="11" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#E3E8EC">1 mm</text>
+<text x="216" y="238" font-size="11" style="fill:#93A0A9">클라우드 마크 규격</text>
+<rect x="332" y="222" width="124" height="22" rx="3" stroke-width="1" style="stroke:#4A5560;fill:none"/>
+<text x="342" y="237" font-size="11" style="fill:#E3E8EC">회사 표준</text>
+<text x="446" y="237" font-size="11" text-anchor="end" style="fill:#93A0A9">▾</text>
+<text x="480" y="238" font-size="11" style="fill:#93A0A9">리비전 표 양식</text>
+<rect x="572" y="222" width="124" height="22" rx="3" stroke-width="1" style="stroke:#4A5560;fill:none"/>
+<text x="582" y="237" font-size="11" style="fill:#E3E8EC">표제란 옆</text>
+<text x="686" y="237" font-size="11" text-anchor="end" style="fill:#93A0A9">▾</text>
+<text x="24" y="276" font-size="11" font-weight="600" style="fill:#E3E8EC">최근 비교</text>
+<line x1="24" y1="284" x2="660" y2="284" stroke-width="1" style="stroke:#E3E8EC"/>
+<text x="24" y="304" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">08-28</text>
+<text x="84" y="304" font-size="11" style="fill:#E3E8EC">실시도서 REV1 → REV2</text>
+<text x="660" y="304" font-size="10.5" text-anchor="end" style="fill:#93A0A9">변경 9 / 도곽 74</text>
+<text x="24" y="326" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">08-12</text>
+<text x="84" y="326" font-size="11" style="fill:#E3E8EC">골조샵 REV0 → REV1</text>
+<text x="660" y="326" font-size="10.5" text-anchor="end" style="fill:#93A0A9">변경 4 / 도곽 5</text>
+<text x="24" y="348" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">07-30</text>
+<text x="84" y="348" font-size="11" style="fill:#E3E8EC">실시도서 REV0 → REV1</text>
+<text x="660" y="348" font-size="10.5" text-anchor="end" style="fill:#93A0A9">변경 21 / 도곽 72</text>
+<rect x="704" y="304" width="132" height="36" rx="3" stroke-width="1" style="stroke:#C9405A;fill:#C9405A"/><text x="770.0" y="326.68" font-size="13" text-anchor="middle" font-weight="500" style="fill:#fff">비교 시작</text>
 </g>
 </svg>
     <figcaption>변경 전·후 폴더를 지정하면 XR 폴더와 도곽 수를 바로 읽어 보여준다. 결정 요청 세 가지(사소한 변경 기준, 클라우드 마크 규격, 리비전 표 양식)가 여기 옵션으로 들어간다.</figcaption>
@@ -317,88 +318,89 @@
   <h3>화면 B · 도곽 목록</h3>
   <figure>
     <svg viewBox="0 0 860 400" role="img" aria-label="도곽 목록 화면. 전체, 변경, 동일, 신규, 삭제, 짝 없음 필터와 도면번호, 도면명, 전후 리비전, 변경 수 막대, 상태 열이 있는 표. 짝 없음 행에는 수동 짝 맞춤 버튼, 아래에 도곽 열기, 선택 도곽 출력, 전체 도곽 출력 버튼">
+<rect x="0" y="0" width="860" height="400" style="fill:#14181C"/>
 <g font-family="Noto Sans KR, sans-serif" font-size="11">
-<rect x="0.5" y="0.5" width="859" height="30" stroke-width="1" style="stroke:currentColor;fill:var(--code-bg)"/>
-<text x="16" y="20" font-size="12" font-weight="600" style="fill:currentColor">도곽 목록 · 실시도서 REV2 → REV3</text>
-<line x1="0" y1="30.5" x2="860" y2="30.5" stroke-width="1" style="stroke:currentColor"/>
-<rect x="24" y="44" width="66" height="22" rx="8" stroke-width="1" style="stroke:none;fill:var(--code-bg)"/><text x="57.0" y="58.4" font-size="10.5" text-anchor="middle" style="fill:currentColor">전체 74</text>
-<rect x="98" y="44" width="66" height="22" rx="8" stroke-width="1" style="stroke:var(--accent);fill:var(--accent-soft)"/><text x="131.0" y="58.4" font-size="10.5" text-anchor="middle" style="fill:var(--accent)">변경 12</text>
-<rect x="172" y="44" width="66" height="22" rx="8" stroke-width="1" style="stroke:var(--before);fill:none"/><text x="205.0" y="58.4" font-size="10.5" text-anchor="middle" style="fill:var(--before)">동일 58</text>
-<rect x="246" y="44" width="58" height="22" rx="8" stroke-width="1" style="stroke:var(--before);fill:none"/><text x="275.0" y="58.4" font-size="10.5" text-anchor="middle" style="fill:var(--before)">신규 2</text>
-<rect x="312" y="44" width="58" height="22" rx="8" stroke-width="1" style="stroke:var(--before);fill:none"/><text x="341.0" y="58.4" font-size="10.5" text-anchor="middle" style="fill:var(--before)">삭제 1</text>
-<rect x="378" y="44" width="78" height="22" rx="8" stroke-width="1" style="stroke:var(--before);fill:none"/><text x="417.0" y="58.4" font-size="10.5" text-anchor="middle" style="fill:var(--before)">짝 없음 1</text>
-<rect x="640" y="44" width="196" height="22" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/>
-<text x="650" y="59" font-size="10.5" style="fill:var(--muted)">도면번호·제목 검색</text>
-<text x="24" y="88" font-size="10" font-weight="600" style="fill:var(--muted)">도면번호</text>
-<text x="110" y="88" font-size="10" font-weight="600" style="fill:var(--muted)">도면명</text>
-<text x="400" y="88" font-size="10" font-weight="600" style="fill:var(--muted)">전</text>
-<text x="480" y="88" font-size="10" font-weight="600" style="fill:var(--muted)">후</text>
-<text x="560" y="88" font-size="10" font-weight="600" style="fill:var(--muted)">변경</text>
-<text x="700" y="88" font-size="10" font-weight="600" style="fill:var(--muted)">상태</text>
-<line x1="24" y1="94" x2="836" y2="94" stroke-width="1" style="stroke:currentColor"/>
-<text x="24" y="117" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:currentColor">A-101</text>
-<text x="110" y="117" font-size="11" style="fill:currentColor">1층 평면도</text>
-<text x="400" y="117" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">REV2 08-14</text>
-<text x="480" y="117" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">REV3 09-01</text>
-<rect x="560" y="107" width="96" height="10" stroke-width="1" style="stroke:none;fill:var(--accent)"/>
-<text x="662" y="117" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:currentColor">12</text>
-<rect x="700" y="104" width="54" height="16" rx="8" stroke-width="1" style="stroke:var(--accent);fill:var(--accent-soft)"/><text x="727.0" y="115.4" font-size="9.5" text-anchor="middle" style="fill:var(--accent)">변경</text>
-<line x1="24" y1="128" x2="836" y2="128" stroke-width="1" style="stroke:var(--line)"/>
-<rect x="20" y="130" width="816" height="27" rx="3" stroke-width="1" style="stroke:none;fill:var(--after-soft)"/>
-<text x="24" y="147" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:currentColor">A-102</text>
-<text x="110" y="147" font-size="11" style="fill:currentColor">2층 평면도</text>
-<text x="400" y="147" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">REV2 08-14</text>
-<text x="480" y="147" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">REV3 09-01</text>
-<rect x="560" y="137" width="56" height="10" stroke-width="1" style="stroke:none;fill:var(--accent)"/>
-<text x="622" y="147" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:currentColor">7</text>
-<rect x="700" y="134" width="54" height="16" rx="8" stroke-width="1" style="stroke:var(--accent);fill:var(--accent-soft)"/><text x="727.0" y="145.4" font-size="9.5" text-anchor="middle" style="fill:var(--accent)">변경</text>
-<line x1="24" y1="158" x2="836" y2="158" stroke-width="1" style="stroke:var(--line)"/>
-<text x="24" y="177" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:currentColor">A-201</text>
-<text x="110" y="177" font-size="11" style="fill:currentColor">정면도</text>
-<text x="400" y="177" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">REV2 08-14</text>
-<text x="480" y="177" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">REV3 09-01</text>
-<rect x="560" y="167" width="24" height="10" stroke-width="1" style="stroke:none;fill:var(--accent)"/>
-<text x="590" y="177" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:currentColor">3</text>
-<rect x="700" y="164" width="54" height="16" rx="8" stroke-width="1" style="stroke:var(--accent);fill:var(--accent-soft)"/><text x="727.0" y="175.4" font-size="9.5" text-anchor="middle" style="fill:var(--accent)">변경</text>
-<line x1="24" y1="188" x2="836" y2="188" stroke-width="1" style="stroke:var(--line)"/>
-<text x="24" y="207" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:currentColor">A-301</text>
-<text x="110" y="207" font-size="11" style="fill:currentColor">단면도 A</text>
-<text x="400" y="207" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">REV2 08-14</text>
-<text x="480" y="207" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">REV3 09-01</text>
-<rect x="560" y="197" width="8" height="10" stroke-width="1" style="stroke:none;fill:var(--accent)"/>
-<text x="574" y="207" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:currentColor">1</text>
-<rect x="700" y="194" width="54" height="16" rx="8" stroke-width="1" style="stroke:var(--accent);fill:var(--accent-soft)"/><text x="727.0" y="205.4" font-size="9.5" text-anchor="middle" style="fill:var(--accent)">변경</text>
-<line x1="24" y1="218" x2="836" y2="218" stroke-width="1" style="stroke:var(--line)"/>
-<text x="24" y="237" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:currentColor">A-105</text>
-<text x="110" y="237" font-size="11" style="fill:currentColor">지붕 평면도</text>
-<text x="400" y="237" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">REV2 08-14</text>
-<text x="480" y="237" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">REV3 09-01</text>
-<text x="560" y="237" font-size="11" style="fill:var(--muted)">–</text>
-<rect x="700" y="224" width="54" height="16" rx="8" stroke-width="1" style="stroke:var(--before);fill:none"/><text x="727.0" y="235.4" font-size="9.5" text-anchor="middle" style="fill:var(--before)">동일</text>
-<line x1="24" y1="248" x2="836" y2="248" stroke-width="1" style="stroke:var(--line)"/>
-<text x="24" y="267" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:currentColor">S-104</text>
-<text x="110" y="267" font-size="11" style="fill:currentColor">기초 배근도</text>
-<text x="400" y="267" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">–</text>
-<text x="480" y="267" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">REV3 09-01</text>
-<rect x="700" y="254" width="54" height="16" rx="8" stroke-width="1" style="stroke:var(--after);fill:var(--after-soft)"/><text x="727.0" y="265.4" font-size="9.5" text-anchor="middle" style="fill:var(--after)">신규</text>
-<line x1="24" y1="278" x2="836" y2="278" stroke-width="1" style="stroke:var(--line)"/>
-<text x="24" y="297" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:currentColor">E-203</text>
-<text x="110" y="297" font-size="11" style="fill:currentColor">전등 설비도</text>
-<text x="400" y="297" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">REV2 08-14</text>
-<text x="480" y="297" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">–</text>
-<rect x="700" y="284" width="54" height="16" rx="8" stroke-width="1" style="stroke:var(--before);fill:none"/><text x="727.0" y="295.4" font-size="9.5" text-anchor="middle" style="fill:var(--before)">삭제</text>
-<line x1="24" y1="308" x2="836" y2="308" stroke-width="1" style="stroke:var(--line)"/>
-<text x="24" y="327" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:currentColor">M-110</text>
-<text x="110" y="327" font-size="11" style="fill:currentColor">덕트 평면도</text>
-<text x="400" y="327" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">?</text>
-<text x="480" y="327" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">REV3 09-01</text>
-<rect x="700" y="314" width="54" height="16" rx="8" stroke-width="1" style="stroke:var(--before);fill:none"/><text x="727.0" y="325.4" font-size="9.5" text-anchor="middle" style="fill:var(--before)">짝 없음</text>
-<rect x="764" y="313" width="72" height="18" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/><text x="800.0" y="325.6" font-size="10" text-anchor="middle" style="fill:currentColor">수동 짝 맞춤</text>
-<line x1="24" y1="338" x2="836" y2="338" stroke-width="1" style="stroke:var(--line)"/>
-<text x="24" y="372" font-size="11" style="fill:var(--muted)">변경 12 도곽 · 승인 23건 · 미결 2건 · 사소한 변경 41건 접힘</text>
-<rect x="448" y="352" width="100" height="32" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/><text x="498.0" y="372.32" font-size="12" text-anchor="middle" style="fill:currentColor">도곽 열기</text>
-<rect x="556" y="352" width="132" height="32" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/><text x="622.0" y="372.32" font-size="12" text-anchor="middle" style="fill:currentColor">선택 도곽 출력…</text>
-<rect x="704" y="352" width="132" height="32" rx="3" stroke-width="1" style="stroke:#B6304F;fill:#B6304F"/><text x="770.0" y="372.32" font-size="12" text-anchor="middle" font-weight="500" style="fill:#fff">전체 도곽 출력…</text>
+<rect x="0" y="0" width="860" height="31" stroke-width="1" style="stroke:none;fill:#1C2228"/>
+<text x="16" y="20" font-size="12" font-weight="600" style="fill:#E3E8EC">도곽 목록 · 실시도서 REV2 → REV3</text>
+<line x1="0" y1="30.5" x2="860" y2="30.5" stroke-width="1" style="stroke:#2E3840"/>
+<rect x="24" y="44" width="66" height="22" rx="8" stroke-width="1" style="stroke:none;fill:#242C32"/><text x="57.0" y="58.4" font-size="10.5" text-anchor="middle" style="fill:#E3E8EC">전체 74</text>
+<rect x="98" y="44" width="66" height="22" rx="8" stroke-width="1" style="stroke:#E06C86;fill:#3A2129"/><text x="131.0" y="58.4" font-size="10.5" text-anchor="middle" style="fill:#E06C86">변경 12</text>
+<rect x="172" y="44" width="66" height="22" rx="8" stroke-width="1" style="stroke:#8A949B;fill:none"/><text x="205.0" y="58.4" font-size="10.5" text-anchor="middle" style="fill:#8A949B">동일 58</text>
+<rect x="246" y="44" width="58" height="22" rx="8" stroke-width="1" style="stroke:#8A949B;fill:none"/><text x="275.0" y="58.4" font-size="10.5" text-anchor="middle" style="fill:#8A949B">신규 2</text>
+<rect x="312" y="44" width="58" height="22" rx="8" stroke-width="1" style="stroke:#8A949B;fill:none"/><text x="341.0" y="58.4" font-size="10.5" text-anchor="middle" style="fill:#8A949B">삭제 1</text>
+<rect x="378" y="44" width="78" height="22" rx="8" stroke-width="1" style="stroke:#8A949B;fill:none"/><text x="417.0" y="58.4" font-size="10.5" text-anchor="middle" style="fill:#8A949B">짝 없음 1</text>
+<rect x="640" y="44" width="196" height="22" rx="3" stroke-width="1" style="stroke:#4A5560;fill:none"/>
+<text x="650" y="59" font-size="10.5" style="fill:#93A0A9">도면번호·제목 검색</text>
+<text x="24" y="88" font-size="10" font-weight="600" style="fill:#93A0A9">도면번호</text>
+<text x="110" y="88" font-size="10" font-weight="600" style="fill:#93A0A9">도면명</text>
+<text x="400" y="88" font-size="10" font-weight="600" style="fill:#93A0A9">전</text>
+<text x="480" y="88" font-size="10" font-weight="600" style="fill:#93A0A9">후</text>
+<text x="560" y="88" font-size="10" font-weight="600" style="fill:#93A0A9">변경</text>
+<text x="700" y="88" font-size="10" font-weight="600" style="fill:#93A0A9">상태</text>
+<line x1="24" y1="94" x2="836" y2="94" stroke-width="1" style="stroke:#E3E8EC"/>
+<text x="24" y="117" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:#E3E8EC">A-101</text>
+<text x="110" y="117" font-size="11" style="fill:#E3E8EC">1층 평면도</text>
+<text x="400" y="117" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">REV2 08-14</text>
+<text x="480" y="117" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">REV3 09-01</text>
+<rect x="560" y="107" width="96" height="10" stroke-width="1" style="stroke:none;fill:#E06C86"/>
+<text x="662" y="117" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:#E3E8EC">12</text>
+<rect x="700" y="104" width="54" height="16" rx="8" stroke-width="1" style="stroke:#E06C86;fill:#3A2129"/><text x="727.0" y="115.4" font-size="9.5" text-anchor="middle" style="fill:#E06C86">변경</text>
+<line x1="24" y1="128" x2="836" y2="128" stroke-width="1" style="stroke:#2E3840"/>
+<rect x="20" y="130" width="816" height="27" rx="3" stroke-width="1" style="stroke:none;fill:#17333A"/>
+<text x="24" y="147" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:#E3E8EC">A-102</text>
+<text x="110" y="147" font-size="11" style="fill:#E3E8EC">2층 평면도</text>
+<text x="400" y="147" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">REV2 08-14</text>
+<text x="480" y="147" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">REV3 09-01</text>
+<rect x="560" y="137" width="56" height="10" stroke-width="1" style="stroke:none;fill:#E06C86"/>
+<text x="622" y="147" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:#E3E8EC">7</text>
+<rect x="700" y="134" width="54" height="16" rx="8" stroke-width="1" style="stroke:#E06C86;fill:#3A2129"/><text x="727.0" y="145.4" font-size="9.5" text-anchor="middle" style="fill:#E06C86">변경</text>
+<line x1="24" y1="158" x2="836" y2="158" stroke-width="1" style="stroke:#2E3840"/>
+<text x="24" y="177" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:#E3E8EC">A-201</text>
+<text x="110" y="177" font-size="11" style="fill:#E3E8EC">정면도</text>
+<text x="400" y="177" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">REV2 08-14</text>
+<text x="480" y="177" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">REV3 09-01</text>
+<rect x="560" y="167" width="24" height="10" stroke-width="1" style="stroke:none;fill:#E06C86"/>
+<text x="590" y="177" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:#E3E8EC">3</text>
+<rect x="700" y="164" width="54" height="16" rx="8" stroke-width="1" style="stroke:#E06C86;fill:#3A2129"/><text x="727.0" y="175.4" font-size="9.5" text-anchor="middle" style="fill:#E06C86">변경</text>
+<line x1="24" y1="188" x2="836" y2="188" stroke-width="1" style="stroke:#2E3840"/>
+<text x="24" y="207" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:#E3E8EC">A-301</text>
+<text x="110" y="207" font-size="11" style="fill:#E3E8EC">단면도 A</text>
+<text x="400" y="207" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">REV2 08-14</text>
+<text x="480" y="207" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">REV3 09-01</text>
+<rect x="560" y="197" width="8" height="10" stroke-width="1" style="stroke:none;fill:#E06C86"/>
+<text x="574" y="207" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:#E3E8EC">1</text>
+<rect x="700" y="194" width="54" height="16" rx="8" stroke-width="1" style="stroke:#E06C86;fill:#3A2129"/><text x="727.0" y="205.4" font-size="9.5" text-anchor="middle" style="fill:#E06C86">변경</text>
+<line x1="24" y1="218" x2="836" y2="218" stroke-width="1" style="stroke:#2E3840"/>
+<text x="24" y="237" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:#E3E8EC">A-105</text>
+<text x="110" y="237" font-size="11" style="fill:#E3E8EC">지붕 평면도</text>
+<text x="400" y="237" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">REV2 08-14</text>
+<text x="480" y="237" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">REV3 09-01</text>
+<text x="560" y="237" font-size="11" style="fill:#93A0A9">–</text>
+<rect x="700" y="224" width="54" height="16" rx="8" stroke-width="1" style="stroke:#8A949B;fill:none"/><text x="727.0" y="235.4" font-size="9.5" text-anchor="middle" style="fill:#8A949B">동일</text>
+<line x1="24" y1="248" x2="836" y2="248" stroke-width="1" style="stroke:#2E3840"/>
+<text x="24" y="267" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:#E3E8EC">S-104</text>
+<text x="110" y="267" font-size="11" style="fill:#E3E8EC">기초 배근도</text>
+<text x="400" y="267" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">–</text>
+<text x="480" y="267" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">REV3 09-01</text>
+<rect x="700" y="254" width="54" height="16" rx="8" stroke-width="1" style="stroke:#4FB3C4;fill:#17333A"/><text x="727.0" y="265.4" font-size="9.5" text-anchor="middle" style="fill:#4FB3C4">신규</text>
+<line x1="24" y1="278" x2="836" y2="278" stroke-width="1" style="stroke:#2E3840"/>
+<text x="24" y="297" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:#E3E8EC">E-203</text>
+<text x="110" y="297" font-size="11" style="fill:#E3E8EC">전등 설비도</text>
+<text x="400" y="297" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">REV2 08-14</text>
+<text x="480" y="297" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">–</text>
+<rect x="700" y="284" width="54" height="16" rx="8" stroke-width="1" style="stroke:#8A949B;fill:none"/><text x="727.0" y="295.4" font-size="9.5" text-anchor="middle" style="fill:#8A949B">삭제</text>
+<line x1="24" y1="308" x2="836" y2="308" stroke-width="1" style="stroke:#2E3840"/>
+<text x="24" y="327" font-size="11" font-family="IBM Plex Mono, monospace" style="fill:#E3E8EC">M-110</text>
+<text x="110" y="327" font-size="11" style="fill:#E3E8EC">덕트 평면도</text>
+<text x="400" y="327" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">?</text>
+<text x="480" y="327" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">REV3 09-01</text>
+<rect x="700" y="314" width="54" height="16" rx="8" stroke-width="1" style="stroke:#8A949B;fill:none"/><text x="727.0" y="325.4" font-size="9.5" text-anchor="middle" style="fill:#8A949B">짝 없음</text>
+<rect x="764" y="313" width="72" height="18" rx="3" stroke-width="1" style="stroke:#4A5560;fill:none"/><text x="800.0" y="325.6" font-size="10" text-anchor="middle" style="fill:#E3E8EC">수동 짝 맞춤</text>
+<line x1="24" y1="338" x2="836" y2="338" stroke-width="1" style="stroke:#2E3840"/>
+<text x="24" y="372" font-size="11" style="fill:#93A0A9">변경 12 도곽 · 승인 23건 · 미결 2건 · 사소한 변경 41건 접힘</text>
+<rect x="448" y="352" width="100" height="32" rx="3" stroke-width="1" style="stroke:#4A5560;fill:none"/><text x="498.0" y="372.32" font-size="12" text-anchor="middle" style="fill:#E3E8EC">도곽 열기</text>
+<rect x="556" y="352" width="132" height="32" rx="3" stroke-width="1" style="stroke:#4A5560;fill:none"/><text x="622.0" y="372.32" font-size="12" text-anchor="middle" style="fill:#E3E8EC">선택 도곽 출력…</text>
+<rect x="704" y="352" width="132" height="32" rx="3" stroke-width="1" style="stroke:#C9405A;fill:#C9405A"/><text x="770.0" y="372.32" font-size="12" text-anchor="middle" font-weight="500" style="fill:#fff">전체 도곽 출력…</text>
 </g>
 </svg>
     <figcaption>짝이 맞은 도곽을 변경 많은 순으로 보여준다. 신규·삭제·짝 없음은 따로 표시하고, 짝 없음은 이 화면에서 수동으로 맞춘다. 검토가 끝나면 여기서 전체 도곽 또는 선택 도곽을 출력한다.</figcaption>
@@ -406,21 +408,22 @@
   <h3>화면 C · 비교 작업 화면</h3>
   <figure>
     <svg viewBox="0 0 860 520" role="img" aria-label="비교 작업 화면. 왼쪽은 검정 바탕 캔버스로 안 바뀐 선은 레이어 원색, 후에만 있는 선은 빨강, 전에만 있는 선은 시안으로 겹쳐 있고 다섯 개의 붉은 클라우드 마크에 번호가 붙어 있다. 캔버스 위에는 선택, 마크 그리기(폴리라인), 텍스트, 지우기 도구가 있고 사용자가 직접 그린 여덟 번째 클라우드 마크와 텍스트가 있다. 오른쪽 변경 리스트에는 자동 7건과 수동 1건이 있고 항목마다 종류, 설명, 승인과 무시 버튼이 있으며 아래에 사소한 변경이 접혀 있다. 하단에 전체 도곽 출력, 선택 도곽 출력, 표 텍스트 복사 버튼">
+<rect x="0" y="0" width="860" height="520" style="fill:#14181C"/>
 <g font-family="Noto Sans KR, sans-serif" font-size="11">
-<rect x="0.5" y="0.5" width="859" height="30" stroke-width="1" style="stroke:currentColor;fill:var(--code-bg)"/>
-<text x="16" y="20" font-size="12" font-weight="600" style="fill:currentColor">A-102 2층 평면도 · REV2 (08-14) → REV3 (09-01)</text>
-<line x1="0" y1="30.5" x2="860" y2="30.5" stroke-width="1" style="stroke:currentColor"/>
-<rect x="470" y="8" width="220" height="20" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/>
-<rect x="470" y="8" width="70" height="20" rx="3" stroke-width="1" style="stroke:none;fill:var(--after-soft)"/>
-<text x="505" y="22" font-size="10.5" text-anchor="middle" font-weight="600" style="fill:var(--after)">겹쳐 보기</text>
-<line x1="540" y1="8" x2="540" y2="28" stroke-width="1" style="stroke:currentColor"/>
-<text x="565" y="22" font-size="10.5" text-anchor="middle" style="fill:currentColor">전</text>
-<line x1="590" y1="8" x2="590" y2="28" stroke-width="1" style="stroke:currentColor"/>
-<text x="615" y="22" font-size="10.5" text-anchor="middle" style="fill:currentColor">후</text>
-<line x1="640" y1="8" x2="640" y2="28" stroke-width="1" style="stroke:currentColor"/>
-<text x="665" y="22" font-size="10.5" text-anchor="middle" style="fill:currentColor">나란히</text>
-<rect x="772" y="8" width="64" height="20" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/><text x="804.0" y="21.78" font-size="10.5" text-anchor="middle" style="fill:currentColor">레이어 ▾</text>
-<rect x="12" y="40" width="560" height="420" stroke-width="1" style="stroke:#3A444C;fill:#101418"/>
+<rect x="0" y="0" width="860" height="31" stroke-width="1" style="stroke:none;fill:#1C2228"/>
+<text x="16" y="20" font-size="12" font-weight="600" style="fill:#E3E8EC">A-102 2층 평면도 · REV2 (08-14) → REV3 (09-01)</text>
+<line x1="0" y1="30.5" x2="860" y2="30.5" stroke-width="1" style="stroke:#2E3840"/>
+<rect x="470" y="8" width="220" height="20" rx="3" stroke-width="1" style="stroke:#4A5560;fill:none"/>
+<rect x="470" y="8" width="70" height="20" rx="3" stroke-width="1" style="stroke:none;fill:#17333A"/>
+<text x="505" y="22" font-size="10.5" text-anchor="middle" font-weight="600" style="fill:#4FB3C4">겹쳐 보기</text>
+<line x1="540" y1="8" x2="540" y2="28" stroke-width="1" style="stroke:#E3E8EC"/>
+<text x="565" y="22" font-size="10.5" text-anchor="middle" style="fill:#E3E8EC">전</text>
+<line x1="590" y1="8" x2="590" y2="28" stroke-width="1" style="stroke:#E3E8EC"/>
+<text x="615" y="22" font-size="10.5" text-anchor="middle" style="fill:#E3E8EC">후</text>
+<line x1="640" y1="8" x2="640" y2="28" stroke-width="1" style="stroke:#E3E8EC"/>
+<text x="665" y="22" font-size="10.5" text-anchor="middle" style="fill:#E3E8EC">나란히</text>
+<rect x="772" y="8" width="64" height="20" rx="3" stroke-width="1" style="stroke:#4A5560;fill:none"/><text x="804.0" y="21.78" font-size="10.5" text-anchor="middle" style="fill:#E3E8EC">레이어 ▾</text>
+<rect x="12" y="40" width="560" height="420" stroke-width="1" style="stroke:#4A5560;fill:#101418"/>
 <rect x="60" y="80" width="420" height="320" stroke-width="1.4" style="stroke:#C9CED3;fill:none"/>
 <line x1="60" y1="240" x2="480" y2="240" stroke-width="1.4" style="stroke:#C9CED3"/>
 <path d="M200 240 A30 30 0 0 0 170 210" fill="none" stroke-width="1.2" style="stroke:#C9CED3"/>
@@ -444,12 +447,12 @@
 <line x1="480" y1="418" x2="480" y2="430" stroke-width="1" style="stroke:#FF5A5A"/>
 <text x="270" y="437" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#FF5A5A">8,700</text>
 <text x="120" y="316" font-size="10" style="fill:#FF5A5A">주기: 방화문 FD-2</text>
-<path d="M236 92 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 z" fill="none" stroke-width="1.5" style="stroke:#FF5A5A"/><circle cx="306" cy="92" r="8" fill="#B6304F"/><text x="306" y="95.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">1</text>
-<path d="M318 226 q6 -8.1 12 0 q6 -8.1 12 0 q6 -8.1 12 0 q6 -8.1 12 0 q8.1 6 0 12 q8.1 6 0 12 q-6 8.1 -12 0 q-6 8.1 -12 0 q-6 8.1 -12 0 q-6 8.1 -12 0 q-8.1 -6 0 -12 q-8.1 -6 0 -12 z" fill="none" stroke-width="1.5" style="stroke:#FF5A5A"/><circle cx="366" cy="226" r="8" fill="#B6304F"/><text x="366" y="229.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">2</text>
-<path d="M232 396 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 z" fill="none" stroke-width="1.5" style="stroke:#FF5A5A"/><circle cx="316" cy="396" r="8" fill="#B6304F"/><text x="316" y="399.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">3</text>
-<path d="M108 286 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 z" fill="none" stroke-width="1.5" style="stroke:#FF5A5A"/><circle cx="234" cy="286" r="8" fill="#B6304F"/><text x="234" y="289.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">4</text>
-<path d="M386 68 q7 -9.5 14 0 q7 -9.5 14 0 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q-7 9.5 -14 0 q-7 9.5 -14 0 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 z" fill="none" stroke-width="1.5" style="stroke:#FF5A5A"/><circle cx="414" cy="68" r="8" fill="#B6304F"/><text x="414" y="71.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">5</text>
-<path d="M330 300 q9 -12.2 18 0 q9 -12.2 18 0 q9 -12.2 18 0 q9 -12.2 18 0 q9 -12.2 18 0 q9 -12.2 18 0 q9 -12.2 18 0 q12.2 9 0 18 q12.2 9 0 18 q12.2 9 0 18 q-9 12.2 -18 0 q-9 12.2 -18 0 q-9 12.2 -18 0 q-9 12.2 -18 0 q-9 12.2 -18 0 q-9 12.2 -18 0 q-9 12.2 -18 0 q-12.2 -9 0 -18 q-12.2 -9 0 -18 q-12.2 -9 0 -18 z" fill="none" stroke-width="1.5" style="stroke:#FF5A5A"/><circle cx="456" cy="300" r="8" fill="#B6304F"/><text x="456" y="303.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">8</text>
+<path d="M236 92 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 z" fill="none" stroke-width="1.5" style="stroke:#FF5A5A"/><circle cx="306" cy="92" r="8" fill="#C9405A"/><text x="306" y="95.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">1</text>
+<path d="M318 226 q6 -8.1 12 0 q6 -8.1 12 0 q6 -8.1 12 0 q6 -8.1 12 0 q8.1 6 0 12 q8.1 6 0 12 q-6 8.1 -12 0 q-6 8.1 -12 0 q-6 8.1 -12 0 q-6 8.1 -12 0 q-8.1 -6 0 -12 q-8.1 -6 0 -12 z" fill="none" stroke-width="1.5" style="stroke:#FF5A5A"/><circle cx="366" cy="226" r="8" fill="#C9405A"/><text x="366" y="229.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">2</text>
+<path d="M232 396 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 z" fill="none" stroke-width="1.5" style="stroke:#FF5A5A"/><circle cx="316" cy="396" r="8" fill="#C9405A"/><text x="316" y="399.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">3</text>
+<path d="M108 286 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q7 -9.5 14 0 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-7 9.5 -14 0 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 z" fill="none" stroke-width="1.5" style="stroke:#FF5A5A"/><circle cx="234" cy="286" r="8" fill="#C9405A"/><text x="234" y="289.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">4</text>
+<path d="M386 68 q7 -9.5 14 0 q7 -9.5 14 0 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q9.5 7 0 14 q-7 9.5 -14 0 q-7 9.5 -14 0 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 q-9.5 -7 0 -14 z" fill="none" stroke-width="1.5" style="stroke:#FF5A5A"/><circle cx="414" cy="68" r="8" fill="#C9405A"/><text x="414" y="71.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">5</text>
+<path d="M330 300 q9 -12.2 18 0 q9 -12.2 18 0 q9 -12.2 18 0 q9 -12.2 18 0 q9 -12.2 18 0 q9 -12.2 18 0 q9 -12.2 18 0 q12.2 9 0 18 q12.2 9 0 18 q12.2 9 0 18 q-9 12.2 -18 0 q-9 12.2 -18 0 q-9 12.2 -18 0 q-9 12.2 -18 0 q-9 12.2 -18 0 q-9 12.2 -18 0 q-9 12.2 -18 0 q-12.2 -9 0 -18 q-12.2 -9 0 -18 q-12.2 -9 0 -18 z" fill="none" stroke-width="1.5" style="stroke:#FF5A5A"/><circle cx="456" cy="300" r="8" fill="#C9405A"/><text x="456" y="303.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">8</text>
 <text x="392" y="332" font-size="10" text-anchor="middle" font-weight="600" style="fill:#FF5A5A">배수구 위치 확인 요망</text>
 <rect x="20" y="46" width="52" height="20" rx="3" stroke-width="1" style="stroke:#4FB3C4;fill:#1E3A43"/>
 <text x="46" y="60" font-size="10.5" text-anchor="middle" font-weight="600" style="fill:#4FB3C4">선택</text>
@@ -469,88 +472,88 @@
 <text x="392" y="452" font-size="10" style="fill:#B8C0C6">변경 영역</text>
 <rect x="440" y="436" width="124" height="18" rx="3" stroke-width="1" style="stroke:#6B7680;fill:#1C2328"/>
 <text x="502" y="449" font-size="10.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#D8DCE0">‹  번호 2 / 8  ›</text>
-<rect x="584" y="40" width="264" height="420" stroke-width="1" style="stroke:currentColor;fill:none"/>
-<text x="596" y="60" font-size="12" font-weight="600" style="fill:currentColor">변경 리스트 · 8건 (자동 7 · 수동 1)</text>
-<text x="596" y="78" font-size="10.5" style="fill:var(--muted)">승인 6 · 무시 1 · 미결 1</text>
-<line x1="584" y1="86" x2="848" y2="86" stroke-width="1" style="stroke:currentColor"/>
-<circle cx="602" cy="105" r="8" fill="#B6304F"/><text x="602" y="108.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">1</text>
-<rect x="618" y="97" width="36" height="16" rx="8" stroke-width="1" style="stroke:none;fill:var(--code-bg)"/><text x="636.0" y="108.4" font-size="9" text-anchor="middle" style="fill:currentColor">기하</text>
-<text x="662" y="109" font-size="11" style="fill:currentColor">내벽 이동 (동쪽 400mm)</text>
-<rect x="662" y="115" width="40" height="14" rx="3" stroke-width="1" style="stroke:var(--after);fill:var(--after-soft)"/>
-<text x="682" y="125.5" font-size="9.5" text-anchor="middle" font-weight="600" style="fill:var(--after)">승인</text>
-<rect x="708" y="115" width="40" height="14" rx="3" stroke-width="1" style="stroke:var(--line);fill:none"/>
-<text x="728" y="125.5" font-size="9.5" text-anchor="middle" style="fill:var(--muted)">무시</text>
-<text x="842" y="125.5" font-size="9" text-anchor="end" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">전 x=250 → 후 x=290</text>
-<line x1="596" y1="133.5" x2="840" y2="133.5" stroke-width="1" style="stroke:var(--line)"/>
-<circle cx="602" cy="147" r="8" fill="#B6304F"/><text x="602" y="150.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">2</text>
-<rect x="618" y="139" width="36" height="16" rx="8" stroke-width="1" style="stroke:none;fill:var(--code-bg)"/><text x="636.0" y="150.4" font-size="9" text-anchor="middle" style="fill:currentColor">기하</text>
-<text x="662" y="151" font-size="11" style="fill:currentColor">기둥 C3 이동 300mm</text>
-<rect x="662" y="157" width="40" height="14" rx="3" stroke-width="1" style="stroke:var(--after);fill:var(--after-soft)"/>
-<text x="682" y="167.5" font-size="9.5" text-anchor="middle" font-weight="600" style="fill:var(--after)">승인</text>
-<rect x="708" y="157" width="40" height="14" rx="3" stroke-width="1" style="stroke:var(--line);fill:none"/>
-<text x="728" y="167.5" font-size="9.5" text-anchor="middle" style="fill:var(--muted)">무시</text>
-<text x="842" y="167.5" font-size="9" text-anchor="end" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">블록 COL-600</text>
-<line x1="596" y1="175.5" x2="840" y2="175.5" stroke-width="1" style="stroke:var(--line)"/>
-<circle cx="602" cy="189" r="8" fill="#B6304F"/><text x="602" y="192.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">3</text>
-<rect x="618" y="181" width="36" height="16" rx="8" stroke-width="1" style="stroke:none;fill:var(--code-bg)"/><text x="636.0" y="192.4" font-size="9" text-anchor="middle" style="fill:currentColor">치수</text>
-<text x="662" y="193" font-size="11" style="fill:currentColor">8,400 → 8,700</text>
-<rect x="662" y="199" width="40" height="14" rx="3" stroke-width="1" style="stroke:var(--after);fill:var(--after-soft)"/>
-<text x="682" y="209.5" font-size="9.5" text-anchor="middle" font-weight="600" style="fill:var(--after)">승인</text>
-<rect x="708" y="199" width="40" height="14" rx="3" stroke-width="1" style="stroke:var(--line);fill:none"/>
-<text x="728" y="209.5" font-size="9.5" text-anchor="middle" style="fill:var(--muted)">무시</text>
-<text x="842" y="209.5" font-size="9" text-anchor="end" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">1층 X2~X4 총치수</text>
-<line x1="596" y1="217.5" x2="840" y2="217.5" stroke-width="1" style="stroke:var(--line)"/>
-<circle cx="602" cy="231" r="8" fill="#B6304F"/><text x="602" y="234.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">4</text>
-<rect x="618" y="223" width="36" height="16" rx="8" stroke-width="1" style="stroke:none;fill:var(--code-bg)"/><text x="636.0" y="234.4" font-size="9" text-anchor="middle" style="fill:currentColor">텍스트</text>
-<text x="662" y="235" font-size="11" style="fill:currentColor">주기 FD-1 → FD-2</text>
-<rect x="662" y="241" width="40" height="14" rx="3" stroke-width="1" style="stroke:var(--after);fill:var(--after-soft)"/>
-<text x="682" y="251.5" font-size="9.5" text-anchor="middle" font-weight="600" style="fill:var(--after)">승인</text>
-<rect x="708" y="241" width="40" height="14" rx="3" stroke-width="1" style="stroke:var(--line);fill:none"/>
-<text x="728" y="251.5" font-size="9.5" text-anchor="middle" style="fill:var(--muted)">무시</text>
-<text x="842" y="251.5" font-size="9" text-anchor="end" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">레이어 A-NOTE</text>
-<line x1="596" y1="259.5" x2="840" y2="259.5" stroke-width="1" style="stroke:var(--line)"/>
-<circle cx="602" cy="273" r="8" fill="#B6304F"/><text x="602" y="276.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">5</text>
-<rect x="618" y="265" width="36" height="16" rx="8" stroke-width="1" style="stroke:none;fill:var(--code-bg)"/><text x="636.0" y="276.4" font-size="9" text-anchor="middle" style="fill:currentColor">기하</text>
-<text x="662" y="277" font-size="11" style="fill:currentColor">벽 W2 신설</text>
-<rect x="662" y="283" width="40" height="14" rx="3" stroke-width="1" style="stroke:var(--after);fill:var(--after-soft)"/>
-<text x="682" y="293.5" font-size="9.5" text-anchor="middle" font-weight="600" style="fill:var(--after)">승인</text>
-<rect x="708" y="283" width="40" height="14" rx="3" stroke-width="1" style="stroke:var(--line);fill:none"/>
-<text x="728" y="293.5" font-size="9.5" text-anchor="middle" style="fill:var(--muted)">무시</text>
-<text x="842" y="293.5" font-size="9" text-anchor="end" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">레이어 A-WALL</text>
-<line x1="596" y1="301.5" x2="840" y2="301.5" stroke-width="1" style="stroke:var(--line)"/>
-<circle cx="602" cy="315" r="8" fill="none" style="stroke:var(--before)"/><text x="602" y="318.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:var(--before)">6</text>
-<rect x="618" y="307" width="36" height="16" rx="8" stroke-width="1" style="stroke:var(--before);fill:none"/><text x="636.0" y="318.4" font-size="9" text-anchor="middle" style="fill:var(--before)">기하</text>
-<text x="662" y="319" font-size="11" style="fill:var(--muted)">해치 미세 이동 0.4mm</text>
-<rect x="662" y="325" width="40" height="14" rx="3" stroke-width="1" style="stroke:var(--line);fill:none"/>
-<text x="682" y="335.5" font-size="9.5" text-anchor="middle" style="fill:var(--muted)">승인</text>
-<rect x="708" y="325" width="40" height="14" rx="3" stroke-width="1" style="stroke:var(--before);fill:var(--code-bg)"/>
-<text x="728" y="335.5" font-size="9.5" text-anchor="middle" style="fill:currentColor">무시</text>
-<text x="842" y="335.5" font-size="9" text-anchor="end" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">허용오차 이내</text>
-<line x1="596" y1="343.5" x2="840" y2="343.5" stroke-width="1" style="stroke:var(--line)"/>
-<circle cx="602" cy="357" r="8" fill="#B6304F"/><text x="602" y="360.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">7</text>
-<rect x="618" y="349" width="36" height="16" rx="8" stroke-width="1" style="stroke:none;fill:var(--code-bg)"/><text x="636.0" y="360.4" font-size="9" text-anchor="middle" style="fill:currentColor">텍스트</text>
-<text x="662" y="361" font-size="11" style="fill:currentColor">날짜 표기 변경</text>
-<rect x="662" y="367" width="40" height="14" rx="3" stroke-width="1" style="stroke:var(--line);fill:none"/>
-<text x="682" y="377.5" font-size="9.5" text-anchor="middle" style="fill:var(--muted)">승인</text>
-<rect x="708" y="367" width="40" height="14" rx="3" stroke-width="1" style="stroke:var(--line);fill:none"/>
-<text x="728" y="377.5" font-size="9.5" text-anchor="middle" style="fill:var(--muted)">무시</text>
-<text x="842" y="377.5" font-size="9" text-anchor="end" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">표제란 속성</text>
-<line x1="596" y1="385.5" x2="840" y2="385.5" stroke-width="1" style="stroke:var(--line)"/>
-<circle cx="602" cy="399" r="8" fill="#B6304F"/><text x="602" y="402.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">8</text>
-<rect x="618" y="391" width="36" height="16" rx="8" stroke-width="1" style="stroke:var(--accent);fill:var(--accent-soft)"/><text x="636.0" y="402.4" font-size="9" text-anchor="middle" style="fill:var(--accent)">수동</text>
-<text x="662" y="403" font-size="11" style="fill:currentColor">배수구 위치 확인 요망</text>
-<rect x="662" y="409" width="40" height="14" rx="3" stroke-width="1" style="stroke:var(--after);fill:var(--after-soft)"/>
-<text x="682" y="419.5" font-size="9.5" text-anchor="middle" font-weight="600" style="fill:var(--after)">승인</text>
-<rect x="708" y="409" width="40" height="14" rx="3" stroke-width="1" style="stroke:var(--line);fill:none"/>
-<text x="728" y="419.5" font-size="9.5" text-anchor="middle" style="fill:var(--muted)">무시</text>
-<text x="842" y="419.5" font-size="9" text-anchor="end" font-family="IBM Plex Mono, monospace" style="fill:var(--muted)">직접 그림 · 텍스트</text>
-<line x1="596" y1="427.5" x2="840" y2="427.5" stroke-width="1" style="stroke:var(--line)"/>
-<text x="596" y="450" font-size="10.5" style="fill:var(--muted)">▸ 사소한 변경 41건 접힘 (레이어·색·미세 이동)</text>
-<rect x="12" y="470" width="836" height="40" stroke-width="1" style="stroke:currentColor;fill:var(--code-bg)"/>
-<rect x="24" y="479" width="124" height="22" rx="3" stroke-width="1" style="stroke:#B6304F;fill:#B6304F"/><text x="86.0" y="493.96" font-size="11" text-anchor="middle" font-weight="500" style="fill:#fff">전체 도곽 출력…</text>
-<rect x="156" y="479" width="116" height="22" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/><text x="214.0" y="493.96" font-size="11" text-anchor="middle" style="fill:currentColor">선택 도곽 출력…</text>
-<rect x="280" y="479" width="110" height="22" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/><text x="335.0" y="493.96" font-size="11" text-anchor="middle" style="fill:currentColor">표 텍스트 복사</text>
-<text x="836" y="494" font-size="10.5" text-anchor="end" style="fill:var(--muted)">출력은 승인 항목만 · 원본은 수정하지 않는다</text>
+<rect x="584" y="40" width="264" height="420" stroke-width="1" style="stroke:#4A5560;fill:#1C2228"/>
+<text x="596" y="60" font-size="12" font-weight="600" style="fill:#E3E8EC">변경 리스트 · 8건 (자동 7 · 수동 1)</text>
+<text x="596" y="78" font-size="10.5" style="fill:#93A0A9">승인 6 · 무시 1 · 미결 1</text>
+<line x1="584" y1="86" x2="848" y2="86" stroke-width="1" style="stroke:#E3E8EC"/>
+<circle cx="602" cy="105" r="8" fill="#C9405A"/><text x="602" y="108.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">1</text>
+<rect x="618" y="97" width="36" height="16" rx="8" stroke-width="1" style="stroke:none;fill:#242C32"/><text x="636.0" y="108.4" font-size="9" text-anchor="middle" style="fill:#E3E8EC">기하</text>
+<text x="662" y="109" font-size="11" style="fill:#E3E8EC">내벽 이동 (동쪽 400mm)</text>
+<rect x="662" y="115" width="40" height="14" rx="3" stroke-width="1" style="stroke:#4FB3C4;fill:#17333A"/>
+<text x="682" y="125.5" font-size="9.5" text-anchor="middle" font-weight="600" style="fill:#4FB3C4">승인</text>
+<rect x="708" y="115" width="40" height="14" rx="3" stroke-width="1" style="stroke:#2E3840;fill:none"/>
+<text x="728" y="125.5" font-size="9.5" text-anchor="middle" style="fill:#93A0A9">무시</text>
+<text x="842" y="125.5" font-size="9" text-anchor="end" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">전 x=250 → 후 x=290</text>
+<line x1="596" y1="133.5" x2="840" y2="133.5" stroke-width="1" style="stroke:#2E3840"/>
+<circle cx="602" cy="147" r="8" fill="#C9405A"/><text x="602" y="150.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">2</text>
+<rect x="618" y="139" width="36" height="16" rx="8" stroke-width="1" style="stroke:none;fill:#242C32"/><text x="636.0" y="150.4" font-size="9" text-anchor="middle" style="fill:#E3E8EC">기하</text>
+<text x="662" y="151" font-size="11" style="fill:#E3E8EC">기둥 C3 이동 300mm</text>
+<rect x="662" y="157" width="40" height="14" rx="3" stroke-width="1" style="stroke:#4FB3C4;fill:#17333A"/>
+<text x="682" y="167.5" font-size="9.5" text-anchor="middle" font-weight="600" style="fill:#4FB3C4">승인</text>
+<rect x="708" y="157" width="40" height="14" rx="3" stroke-width="1" style="stroke:#2E3840;fill:none"/>
+<text x="728" y="167.5" font-size="9.5" text-anchor="middle" style="fill:#93A0A9">무시</text>
+<text x="842" y="167.5" font-size="9" text-anchor="end" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">블록 COL-600</text>
+<line x1="596" y1="175.5" x2="840" y2="175.5" stroke-width="1" style="stroke:#2E3840"/>
+<circle cx="602" cy="189" r="8" fill="#C9405A"/><text x="602" y="192.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">3</text>
+<rect x="618" y="181" width="36" height="16" rx="8" stroke-width="1" style="stroke:none;fill:#242C32"/><text x="636.0" y="192.4" font-size="9" text-anchor="middle" style="fill:#E3E8EC">치수</text>
+<text x="662" y="193" font-size="11" style="fill:#E3E8EC">8,400 → 8,700</text>
+<rect x="662" y="199" width="40" height="14" rx="3" stroke-width="1" style="stroke:#4FB3C4;fill:#17333A"/>
+<text x="682" y="209.5" font-size="9.5" text-anchor="middle" font-weight="600" style="fill:#4FB3C4">승인</text>
+<rect x="708" y="199" width="40" height="14" rx="3" stroke-width="1" style="stroke:#2E3840;fill:none"/>
+<text x="728" y="209.5" font-size="9.5" text-anchor="middle" style="fill:#93A0A9">무시</text>
+<text x="842" y="209.5" font-size="9" text-anchor="end" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">1층 X2~X4 총치수</text>
+<line x1="596" y1="217.5" x2="840" y2="217.5" stroke-width="1" style="stroke:#2E3840"/>
+<circle cx="602" cy="231" r="8" fill="#C9405A"/><text x="602" y="234.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">4</text>
+<rect x="618" y="223" width="36" height="16" rx="8" stroke-width="1" style="stroke:none;fill:#242C32"/><text x="636.0" y="234.4" font-size="9" text-anchor="middle" style="fill:#E3E8EC">텍스트</text>
+<text x="662" y="235" font-size="11" style="fill:#E3E8EC">주기 FD-1 → FD-2</text>
+<rect x="662" y="241" width="40" height="14" rx="3" stroke-width="1" style="stroke:#4FB3C4;fill:#17333A"/>
+<text x="682" y="251.5" font-size="9.5" text-anchor="middle" font-weight="600" style="fill:#4FB3C4">승인</text>
+<rect x="708" y="241" width="40" height="14" rx="3" stroke-width="1" style="stroke:#2E3840;fill:none"/>
+<text x="728" y="251.5" font-size="9.5" text-anchor="middle" style="fill:#93A0A9">무시</text>
+<text x="842" y="251.5" font-size="9" text-anchor="end" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">레이어 A-NOTE</text>
+<line x1="596" y1="259.5" x2="840" y2="259.5" stroke-width="1" style="stroke:#2E3840"/>
+<circle cx="602" cy="273" r="8" fill="#C9405A"/><text x="602" y="276.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">5</text>
+<rect x="618" y="265" width="36" height="16" rx="8" stroke-width="1" style="stroke:none;fill:#242C32"/><text x="636.0" y="276.4" font-size="9" text-anchor="middle" style="fill:#E3E8EC">기하</text>
+<text x="662" y="277" font-size="11" style="fill:#E3E8EC">벽 W2 신설</text>
+<rect x="662" y="283" width="40" height="14" rx="3" stroke-width="1" style="stroke:#4FB3C4;fill:#17333A"/>
+<text x="682" y="293.5" font-size="9.5" text-anchor="middle" font-weight="600" style="fill:#4FB3C4">승인</text>
+<rect x="708" y="283" width="40" height="14" rx="3" stroke-width="1" style="stroke:#2E3840;fill:none"/>
+<text x="728" y="293.5" font-size="9.5" text-anchor="middle" style="fill:#93A0A9">무시</text>
+<text x="842" y="293.5" font-size="9" text-anchor="end" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">레이어 A-WALL</text>
+<line x1="596" y1="301.5" x2="840" y2="301.5" stroke-width="1" style="stroke:#2E3840"/>
+<circle cx="602" cy="315" r="8" fill="none" style="stroke:#8A949B"/><text x="602" y="318.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#8A949B">6</text>
+<rect x="618" y="307" width="36" height="16" rx="8" stroke-width="1" style="stroke:#8A949B;fill:none"/><text x="636.0" y="318.4" font-size="9" text-anchor="middle" style="fill:#8A949B">기하</text>
+<text x="662" y="319" font-size="11" style="fill:#93A0A9">해치 미세 이동 0.4mm</text>
+<rect x="662" y="325" width="40" height="14" rx="3" stroke-width="1" style="stroke:#2E3840;fill:none"/>
+<text x="682" y="335.5" font-size="9.5" text-anchor="middle" style="fill:#93A0A9">승인</text>
+<rect x="708" y="325" width="40" height="14" rx="3" stroke-width="1" style="stroke:#8A949B;fill:#242C32"/>
+<text x="728" y="335.5" font-size="9.5" text-anchor="middle" style="fill:#E3E8EC">무시</text>
+<text x="842" y="335.5" font-size="9" text-anchor="end" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">허용오차 이내</text>
+<line x1="596" y1="343.5" x2="840" y2="343.5" stroke-width="1" style="stroke:#2E3840"/>
+<circle cx="602" cy="357" r="8" fill="#C9405A"/><text x="602" y="360.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">7</text>
+<rect x="618" y="349" width="36" height="16" rx="8" stroke-width="1" style="stroke:none;fill:#242C32"/><text x="636.0" y="360.4" font-size="9" text-anchor="middle" style="fill:#E3E8EC">텍스트</text>
+<text x="662" y="361" font-size="11" style="fill:#E3E8EC">날짜 표기 변경</text>
+<rect x="662" y="367" width="40" height="14" rx="3" stroke-width="1" style="stroke:#2E3840;fill:none"/>
+<text x="682" y="377.5" font-size="9.5" text-anchor="middle" style="fill:#93A0A9">승인</text>
+<rect x="708" y="367" width="40" height="14" rx="3" stroke-width="1" style="stroke:#2E3840;fill:none"/>
+<text x="728" y="377.5" font-size="9.5" text-anchor="middle" style="fill:#93A0A9">무시</text>
+<text x="842" y="377.5" font-size="9" text-anchor="end" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">표제란 속성</text>
+<line x1="596" y1="385.5" x2="840" y2="385.5" stroke-width="1" style="stroke:#2E3840"/>
+<circle cx="602" cy="399" r="8" fill="#C9405A"/><text x="602" y="402.5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace" style="fill:#fff">8</text>
+<rect x="618" y="391" width="36" height="16" rx="8" stroke-width="1" style="stroke:#E06C86;fill:#3A2129"/><text x="636.0" y="402.4" font-size="9" text-anchor="middle" style="fill:#E06C86">수동</text>
+<text x="662" y="403" font-size="11" style="fill:#E3E8EC">배수구 위치 확인 요망</text>
+<rect x="662" y="409" width="40" height="14" rx="3" stroke-width="1" style="stroke:#4FB3C4;fill:#17333A"/>
+<text x="682" y="419.5" font-size="9.5" text-anchor="middle" font-weight="600" style="fill:#4FB3C4">승인</text>
+<rect x="708" y="409" width="40" height="14" rx="3" stroke-width="1" style="stroke:#2E3840;fill:none"/>
+<text x="728" y="419.5" font-size="9.5" text-anchor="middle" style="fill:#93A0A9">무시</text>
+<text x="842" y="419.5" font-size="9" text-anchor="end" font-family="IBM Plex Mono, monospace" style="fill:#93A0A9">직접 그림 · 텍스트</text>
+<line x1="596" y1="427.5" x2="840" y2="427.5" stroke-width="1" style="stroke:#2E3840"/>
+<text x="596" y="450" font-size="10.5" style="fill:#93A0A9">▸ 사소한 변경 41건 접힘 (레이어·색·미세 이동)</text>
+<rect x="12" y="470" width="836" height="40" stroke-width="1" style="stroke:none;fill:#1C2228"/>
+<rect x="24" y="479" width="124" height="22" rx="3" stroke-width="1" style="stroke:#C9405A;fill:#C9405A"/><text x="86.0" y="493.96" font-size="11" text-anchor="middle" font-weight="500" style="fill:#fff">전체 도곽 출력…</text>
+<rect x="156" y="479" width="116" height="22" rx="3" stroke-width="1" style="stroke:#4A5560;fill:none"/><text x="214.0" y="493.96" font-size="11" text-anchor="middle" style="fill:#E3E8EC">선택 도곽 출력…</text>
+<rect x="280" y="479" width="110" height="22" rx="3" stroke-width="1" style="stroke:#4A5560;fill:none"/><text x="335.0" y="493.96" font-size="11" text-anchor="middle" style="fill:#E3E8EC">표 텍스트 복사</text>
+<text x="836" y="494" font-size="10.5" text-anchor="end" style="fill:#93A0A9">출력은 승인 항목만 · 원본은 수정하지 않는다</text>
 </g>
 </svg>
     <figcaption>왼쪽은 검정 바탕의 겹쳐 보기다. 안 바뀐 선은 레이어 원색, 후에만 있는 선(추가·이동 후)은 빨강, 전에만 있는 선(삭제·이동 전)은 시안으로 그리고 변경 영역에 클라우드 마크가 붙는다. 색과 보기 방식(차이 강조·전후 단색·원색 겹치기)은 설정에서 고른다. 오른쪽은 변경 리스트다. 번호를 누르면 그 자리로 확대되고 항목마다 승인·무시를 정한다. 자동 비교가 놓친 곳은 클라우드 마크를 폴리라인으로 직접 그리고 텍스트를 붙이며, 직접 그린 항목은 리스트에 수동으로 들어간다. 사소한 변경은 접혀 있다. 도곽을 하나씩 검토한 뒤 출력으로 넘어간다.</figcaption>
@@ -558,44 +561,45 @@
   <h3>화면 D · 출력</h3>
   <figure>
     <svg viewBox="0 0 860 380" role="img" aria-label="출력 대화상자. 범위는 전체 도곽이 기본이고 선택 도곽을 고르면 도곽 선택 대화상자가 뜬다. 마크업 DWG는 변경된 도곽마다 한 파일, 리비전 표는 도곽별 표와 전체 변경 리스트 두 가지, 넣는 방법은 ZWCAD에 바로 삽입, DXF 조각, 표 텍스트 복사 중 선택. 하단에 리비전 이력 엑셀에 오늘 날짜 시트가 자동 추가됐다는 안내와 취소, 만들기 버튼">
+<rect x="0" y="0" width="860" height="380" style="fill:#14181C"/>
 <g font-family="Noto Sans KR, sans-serif" font-size="11">
-<rect x="110" y="20" width="640" height="340" rx="4" stroke-width="1" style="stroke:currentColor;fill:var(--surface)"/>
-<text x="130" y="46" font-size="12" font-weight="600" style="fill:currentColor">출력 · 실시도서 REV2 → REV3</text>
-<line x1="110" y1="56" x2="750" y2="56" stroke-width="1" style="stroke:currentColor"/>
-<text x="130" y="84" font-size="11" font-weight="600" style="fill:currentColor">범위</text>
-<circle cx="208" cy="80" r="5.5" fill="none" stroke-width="1.2" style="stroke:var(--accent)"/>
-<circle cx="208" cy="80" r="3" style="fill:var(--accent)"/>
-<text x="222" y="84" font-size="11" font-weight="600" style="fill:currentColor">전체 도곽</text>
-<text x="282.5" y="84" font-size="10" style="fill:var(--muted)">변경 12 도곽 · 승인 23건 (미결 2건 제외)</text>
-<circle cx="518" cy="80" r="5.5" fill="none" stroke-width="1.2" style="stroke:var(--before)"/>
-<text x="532" y="84" font-size="11" style="fill:currentColor">선택 도곽</text>
-<text x="592.5" y="84" font-size="10" style="fill:var(--muted)">도곽 선택 대화상자에서 고른다</text>
-<line x1="130" y1="98" x2="730" y2="98" stroke-width="1" style="stroke:var(--line)"/>
-<text x="130" y="124" font-size="11" font-weight="600" style="fill:currentColor">마크업 DWG</text>
-<text x="130" y="146" font-size="10.5" style="fill:var(--muted)">저장 위치</text>
-<text x="230" y="146" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:currentColor">…\derivatives\REV3_markup\  (변경된 도곽마다 1개, 12개 파일)</text>
-<text x="130" y="168" font-size="10.5" style="fill:var(--muted)">레이어 · 색</text>
-<text x="230" y="168" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:currentColor">REV-CLOUD · 빨강 · 원 안 번호</text>
-<line x1="130" y1="184" x2="730" y2="184" stroke-width="1" style="stroke:var(--line)"/>
-<text x="130" y="210" font-size="11" font-weight="600" style="fill:currentColor">리비전 표</text>
-<text x="130" y="232" font-size="10.5" style="fill:var(--muted)">도곽별 표</text>
-<text x="230" y="232" font-size="10.5" style="fill:currentColor">각 도곽의 표제란 옆에 그 도곽의 항목만</text>
-<text x="130" y="254" font-size="10.5" style="fill:var(--muted)">전체 변경 리스트</text>
-<text x="230" y="254" font-size="10.5" style="fill:currentColor">도곽별로 묶은 표 한 장 · 표지 도곽(또는 첫 도곽)에 삽입 · 23행</text>
-<text x="130" y="290" font-size="11" font-weight="600" style="fill:currentColor">넣는 방법</text>
-<circle cx="208" cy="286" r="5.5" fill="none" stroke-width="1.2" style="stroke:var(--accent)"/>
-<circle cx="208" cy="286" r="3" style="fill:var(--accent)"/>
-<text x="222" y="290" font-size="11" font-weight="600" style="fill:currentColor">ZWCAD에 바로 삽입</text>
-<text x="356.0" y="290" font-size="10" style="fill:var(--muted)">실행 중 감지됨 · COM 연동</text>
-<circle cx="518" cy="286" r="5.5" fill="none" stroke-width="1.2" style="stroke:var(--before)"/>
-<text x="532" y="290" font-size="11" style="fill:currentColor">DXF 조각으로 저장</text>
-<text x="222" y="312" font-size="10" style="fill:currentColor"></text>
-<circle cx="208" cy="312" r="5.5" fill="none" stroke-width="1.2" style="stroke:var(--before)"/>
-<text x="222" y="316" font-size="11" style="fill:currentColor">표 텍스트 복사</text>
-<text x="314.0" y="316" font-size="10" style="fill:var(--muted)">엑셀·ZWCAD 표에 붙여넣기</text>
-<text x="130" y="336" font-size="10.5" style="fill:var(--after)">✓ 리비전 이력.xlsx에 시트 '2026-09-03' 자동 추가됨 (전체 도면 목록 74행 · 도면별 변경 리스트 26행)</text>
-<rect x="590" y="318" width="64" height="26" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/><text x="622.0" y="334.96" font-size="11" text-anchor="middle" style="fill:currentColor">취소</text>
-<rect x="662" y="318" width="72" height="26" rx="3" stroke-width="1" style="stroke:#B6304F;fill:#B6304F"/><text x="698.0" y="334.96" font-size="11" text-anchor="middle" font-weight="500" style="fill:#fff">만들기</text>
+<rect x="110" y="20" width="640" height="340" rx="4" stroke-width="1" style="stroke:#4A5560;fill:#1C2228"/>
+<text x="130" y="46" font-size="12" font-weight="600" style="fill:#E3E8EC">출력 · 실시도서 REV2 → REV3</text>
+<line x1="110" y1="56" x2="750" y2="56" stroke-width="1" style="stroke:#E3E8EC"/>
+<text x="130" y="84" font-size="11" font-weight="600" style="fill:#E3E8EC">범위</text>
+<circle cx="208" cy="80" r="5.5" fill="none" stroke-width="1.2" style="stroke:#E06C86"/>
+<circle cx="208" cy="80" r="3" style="fill:#E06C86"/>
+<text x="222" y="84" font-size="11" font-weight="600" style="fill:#E3E8EC">전체 도곽</text>
+<text x="282.5" y="84" font-size="10" style="fill:#93A0A9">변경 12 도곽 · 승인 23건 (미결 2건 제외)</text>
+<circle cx="518" cy="80" r="5.5" fill="none" stroke-width="1.2" style="stroke:#8A949B"/>
+<text x="532" y="84" font-size="11" style="fill:#E3E8EC">선택 도곽</text>
+<text x="592.5" y="84" font-size="10" style="fill:#93A0A9">도곽 선택 대화상자에서 고른다</text>
+<line x1="130" y1="98" x2="730" y2="98" stroke-width="1" style="stroke:#2E3840"/>
+<text x="130" y="124" font-size="11" font-weight="600" style="fill:#E3E8EC">마크업 DWG</text>
+<text x="130" y="146" font-size="10.5" style="fill:#93A0A9">저장 위치</text>
+<text x="230" y="146" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#E3E8EC">…\derivatives\REV3_markup\  (변경된 도곽마다 1개, 12개 파일)</text>
+<text x="130" y="168" font-size="10.5" style="fill:#93A0A9">레이어 · 색</text>
+<text x="230" y="168" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:#E3E8EC">REV-CLOUD · 빨강 · 원 안 번호</text>
+<line x1="130" y1="184" x2="730" y2="184" stroke-width="1" style="stroke:#2E3840"/>
+<text x="130" y="210" font-size="11" font-weight="600" style="fill:#E3E8EC">리비전 표</text>
+<text x="130" y="232" font-size="10.5" style="fill:#93A0A9">도곽별 표</text>
+<text x="230" y="232" font-size="10.5" style="fill:#E3E8EC">각 도곽의 표제란 옆에 그 도곽의 항목만</text>
+<text x="130" y="254" font-size="10.5" style="fill:#93A0A9">전체 변경 리스트</text>
+<text x="230" y="254" font-size="10.5" style="fill:#E3E8EC">도곽별로 묶은 표 한 장 · 표지 도곽(또는 첫 도곽)에 삽입 · 23행</text>
+<text x="130" y="290" font-size="11" font-weight="600" style="fill:#E3E8EC">넣는 방법</text>
+<circle cx="208" cy="286" r="5.5" fill="none" stroke-width="1.2" style="stroke:#E06C86"/>
+<circle cx="208" cy="286" r="3" style="fill:#E06C86"/>
+<text x="222" y="290" font-size="11" font-weight="600" style="fill:#E3E8EC">ZWCAD에 바로 삽입</text>
+<text x="356.0" y="290" font-size="10" style="fill:#93A0A9">실행 중 감지됨 · COM 연동</text>
+<circle cx="518" cy="286" r="5.5" fill="none" stroke-width="1.2" style="stroke:#8A949B"/>
+<text x="532" y="290" font-size="11" style="fill:#E3E8EC">DXF 조각으로 저장</text>
+<text x="222" y="312" font-size="10" style="fill:#E3E8EC"></text>
+<circle cx="208" cy="312" r="5.5" fill="none" stroke-width="1.2" style="stroke:#8A949B"/>
+<text x="222" y="316" font-size="11" style="fill:#E3E8EC">표 텍스트 복사</text>
+<text x="314.0" y="316" font-size="10" style="fill:#93A0A9">엑셀·ZWCAD 표에 붙여넣기</text>
+<text x="130" y="336" font-size="10.5" style="fill:#4FB3C4">✓ 리비전 이력.xlsx에 시트 '2026-09-03' 자동 추가됨 (전체 도면 목록 74행 · 도면별 변경 리스트 26행)</text>
+<rect x="590" y="318" width="64" height="26" rx="3" stroke-width="1" style="stroke:#4A5560;fill:none"/><text x="622.0" y="334.96" font-size="11" text-anchor="middle" style="fill:#E3E8EC">취소</text>
+<rect x="662" y="318" width="72" height="26" rx="3" stroke-width="1" style="stroke:#C9405A;fill:#C9405A"/><text x="698.0" y="334.96" font-size="11" text-anchor="middle" font-weight="500" style="fill:#fff">만들기</text>
 </g>
 </svg>
     <figcaption>화면 C에서 넘어오는 순간 리비전 이력 엑셀에 실행 날짜 이름의 시트가 자동으로 추가된다. 출력 범위는 전체 도곽이 기본이다. 변경된 도곽 전부의 마크업 DWG와 전체 변경 리스트(도곽별 묶음)를 한 번에 만들고, 일부만 필요하면 선택 도곽으로 고른다. ZWCAD가 실행 중이면 COM 연동으로 바로 삽입하고, 아니면 DXF 조각이나 표 텍스트로 넘긴다.</figcaption>

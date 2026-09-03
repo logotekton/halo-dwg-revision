@@ -3,8 +3,10 @@
 import pathlib, re
 
 # ---------- SVG helpers (theme tokens via style="" so both themes resolve) ----------
-MUTED = "var(--muted)"; INK = "currentColor"; BEFORE = "var(--before)"; AFTER = "var(--after)"
-ACCENT = "var(--accent)"; RED = "#B6304F"; SOFT_A = "var(--after-soft)"; SOFT_R = "var(--accent-soft)"; CODEBG = "var(--code-bg)"
+# Dark app palette (literal on purpose: the mock-ups are screenshots of a dark app and do not follow the page theme)
+APP_BG = "#14181C"; SURFACE = "#1C2228"; LINE = "#2E3840"; EDGE = "#4A5560"
+MUTED = "#93A0A9"; INK = "#E3E8EC"; BEFORE = "#8A949B"; AFTER = "#4FB3C4"
+ACCENT = "#E06C86"; RED = "#C9405A"; SOFT_A = "#17333A"; SOFT_R = "#3A2129"; CODEBG = "#242C32"
 
 def esc(s): return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 def T(x, y, s, size=11, fill=INK, anchor="start", weight=None, mono=False):
@@ -12,7 +14,7 @@ def T(x, y, s, size=11, fill=INK, anchor="start", weight=None, mono=False):
     w = f' font-weight="{weight}"' if weight else ""
     f = ' font-family="IBM Plex Mono, monospace"' if mono else ""
     return f'<text x="{x}" y="{y}" font-size="{size}"{a}{w}{f} style="fill:{fill}">{esc(s)}</text>'
-def R(x, y, w, h, stroke=INK, fill="none", rx=0, dash=None, sw=1):
+def R(x, y, w, h, stroke=EDGE, fill="none", rx=0, dash=None, sw=1):
     d = f' stroke-dasharray="{dash}"' if dash else ""
     r = f' rx="{rx}"' if rx else ""
     return f'<rect x="{x}" y="{y}" width="{w}" height="{h}"{r} stroke-width="{sw}"{d} style="stroke:{stroke};fill:{fill}"/>'
@@ -43,9 +45,10 @@ def CLOUD(x, y, w, h, r=7, n=None, color=None):
     return s
 def SVG(w, h, label, body):
     return (f'<svg viewBox="0 0 {w} {h}" role="img" aria-label="{esc(label)}">\n'
+            f'<rect x="0" y="0" width="{w}" height="{h}" style="fill:{APP_BG}"/>\n'
             f'<g font-family="Noto Sans KR, sans-serif" font-size="11">\n' + "\n".join(body) + "\n</g>\n</svg>")
 def CHROME(w, title, right=""):
-    return [R(0.5, 0.5, w-1, 30, fill=CODEBG), T(16, 20, title, 12, INK, weight=600), L(0, 30.5, w, 30.5)]
+    return [R(0, 0, w, 31, stroke="none", fill=SURFACE), T(16, 20, title, 12, INK, weight=600), L(0, 30.5, w, 30.5, LINE)]
 
 # ---------- Screen A: 세트 지정 ----------
 def screen_a():
@@ -93,7 +96,7 @@ def screen_b():
         elif cnt == 0: b += [T(560, y, "–", 11, MUTED)]
         b += [PILL(700, top+6, 54, st, kind)]
         if st == "짝 없음": b += [BTN(764, top+5, 72, 18, "수동 짝 맞춤", size=10)]
-        b += [L(24, top+30, 836, top+30, stroke="var(--line)")]
+        b += [L(24, top+30, 836, top+30, stroke=LINE)]
     b += [T(24, 372, "변경 12 도곽 · 승인 23건 · 미결 2건 · 사소한 변경 41건 접힘", 11, MUTED), BTN(448, 352, 100, 32, "도곽 열기", size=12), BTN(556, 352, 132, 32, "선택 도곽 출력…", size=12), BTN(704, 352, 132, 32, "전체 도곽 출력…", primary=True, size=12)]
     return SVG(860, 400, "도곽 목록 화면. 전체, 변경, 동일, 신규, 삭제, 짝 없음 필터와 도면번호, 도면명, 전후 리비전, 변경 수 막대, 상태 열이 있는 표. 짝 없음 행에는 수동 짝 맞춤 버튼, 아래에 도곽 열기, 선택 도곽 출력, 전체 도곽 출력 버튼", b)
 
@@ -106,7 +109,7 @@ def screen_c():
           BTN(772, 8, 64, 20, "레이어 ▾", size=10.5)]
     # canvas: always dark like a CAD screen, so its colors are literal on purpose (they do not follow the page theme)
     BG, WALL, ROOM, ADD, DEL, LEG, TOOL = "#101418", "#C9CED3", "#D9C25A", "#FF5A5A", "#3FD0E3", "#B8C0C6", "#D8DCE0"
-    b += [R(12, 40, 560, 420, stroke="#3A444C", fill=BG)]
+    b += [R(12, 40, 560, 420, stroke=EDGE, fill=BG)]
     common = [R(60, 80, 420, 320, stroke=WALL, sw=1.4), L(60, 240, 480, 240, WALL, 1.4),
               f'<path d="M200 240 A30 30 0 0 0 170 210" fill="none" stroke-width="1.2" style="stroke:{WALL}"/>', L(170, 210, 170, 240, WALL, 1.2),
               T(150, 190, "거실", 10, ROOM), T(350, 150, "침실", 10, ROOM), T(150, 370, "주방", 10, ROOM), T(440, 285, "욕실", 10, ROOM)]
@@ -127,7 +130,7 @@ def screen_c():
           L(268, 448, 288, 448, DEL, 1.6), T(294, 452, "전에만 · 삭제", 10, LEG), f'<circle cx="382" cy="448" r="5" fill="none" stroke-width="1.5" style="stroke:{ADD}"/>', T(392, 452, "변경 영역", 10, LEG),
           R(440, 436, 124, 18, rx=3, stroke="#6B7680", fill="#1C2328"), T(502, 449, "‹  번호 2 / 8  ›", 10.5, TOOL, "middle", mono=True)]
     # right panel: change list (7 automatic + 1 manual)
-    b += [R(584, 40, 264, 420), T(596, 60, "변경 리스트 · 8건 (자동 7 · 수동 1)", 12, INK, weight=600), T(596, 78, "승인 6 · 무시 1 · 미결 1", 10.5, MUTED), L(584, 86, 848, 86)]
+    b += [R(584, 40, 264, 420, fill=SURFACE), T(596, 60, "변경 리스트 · 8건 (자동 7 · 수동 1)", 12, INK, weight=600), T(596, 78, "승인 6 · 무시 1 · 미결 1", 10.5, MUTED), L(584, 86, 848, 86)]
     items = [(1, "기하", "내벽 이동 (동쪽 400mm)", "승인", "전 x=250 → 후 x=290"), (2, "기하", "기둥 C3 이동 300mm", "승인", "블록 COL-600"),
              (3, "치수", "8,400 → 8,700", "승인", "1층 X2~X4 총치수"), (4, "텍스트", "주기 FD-1 → FD-2", "승인", "레이어 A-NOTE"),
              (5, "기하", "벽 W2 신설", "승인", "레이어 A-WALL"), (6, "기하", "해치 미세 이동 0.4mm", "무시", "허용오차 이내"), (7, "텍스트", "날짜 표기 변경", "미결", "표제란 속성"),
@@ -138,19 +141,19 @@ def screen_c():
         b += [BADGE(602, top+13, n, filled=not muted), PILL(618, top+5, 36, kind, "red" if manual else ("ink" if not muted else "gray"), h=16, size=9)]
         b += [T(662, top+17, desc, 11, MUTED if muted else INK)]
         ok = state == "승인"
-        b += [R(662, top+23, 40, 14, stroke=AFTER if ok else "var(--line)", fill=SOFT_A if ok else "none", rx=3), T(682, top+33.5, "승인", 9.5, AFTER if ok else MUTED, "middle", 600 if ok else None),
-              R(708, top+23, 40, 14, stroke=BEFORE if muted else "var(--line)", fill=CODEBG if muted else "none", rx=3), T(728, top+33.5, "무시", 9.5, INK if muted else MUTED, "middle"),
-              T(842, top+33.5, detail, 9, MUTED, "end", mono=True), L(596, top+41.5, 840, top+41.5, stroke="var(--line)")]
+        b += [R(662, top+23, 40, 14, stroke=AFTER if ok else LINE, fill=SOFT_A if ok else "none", rx=3), T(682, top+33.5, "승인", 9.5, AFTER if ok else MUTED, "middle", 600 if ok else None),
+              R(708, top+23, 40, 14, stroke=BEFORE if muted else LINE, fill=CODEBG if muted else "none", rx=3), T(728, top+33.5, "무시", 9.5, INK if muted else MUTED, "middle"),
+              T(842, top+33.5, detail, 9, MUTED, "end", mono=True), L(596, top+41.5, 840, top+41.5, stroke=LINE)]
     b += [T(596, 450, "▸ 사소한 변경 41건 접힘 (레이어·색·미세 이동)", 10.5, MUTED)]
     # footer
-    b += [R(12, 470, 836, 40, fill=CODEBG), BTN(24, 479, 124, 22, "전체 도곽 출력…", primary=True), BTN(156, 479, 116, 22, "선택 도곽 출력…"), BTN(280, 479, 110, 22, "표 텍스트 복사"),
+    b += [R(12, 470, 836, 40, stroke="none", fill=SURFACE), BTN(24, 479, 124, 22, "전체 도곽 출력…", primary=True), BTN(156, 479, 116, 22, "선택 도곽 출력…"), BTN(280, 479, 110, 22, "표 텍스트 복사"),
           T(836, 494, "출력은 승인 항목만 · 원본은 수정하지 않는다", 10.5, MUTED, "end")]
     return SVG(860, 520, "비교 작업 화면. 왼쪽은 검정 바탕 캔버스로 안 바뀐 선은 레이어 원색, 후에만 있는 선은 빨강, 전에만 있는 선은 시안으로 겹쳐 있고 다섯 개의 붉은 클라우드 마크에 번호가 붙어 있다. 캔버스 위에는 선택, 마크 그리기(폴리라인), 텍스트, 지우기 도구가 있고 사용자가 직접 그린 여덟 번째 클라우드 마크와 텍스트가 있다. 오른쪽 변경 리스트에는 자동 7건과 수동 1건이 있고 항목마다 종류, 설명, 승인과 무시 버튼이 있으며 아래에 사소한 변경이 접혀 있다. 하단에 전체 도곽 출력, 선택 도곽 출력, 표 텍스트 복사 버튼", b)
 
 # ---------- Screen D: 출력 ----------
 def screen_d():
     X, W = 110, 640
-    b = [R(X, 20, W, 340, rx=4, fill="var(--surface)"), T(X+20, 46, "출력 · 실시도서 REV2 → REV3", 12, INK, weight=600), L(X, 56, X+W, 56)]
+    b = [R(X, 20, W, 340, rx=4, fill=SURFACE), T(X+20, 46, "출력 · 실시도서 REV2 → REV3", 12, INK, weight=600), L(X, 56, X+W, 56)]
     def radio(x, y, label, sub, sel):
         out = [f'<circle cx="{x+8}" cy="{y-4}" r="5.5" fill="none" stroke-width="1.2" style="stroke:{ACCENT if sel else BEFORE}"/>']
         if sel: out.append(f'<circle cx="{x+8}" cy="{y-4}" r="3" style="fill:{ACCENT}"/>')
@@ -160,11 +163,11 @@ def screen_d():
     b += [T(X+20, 84, "범위", 11, INK, weight=600)]
     b += radio(X+90, 84, "전체 도곽", "변경 12 도곽 · 승인 23건 (미결 2건 제외)", True)
     b += radio(X+400, 84, "선택 도곽", "도곽 선택 대화상자에서 고른다", False)
-    b += [L(X+20, 98, X+W-20, 98, stroke="var(--line)")]
+    b += [L(X+20, 98, X+W-20, 98, stroke=LINE)]
     b += [T(X+20, 124, "마크업 DWG", 11, INK, weight=600),
           T(X+20, 146, "저장 위치", 10.5, MUTED), T(X+120, 146, "…\\derivatives\\REV3_markup\\  (변경된 도곽마다 1개, 12개 파일)", 10.5, INK, mono=True),
           T(X+20, 168, "레이어 · 색", 10.5, MUTED), T(X+120, 168, "REV-CLOUD · 빨강 · 원 안 번호", 10.5, INK, mono=True)]
-    b += [L(X+20, 184, X+W-20, 184, stroke="var(--line)")]
+    b += [L(X+20, 184, X+W-20, 184, stroke=LINE)]
     b += [T(X+20, 210, "리비전 표", 11, INK, weight=600),
           T(X+20, 232, "도곽별 표", 10.5, MUTED), T(X+120, 232, "각 도곽의 표제란 옆에 그 도곽의 항목만", 10.5, INK),
           T(X+20, 254, "전체 변경 리스트", 10.5, MUTED), T(X+120, 254, "도곽별로 묶은 표 한 장 · 표지 도곽(또는 첫 도곽)에 삽입 · 23행", 10.5, INK)]

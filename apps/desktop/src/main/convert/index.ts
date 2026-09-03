@@ -5,6 +5,7 @@ import { BrowserWindow, ipcMain, type IpcMainEvent } from 'electron'
 import { VIEWER_ASSETS_BASE } from '../protocol'
 import { APP_SCHEME } from '../window'
 import { runAcadTsFallback } from './fallback'
+import { readDwgMetadata } from './metadata'
 import {
   CONVERT_INVOKE_CHANNEL,
   CONVERT_READY_CHANNEL,
@@ -138,10 +139,19 @@ export function createDwgConverter(options: DwgConverterOptions): DwgConverter {
         resolve()
       }
       ipcMain.on(CONVERT_READY_CHANNEL, onReady)
-      created.webContents.once('render-process-gone', (_event, details) => {
-        clearTimeout(timer)
-        reject(new Error(`convert window crashed: ${details.reason}`))
-      })
+    })
+    // A renderer that dies mid-conversion (the wasm heap of a very large DWG
+    // is the realistic cause) would otherwise leave the caller waiting for the
+    // full conversion timeout, so every in-flight request is failed at once and
+    // the window is dropped. `convertOnce` then falls back to acad-ts.
+    created.webContents.on('render-process-gone', (_event, details) => {
+      const error = new Error(`convert window crashed: ${details.reason}`)
+      for (const [requestId, entry] of pending) {
+        pending.delete(requestId)
+        clearTimeout(entry.timer)
+        entry.reject(error)
+      }
+      if (window === created) destroyWindow()
     })
     // Same origin as the main window so the worker and wasm URLs resolve
     // exactly as they do in the viewer (spike §A, Electron requirement 1).
@@ -171,11 +181,18 @@ export function createDwgConverter(options: DwgConverterOptions): DwgConverter {
       throw new Error(reply.error ?? 'conversion failed in the converter window')
     }
     await writeFile(job.outPath, reply.dxf, 'utf8')
+    // XREF paths and TrueType typefaces do not survive `dxfOut()`; they are
+    // read back out of the DWG so the engine can put them into the working DXF.
+    const metadata = process.env.HALO_SKIP_METADATA === '1'
+      ? { xrefs: [], styles: [], warnings: ['metadata skipped'] }
+      : await readDwgMetadata(options.acadBridgeEntry, job.dwgPath)
     return {
       dxf_path: job.outPath,
       entity_count: reply.entityCount ?? 0,
       converter: 'mlightcad-dxfout',
-      warnings: reply.warnings,
+      warnings: [...reply.warnings, ...metadata.warnings],
+      xrefs: metadata.xrefs,
+      styles: metadata.styles,
     }
   }
 

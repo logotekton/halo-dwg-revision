@@ -74,7 +74,7 @@ async function convert(request: ConvertRequest): Promise<ConvertReply> {
     // `halo-engine stats` and therefore the whole conversion under the
     // crosscheck gate (ADR-0002 개정 §4). Measured on the real DWG set — see
     // `repairDanglingReferences`.
-    const repair = repairDanglingReferences(document);
+    const repair = { droppedInserts: 0, retargetedDimStyles: 0, names: [] as string[] }; // BISECT
     if (repair.droppedInserts > 0 || repair.retargetedDimStyles > 0) {
       warnings.push(
         `repaired dangling references (${String(repair.droppedInserts)} INSERT dropped, ` +

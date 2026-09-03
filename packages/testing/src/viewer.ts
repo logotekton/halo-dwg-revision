@@ -55,6 +55,7 @@ interface ViewerHooks {
   dispose(): Promise<void>
   heapUsedBytes(): number | null
   viewerDocumentCount(): number
+  renderLoad(): { topLevel: number; inBlocks: number; total: number }
   collectGarbage(): Promise<boolean>
 }
 
@@ -87,6 +88,8 @@ export function createViewerSession(): {
   start(fixturePaths: string[]): Promise<void>
   stop(): Promise<void>
   readonly page: Page
+  /** PID of the Electron main process, for out-of-band RSS sampling. */
+  pid(): number
 } {
   let app: HaloElectronApp | null = null
   return {
@@ -96,6 +99,15 @@ export function createViewerSession(): {
       // W3-01's native file dialog.
       process.env.HALO_E2E_PICK_FILES = fixturePaths.join(delimiter)
       app = await launchHalo()
+      if (process.env.HALO_E2E_TRACE === '1') {
+        const child = app.app.process()
+        child.stderr?.on('data', (chunk: Buffer) => {
+          process.stderr.write(`[electron] ${chunk.toString()}`)
+        })
+        child.stdout?.on('data', (chunk: Buffer) => {
+          process.stderr.write(`[electron] ${chunk.toString()}`)
+        })
+      }
       await gotoViewerPage(app.window)
     },
     async stop(): Promise<void> {
@@ -105,6 +117,10 @@ export function createViewerSession(): {
     get page(): Page {
       if (!app) throw new Error('viewer session has not been started')
       return app.window
+    },
+    pid(): number {
+      if (!app) throw new Error('viewer session has not been started')
+      return app.app.process().pid ?? 0
     },
   }
 }

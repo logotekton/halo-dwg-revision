@@ -4,6 +4,7 @@ import { readFile, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
+import { readDwgMetadata } from './metadata'
 import type { ConvertResult } from './protocol'
 
 const execFileAsync = promisify(execFile)
@@ -49,13 +50,17 @@ export async function runAcadTsFallback(job: FallbackJob): Promise<ConvertResult
   if (!size || size.size === 0) {
     throw new Error(`acad-ts 폴백이 빈 결과를 만들었습니다: ${stderr || stdout}`)
   }
+  const metadata = await readDwgMetadata(job.entry, job.dwgPath)
   return {
     dxf_path: job.outPath,
     entity_count: await countEntities(job),
     converter: 'acad-ts',
     warnings: [
       'converted with the acad-ts fallback; the engine crosscheck decides whether it is usable',
+      ...metadata.warnings,
     ],
+    xrefs: metadata.xrefs,
+    styles: metadata.styles,
   }
 }
 

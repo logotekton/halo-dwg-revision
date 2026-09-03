@@ -38,10 +38,36 @@ export interface ConvertReply {
   error?: string
 }
 
+/**
+ * One external reference as the DWG stores it. `dxfOut()` drops these
+ * (W3-09: 0 of 133 preserved), so they travel beside the converted file for the
+ * engine to re-attach (`POST /files/{id}/converted`, W3-06 consumes them).
+ */
+export interface XrefInfo {
+  block_name: string
+  path: string
+  is_overlay: boolean
+}
+
+/**
+ * One text style. `typeface` is the TrueType name, which lives only in XDATA
+ * and is likewise lost by `dxfOut()` (W3-09: 0 of 838 styles) — the font panel
+ * (W3-05) needs it to map Korean TTF names.
+ */
+export interface StyleInfo {
+  name: string
+  font: string
+  bigfont: string
+  typeface?: string
+}
+
 /** What `halocad:convert:dwg-to-dxf` resolves to (`docs/contracts/wave-3.md`). */
 export interface ConvertResult {
   dxf_path: string
   entity_count: number
   converter: 'mlightcad-dxfout' | 'acad-ts'
   warnings: string[]
+  /** Read from the DWG by acad-ts, because the conversion loses them. */
+  xrefs: XrefInfo[]
+  styles: StyleInfo[]
 }

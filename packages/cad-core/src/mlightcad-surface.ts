@@ -1328,6 +1328,12 @@ class MlightcadViewSurface implements ViewSurface {
       return await this.manager.openDocument(name, copy, {
         mode: OPEN_MODE[mode],
         openViewMode: AcApOpenViewMode.Saved,
+        // Convert entities in time-budgeted batches instead of one blocking
+        // pass. On the large facility drawings the single-pass conversion of a
+        // ~60 MB working DXF pushed the renderer past its heap limit and
+        // Chromium killed it; yielding between batches keeps the peak down and
+        // lets the first geometry appear while the rest lands.
+        progressiveRendering: true,
       });
     } finally {
       this.bindDatabaseEvents();

@@ -14,6 +14,21 @@
  *    which flips the sign of the signed boundary area: −4 320 000 instead of
  *    +4 320 000 mm² on F06.
  *
+ * Three more came out of W3-09's measurement over the real drawing set, where
+ * the engine could read only 26 of 68 `dxfOut()` results
+ * (`docs/spikes/real-dwg-measurement.md`):
+ *
+ * 3. **LEADER (and DIMENSION) records name a dimension style `0`** that the
+ *    DIMSTYLE table does not contain. `ezdxf.bbox` builds a `DimStyleOverride`
+ *    per leader and raises `DXFTableEntryError: 0` — the single cause of the
+ *    42 unreadable files. The name is restored to the drawing's `$DIMSTYLE`,
+ *    or `Standard`, or the first style the table does define.
+ * 4. **STYLE records write the big-font name as `0`** instead of empty
+ *    (811 of 838 styles). `0` is not a font file, and a reader that resolves
+ *    it looks for one.
+ * 5. **Handles repeat.** Every later occurrence is re-issued above
+ *    `$HANDSEED`, and `$HANDSEED` is bumped past the highest handle in use.
+ *
  * The contract for this module (brief W3-02, Constraints) is narrow: *only*
  * those two things change and **no other byte moves**. It is therefore written
  * as a line-pair rewrite over the DXF text — no parse, no re-serialisation —
@@ -34,6 +49,12 @@ export interface DxfPostProcessReport {
   hatchLoopsFlagged: number;
   /** HATCH records seen. */
   hatchCount: number;
+  /** LEADER/DIMENSION records re-pointed at an existing dimension style. */
+  dimStylesRestored: number;
+  /** STYLE records whose big-font name was the literal `0`. */
+  bigFontsCleared: number;
+  /** Records whose handle collided with an earlier one and was re-issued. */
+  handlesReassigned: number;
   /** Line ending detected in the input, reused verbatim for inserted lines. */
   lineEnding: '\r\n' | '\n';
 }
@@ -44,37 +65,67 @@ export interface DxfPostProcessResult extends DxfPostProcessReport {
   unchanged: boolean;
 }
 
+/** DXF group 3 of LEADER/DIMENSION: the dimension style name. */
+const DIMSTYLE_NAME_CODE = 3;
+/** DXF group 4 of STYLE: the big-font file name. */
+const BIGFONT_CODE = 4;
+/** The value `dxfOut()` writes where a name is unknown. */
+const UNKNOWN_NAME = '0';
+const HANDLE_REPAIR_BISECT = false;
+
 /** Bit 0 of DXF group 92: this boundary path is an external boundary. */
 const EXTERNAL_BIT = 1;
 /** Bit 4 of DXF group 92: outermost boundary; ezdxf accepts either as "adds area". */
 const OUTERMOST_BIT = 16;
 
-interface Pair {
-  /** Index of the group-code line in `lines`. */
-  index: number;
-  code: number;
-  value: string;
+/**
+ * The file as group code / value pairs.
+ *
+ * Codes live in an `Int32Array` and values are read back out of `lines` — pair
+ * *i* is always lines `2i` (code) and `2i + 1` (value), so no per-pair object
+ * is allocated. That matters at real-drawing scale: a 10 MB DWG converts to a
+ * ~60 MB DXF with over two million pairs, and one small object each was enough
+ * to push the converter renderer into an out-of-memory kill (measured on
+ * `05_소방_기계/02_기계소방내진도면…dwg`, 89 533 entities).
+ */
+interface Pairs {
+  lines: string[];
+  codes: Int32Array;
+  count: number;
+}
+
+/** Group code of pair `index`. */
+function codeAt(pairs: Pairs, index: number): number {
+  return index >= 0 && index < pairs.count ? (pairs.codes[index] ?? -1) : -1;
+}
+
+/** Value line of pair `index`, untrimmed. */
+function valueAt(pairs: Pairs, index: number): string {
+  return pairs.lines[index * 2 + 1] ?? '';
+}
+
+/** Index in `lines` of pair `index`'s group-code line. */
+function lineAt(index: number): number {
+  return index * 2;
 }
 
 /**
- * Splits the file into group code / value pairs, keeping the raw line array so
- * the output can be rebuilt with every untouched line byte-identical.
+ * Reads the group code of every pair. Returns `null` when the text is not a
+ * group-code stream (binary DXF, truncated file): the caller keeps it as is.
  */
-function readPairs(lines: string[]): Pair[] {
-  const pairs: Pair[] = [];
-  for (let index = 0; index + 1 < lines.length; index += 2) {
-    const raw = lines[index];
-    const value = lines[index + 1];
-    if (raw === undefined || value === undefined) break;
-    const code = Number.parseInt(raw.trim(), 10);
-    if (Number.isNaN(code)) {
-      // Not a group-code stream any more (binary DXF, truncated file): stop
-      // rather than guess. The caller keeps the original text.
-      return [];
+function readPairs(lines: string[]): Pairs | null {
+  const count = Math.floor(lines.length / 2);
+  const codes = new Int32Array(count);
+  for (let index = 0; index < count; index += 1) {
+    const raw = lines[index * 2];
+    if (raw === undefined || lines[index * 2 + 1] === undefined) {
+      return { lines, codes: codes.subarray(0, index), count: index };
     }
-    pairs.push({ index, code, value });
+    const code = Number.parseInt(raw, 10);
+    if (Number.isNaN(code)) return null;
+    codes[index] = code;
   }
-  return pairs;
+  return { lines, codes, count };
 }
 
 /** Indentation-preserving group code line, e.g. `"  0"` → `" 66"`. */
@@ -97,14 +148,13 @@ interface EntityRecord {
   end: number;
 }
 
-function readEntities(pairs: Pair[]): EntityRecord[] {
+function readEntities(pairs: Pairs): EntityRecord[] {
   const records: EntityRecord[] = [];
-  for (let index = 0; index < pairs.length; index += 1) {
-    const pair = pairs[index];
-    if (pair?.code !== 0) continue;
+  for (let index = 0; index < pairs.count; index += 1) {
+    if (codeAt(pairs, index) !== 0) continue;
     const previous = records[records.length - 1];
     if (previous) previous.end = index;
-    records.push({ type: pair.value.trim(), start: index, end: pairs.length });
+    records.push({ type: valueAt(pairs, index).trim(), start: index, end: pairs.count });
   }
   return records;
 }
@@ -116,16 +166,17 @@ function readEntities(pairs: Pair[]): EntityRecord[] {
  * 2" and finally to "just after the record's group 8" so a record with an
  * unusual layout still gets a valid flag.
  */
-function insertionPointForAttributesFollow(pairs: Pair[], record: EntityRecord): number | null {
+function insertionPointForAttributesFollow(pairs: Pairs, record: EntityRecord): number | null {
   let afterSubclass: number | null = null;
   let beforeBlockName: number | null = null;
   let afterLayer: number | null = null;
   for (let index = record.start + 1; index < record.end; index += 1) {
-    const pair = pairs[index];
-    if (!pair) break;
-    if (pair.code === 100 && pair.value.trim() === 'AcDbBlockReference') afterSubclass = index + 1;
-    if (pair.code === 2 && beforeBlockName === null) beforeBlockName = index;
-    if (pair.code === 8 && afterLayer === null) afterLayer = index + 1;
+    const code = codeAt(pairs, index);
+    if (code === 100 && valueAt(pairs, index).trim() === 'AcDbBlockReference') {
+      afterSubclass = index + 1;
+    }
+    if (code === 2 && beforeBlockName === null) beforeBlockName = index;
+    if (code === 8 && afterLayer === null) afterLayer = index + 1;
   }
   return afterSubclass ?? beforeBlockName ?? afterLayer;
 }
@@ -151,7 +202,7 @@ interface BoundaryPath {
  * edge data. It is only ever used to decide *nesting*, never to compute an
  * area, so an approximate box for curved edges is good enough.
  */
-function readBoundaryPaths(pairs: Pair[], record: EntityRecord): BoundaryPath[] {
+function readBoundaryPaths(pairs: Pairs, record: EntityRecord): BoundaryPath[] {
   const paths: BoundaryPath[] = [];
   let current: BoundaryPath | null = null;
   let pendingX: number | null = null;
@@ -161,13 +212,12 @@ function readBoundaryPaths(pairs: Pair[], record: EntityRecord): BoundaryPath[] 
     pendingX = null;
   };
   for (let index = record.start + 1; index < record.end; index += 1) {
-    const pair = pairs[index];
-    if (!pair) break;
-    if (pair.code === 92) {
+    const code = codeAt(pairs, index);
+    if (code === 92) {
       finish();
       current = {
         pairIndex: index,
-        flags: Number.parseInt(pair.value.trim(), 10) || 0,
+        flags: Number.parseInt(valueAt(pairs, index).trim(), 10) || 0,
         minX: Number.POSITIVE_INFINITY,
         minY: Number.POSITIVE_INFINITY,
         maxX: Number.NEGATIVE_INFINITY,
@@ -179,17 +229,17 @@ function readBoundaryPaths(pairs: Pair[], record: EntityRecord): BoundaryPath[] 
     if (!current) continue;
     // Group 75 (hatch style) ends the boundary-path block; group 98 (seed
     // points) is even later. Both mean "no more boundary geometry".
-    if (pair.code === 75 || pair.code === 98) {
+    if (code === 75 || code === 98) {
       finish();
       continue;
     }
-    if (pair.code === 10 || pair.code === 11) {
-      const value = Number.parseFloat(pair.value);
+    if (code === 10 || code === 11) {
+      const value = Number.parseFloat(valueAt(pairs, index));
       pendingX = Number.isFinite(value) ? value : null;
       continue;
     }
-    if (pair.code === 20 || pair.code === 21) {
-      const y = Number.parseFloat(pair.value);
+    if (code === 20 || code === 21) {
+      const y = Number.parseFloat(valueAt(pairs, index));
       if (pendingX !== null && Number.isFinite(y)) {
         current.minX = Math.min(current.minX, pendingX);
         current.maxX = Math.max(current.maxX, pendingX);
@@ -247,6 +297,69 @@ function externalPathIndices(paths: BoundaryPath[]): number[] {
   return indices;
 }
 
+/** What the file declares about its own tables, read before anything is rewritten. */
+interface DocumentTables {
+  /** Every name in the DIMSTYLE table. */
+  dimStyles: Set<string>;
+  /** `$DIMSTYLE`, the drawing's active style. */
+  activeDimStyle: string | null;
+  /** `$HANDSEED` as a number, or 0 when absent/unparseable. */
+  handSeed: number;
+  /** Line index of the `$HANDSEED` value, so it can be bumped. */
+  handSeedLine: number | null;
+}
+
+function readTables(pairs: Pairs, records: EntityRecord[]): DocumentTables {
+  const dimStyles = new Set<string>();
+  let activeDimStyle: string | null = null;
+  let handSeed = 0;
+  let handSeedLine: number | null = null;
+
+  for (let index = 0; index < pairs.count; index += 1) {
+    if (codeAt(pairs, index) !== 9) continue;
+    const name = valueAt(pairs, index).trim();
+    if (index + 1 >= pairs.count) continue;
+    if (name === '$DIMSTYLE') activeDimStyle = valueAt(pairs, index + 1).trim();
+    if (name === '$HANDSEED') {
+      handSeed = Number.parseInt(valueAt(pairs, index + 1).trim(), 16);
+      if (Number.isNaN(handSeed)) handSeed = 0;
+      handSeedLine = lineAt(index + 1) + 1;
+    }
+  }
+
+  for (const record of records) {
+    if (record.type !== 'DIMSTYLE') continue;
+    for (let index = record.start + 1; index < record.end; index += 1) {
+      if (codeAt(pairs, index) === 2) {
+        dimStyles.add(valueAt(pairs, index).trim());
+        break;
+      }
+    }
+  }
+  return { dimStyles, activeDimStyle, handSeed, handSeedLine };
+}
+
+/**
+ * The style a LEADER/DIMENSION should point at when its own name is unusable:
+ * the drawing's active style, else `Standard`, else any defined style.
+ */
+function fallbackDimStyle(tables: DocumentTables): string | null {
+  if (tables.activeDimStyle !== null && tables.dimStyles.has(tables.activeDimStyle)) {
+    return tables.activeDimStyle;
+  }
+  if (tables.dimStyles.has('Standard')) return 'Standard';
+  const [first] = [...tables.dimStyles].sort();
+  return first ?? null;
+}
+
+/** Index of the first pair with `code` inside a record, or null. */
+function findCode(pairs: Pairs, record: EntityRecord, code: number): number | null {
+  for (let index = record.start + 1; index < record.end; index += 1) {
+    if (codeAt(pairs, index) === code) return index;
+  }
+  return null;
+}
+
 /**
  * Applies the two ADR-0002 §3 repairs to a `dxfOut()` result.
  *
@@ -262,43 +375,84 @@ export function postProcessDxfOut(text: string): DxfPostProcessResult {
     insertsAlreadyFlagged: 0,
     hatchLoopsFlagged: 0,
     hatchCount: 0,
+    dimStylesRestored: 0,
+    bigFontsCleared: 0,
+    handlesReassigned: 0,
     lineEnding,
   };
-  if (pairs.length === 0) {
+  if (pairs === null || pairs.count === 0) {
     return { ...report, text, unchanged: true };
   }
 
   const records = readEntities(pairs);
+  const tables = readTables(pairs, records);
+  const dimStyleFallback = fallbackDimStyle(tables);
   /** Line index → group-code/value lines to insert before it. */
   const insertions = new Map<number, string[]>();
-  /** Line index → replacement text (group 92 values only). */
+  /** Line index → replacement value line. */
   const replacements = new Map<number, string>();
+  /** Handles already issued, so a repeat can be spotted and re-numbered. */
+  const seenHandles = new Set<string>();
+  let nextHandle = tables.handSeed;
 
   for (let index = 0; index < records.length; index += 1) {
     const record = records[index];
     if (!record) continue;
 
+    // --- handle uniqueness -------------------------------------------------
+    // DIMSTYLE is the one table whose entries carry their handle in group 105.
+    const handleAt = HANDLE_REPAIR_BISECT ? findCode(pairs, record, record.type === 'DIMSTYLE' ? 105 : 5) : null;
+    if (handleAt !== null) {
+      const raw = valueAt(pairs, handleAt);
+      const handle = raw.trim().toUpperCase();
+      const numeric = Number.parseInt(handle, 16);
+      if (seenHandles.has(handle)) {
+        nextHandle += 1;
+        const replacement = nextHandle.toString(16).toUpperCase();
+        replacements.set(lineAt(handleAt) + 1, raw.replace(/\S+/, replacement));
+        seenHandles.add(replacement);
+        report.handlesReassigned += 1;
+      } else {
+        seenHandles.add(handle);
+        if (!Number.isNaN(numeric) && numeric > nextHandle) nextHandle = numeric;
+      }
+    }
+
+    // --- dimension style ---------------------------------------------------
+    if (record.type === 'LEADER' || record.type === 'DIMENSION') {
+      const at = findCode(pairs, record, DIMSTYLE_NAME_CODE);
+      if (at !== null && dimStyleFallback !== null) {
+        const raw = valueAt(pairs, at);
+        if (!tables.dimStyles.has(raw.trim())) {
+          replacements.set(lineAt(at) + 1, raw.replace(/\S.*$/, dimStyleFallback));
+          report.dimStylesRestored += 1;
+        }
+      }
+    }
+
+    // --- big font ----------------------------------------------------------
+    if (record.type === 'STYLE') {
+      const at = findCode(pairs, record, BIGFONT_CODE);
+      if (at !== null && valueAt(pairs, at).trim() === UNKNOWN_NAME) {
+        replacements.set(lineAt(at) + 1, '');
+        report.bigFontsCleared += 1;
+      }
+    }
+
     if (record.type === 'INSERT') {
       const next = records[index + 1];
       if (next?.type !== 'ATTRIB') continue;
-      let existing: Pair | null = null;
-      for (let cursor = record.start + 1; cursor < record.end; cursor += 1) {
-        const pair = pairs[cursor];
-        if (pair?.code === 66) {
-          existing = pair;
-          break;
-        }
-      }
-      if (existing) {
-        if (existing.value.trim() === '1') report.insertsAlreadyFlagged += 1;
-        else replacements.set(existing.index + 1, existing.value.replace(/\S+/, '1'));
+      const existing = findCode(pairs, record, 66);
+      if (existing !== null) {
+        const raw = valueAt(pairs, existing);
+        if (raw.trim() === '1') report.insertsAlreadyFlagged += 1;
+        else replacements.set(lineAt(existing) + 1, raw.replace(/\S+/, '1'));
         continue;
       }
       const at = insertionPointForAttributesFollow(pairs, record);
-      const target = at === null ? null : pairs[at];
-      if (!target) continue;
-      const sample = lines[target.index] ?? '  0';
-      insertions.set(target.index, [codeLine(sample, 66), '1']);
+      if (at === null || at >= pairs.count) continue;
+      const sample = lines[lineAt(at)] ?? '  0';
+      insertions.set(lineAt(at), [codeLine(sample, 66), '1']);
       report.insertsFlagged += 1;
       continue;
     }
@@ -311,13 +465,20 @@ export function postProcessDxfOut(text: string): DxfPostProcessResult {
         const path = paths[pathIndex];
         if (!path) continue;
         if ((path.flags & (EXTERNAL_BIT | OUTERMOST_BIT)) !== 0) continue;
-        const pair = pairs[path.pairIndex];
-        if (!pair) continue;
-        const raw = lines[pair.index + 1] ?? '';
-        replacements.set(pair.index + 1, raw.replace(/\d+/, String(path.flags | EXTERNAL_BIT)));
+        const valueLine = lineAt(path.pairIndex) + 1;
+        const raw = lines[valueLine] ?? '';
+        replacements.set(valueLine, raw.replace(/\d+/, String(path.flags | EXTERNAL_BIT)));
         report.hatchLoopsFlagged += 1;
       }
     }
+  }
+
+  if (report.handlesReassigned > 0 && tables.handSeedLine !== null) {
+    const raw = lines[tables.handSeedLine] ?? '';
+    replacements.set(
+      tables.handSeedLine,
+      raw.replace(/\S+/, (nextHandle + 1).toString(16).toUpperCase())
+    );
   }
 
   if (insertions.size === 0 && replacements.size === 0) {

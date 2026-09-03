@@ -55,6 +55,12 @@ interface ViewerTestHooks {
   heapUsedBytes(): number | null;
   /** How many documents the host still tracks. */
   viewerDocumentCount(): number;
+  /**
+   * Render load: top-level entities plus everything inside block definitions.
+   * W3-09 found this, not the top-level count, predicts the headless viewer's
+   * crashes, so the e2e reports it for the large real drawings.
+   */
+  renderLoad(): { topLevel: number; inBlocks: number; total: number };
   /** Forces a collection when the app was started with `--expose-gc`. */
   collectGarbage(): Promise<boolean>;
 }
@@ -144,6 +150,21 @@ function installTestHooks(): void {
       return typeof memory?.usedJSHeapSize === 'number' ? memory.usedJSHeapSize : null;
     },
     viewerDocumentCount: () => currentHost()?.documents().length ?? 0,
+    renderLoad: () => {
+      const host = currentHost();
+      const document = host?.document();
+      if (!document) return { topLevel: 0, inBlocks: 0, total: 0 };
+      let topLevel = 0;
+      for (const space of document.spaces()) {
+        for (const _entity of space.entities()) topLevel += 1;
+      }
+      let inBlocks = 0;
+      for (const block of document.blocks()) {
+        if (block.isModelSpace || block.isPaperSpace) continue;
+        inBlocks += block.entityCount;
+      }
+      return { topLevel, inBlocks, total: topLevel + inBlocks };
+    },
     collectGarbage: async () => {
       const gc = (globalThis as unknown as { gc?: () => void }).gc;
       if (!gc) return false;

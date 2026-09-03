@@ -122,7 +122,7 @@
       <tr><td><strong>ZWCAD 애드인</strong> <span class="tag">2차</span></td><td>ZWCAD 안에서 "이전 리비전과 비교" 명령 한 번으로 같은 엔진의 결과를 도면 위에 표시</td><td>CAD 사용자에게 편하다</td><td>ZWCAD 버전에 묶인다</td><td>나중에 얇게</td></tr>
     </tbody>
   </table></div>
-  <p>두 방식은 경쟁 관계가 아니다. 같은 비교 엔진의 두 입구다. 외부 앱을 먼저 완성하면 애드인은 결과를 불러오는 명령 하나로 끝난다. 사례로 본 "도곽 수십 개의 날짜를 파일 밖에서 일괄 변경하는 앱"도 같은 기술이라 비교 도구의 부산물로 그 기능이 나온다.</p>
+  <p>두 방식은 경쟁 관계가 아니다. 같은 비교 엔진의 두 입구다. 외부 앱을 먼저 완성하면 애드인은 결과를 불러오는 명령 하나로 끝난다.</p>
 
   <h3>동작 흐름</h3>
   <figure>
@@ -185,7 +185,7 @@
   </figure>
 
   <h3>산출물 세 가지</h3>
-  <p>겹쳐 보기와 마크업 DWG는 같은 무게다. 변경 리스트는 종이나 PDF가 아니라 앱 안에서 바로 보고 고치고 승인하는 목록이다.</p>
+  <p>겹쳐 보기와 마크업 DWG는 같은 무게다. 변경 리스트는 종이나 PDF가 아니라 앱 안에서 바로 보고 고치고 승인하는 목록이다. 검토는 도곽별로 하고 출력은 세트 전체를 한 번에 한다.</p>
   <div class="grid3">
     <div class="card">
       <h3>겹쳐 보기 <span class="tag after">앱 화면</span></h3>
@@ -228,7 +228,7 @@
           <text x="24" y="126" font-size="8" fill="#B6304F" font-family="IBM Plex Mono, monospace">레이어 REV-CLOUD</text>
         </svg>
       </figure>
-      <p class="note">변경 후 도면 사본에 별도 레이어로 클라우드 마크·번호를 넣고 승인된 변경 리스트를 리비전 표로 삽입한다. 원본은 그대로 둔다.</p>
+      <p class="note">변경된 도곽마다 변경 후 도면 사본에 별도 레이어로 클라우드 마크·번호를 넣고 그 도곽의 리비전 표를 삽입한다. 세트 전체를 한 번에 만들고 원본은 그대로 둔다.</p>
     </div>
     <div class="card">
       <h3>변경 리스트 <span class="tag">앱 안</span></h3>
@@ -248,7 +248,7 @@
           </g>
         </svg>
       </figure>
-      <p class="note">항목을 고치고 승인·무시를 정한 뒤 승인하면 마크업 DWG의 리비전 표로 들어가거나 표 형태 텍스트로 복사돼 CAD·엑셀에 붙는다.</p>
+      <p class="note">항목을 고치고 승인·무시를 정하면 도곽별 리비전 표와 세트 전체 변경 리스트(도곽별 묶음) 두 가지로 나간다. 도면에 넣거나 표 텍스트로 복사해 CAD·엑셀에 붙인다.</p>
     </div>
   </div>
 
@@ -264,7 +264,7 @@
   </table></div>
 
   <h2><span class="num">3</span>화면 구상</h2>
-  <p>화면은 네 장이다. 세트 지정 → 도곽 목록 → 비교 작업 → 출력 순서로 이어지고, 시간은 대부분 세 번째 화면에서 쓴다. 그림은 배치와 동작을 잡기 위한 초안이라 세부 모양은 개발하면서 바뀐다.</p>
+  <p>화면은 네 장이다. 세트 지정 → 도곽 목록 → 비교 작업 → 출력 순서로 이어지고, 시간은 대부분 세 번째 화면에서 쓴다. 출력은 도곽 하나가 아니라 세트 전체가 기본이다. 그림은 배치와 동작을 잡기 위한 초안이라 세부 모양은 개발하면서 바뀐다.</p>
   <h3>화면 A · 세트 지정</h3>
   <figure>
     <svg viewBox="0 0 860 360" role="img" aria-label="세트 지정 화면. 변경 전 폴더와 변경 후 폴더를 지정하는 두 영역, 사소한 변경 기준과 클라우드 마크 규격과 리비전 표 양식 옵션, 최근 비교 목록, 비교 시작 버튼">
@@ -313,7 +313,7 @@
   </figure>
   <h3>화면 B · 도곽 목록</h3>
   <figure>
-    <svg viewBox="0 0 860 400" role="img" aria-label="도곽 목록 화면. 전체, 변경, 동일, 신규, 삭제, 짝 없음 필터와 도면번호, 도면명, 전후 리비전, 변경 수 막대, 상태 열이 있는 표. 짝 없음 행에는 수동 짝 맞춤 버튼, 아래에 선택 도곽 열기 버튼">
+    <svg viewBox="0 0 860 400" role="img" aria-label="도곽 목록 화면. 전체, 변경, 동일, 신규, 삭제, 짝 없음 필터와 도면번호, 도면명, 전후 리비전, 변경 수 막대, 상태 열이 있는 표. 짝 없음 행에는 수동 짝 맞춤 버튼, 아래에 선택 도곽 열기 버튼과 세트 전체 출력 버튼">
 <g font-family="Noto Sans KR, sans-serif" font-size="11">
 <rect x="0.5" y="0.5" width="859" height="30" stroke-width="1" style="stroke:currentColor;fill:var(--code-bg)"/>
 <text x="16" y="20" font-size="12" font-weight="600" style="fill:currentColor">도곽 목록 · 실시도서 REV2 → REV3</text>
@@ -392,15 +392,16 @@
 <rect x="700" y="314" width="54" height="16" rx="8" stroke-width="1" style="stroke:var(--before);fill:none"/><text x="727.0" y="325.4" font-size="9.5" text-anchor="middle" style="fill:var(--before)">짝 없음</text>
 <rect x="764" y="313" width="72" height="18" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/><text x="800.0" y="325.6" font-size="10" text-anchor="middle" style="fill:currentColor">수동 짝 맞춤</text>
 <line x1="24" y1="338" x2="836" y2="338" stroke-width="1" style="stroke:var(--line)"/>
-<text x="24" y="372" font-size="11" style="fill:var(--muted)">변경 12 도곽 · 총 변경 23건 · 사소한 변경 41건 접힘</text>
-<rect x="704" y="352" width="132" height="32" rx="3" stroke-width="1" style="stroke:#B6304F;fill:#B6304F"/><text x="770.0" y="372.32" font-size="12" text-anchor="middle" font-weight="500" style="fill:#fff">선택 도곽 열기</text>
+<text x="24" y="372" font-size="11" style="fill:var(--muted)">변경 12 도곽 · 승인 23건 · 미결 2건 · 사소한 변경 41건 접힘</text>
+<rect x="556" y="352" width="132" height="32" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/><text x="622.0" y="372.32" font-size="12" text-anchor="middle" style="fill:currentColor">선택 도곽 열기</text>
+<rect x="704" y="352" width="132" height="32" rx="3" stroke-width="1" style="stroke:#B6304F;fill:#B6304F"/><text x="770.0" y="372.32" font-size="12" text-anchor="middle" font-weight="500" style="fill:#fff">세트 전체 출력…</text>
 </g>
 </svg>
-    <figcaption>짝이 맞은 도곽을 변경 많은 순으로 보여준다. 신규·삭제·짝 없음은 따로 표시하고, 짝 없음은 이 화면에서 수동으로 맞춘다.</figcaption>
+    <figcaption>짝이 맞은 도곽을 변경 많은 순으로 보여준다. 신규·삭제·짝 없음은 따로 표시하고, 짝 없음은 이 화면에서 수동으로 맞춘다. 검토가 끝나면 여기서 세트 전체를 한 번에 출력한다.</figcaption>
   </figure>
   <h3>화면 C · 비교 작업 화면</h3>
   <figure>
-    <svg viewBox="0 0 860 520" role="img" aria-label="비교 작업 화면. 왼쪽 캔버스에 변경 전 회색과 변경 후 청록 도면이 겹쳐 있고 다섯 개의 붉은 클라우드 마크에 번호가 붙어 있다. 오른쪽 변경 리스트에는 항목마다 종류, 설명, 승인과 무시 버튼이 있고 아래에 사소한 변경이 접혀 있다. 하단에 마크업 DWG 만들기, 리비전 표 삽입, 표 텍스트 복사 버튼">
+    <svg viewBox="0 0 860 520" role="img" aria-label="비교 작업 화면. 왼쪽 캔버스에 변경 전 회색과 변경 후 청록 도면이 겹쳐 있고 다섯 개의 붉은 클라우드 마크에 번호가 붙어 있다. 오른쪽 변경 리스트에는 항목마다 종류, 설명, 승인과 무시 버튼이 있고 아래에 사소한 변경이 접혀 있다. 하단에 세트 전체 출력, 이 도곽만 출력, 표 텍스트 복사 버튼">
 <g font-family="Noto Sans KR, sans-serif" font-size="11">
 <rect x="0.5" y="0.5" width="859" height="30" stroke-width="1" style="stroke:currentColor;fill:var(--code-bg)"/>
 <text x="16" y="20" font-size="12" font-weight="600" style="fill:currentColor">A-102 2층 평면도 · REV2 (08-14) → REV3 (09-01)</text>
@@ -518,46 +519,58 @@
 <line x1="596" y1="415.5" x2="840" y2="415.5" stroke-width="1" style="stroke:var(--line)"/>
 <text x="596" y="450" font-size="10.5" style="fill:var(--muted)">▸ 사소한 변경 41건 접힘 (레이어·색·미세 이동)</text>
 <rect x="12" y="470" width="836" height="40" stroke-width="1" style="stroke:currentColor;fill:var(--code-bg)"/>
-<rect x="24" y="479" width="136" height="22" rx="3" stroke-width="1" style="stroke:#B6304F;fill:#B6304F"/><text x="92.0" y="493.96" font-size="11" text-anchor="middle" font-weight="500" style="fill:#fff">마크업 DWG 만들기</text>
-<rect x="168" y="479" width="110" height="22" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/><text x="223.0" y="493.96" font-size="11" text-anchor="middle" style="fill:currentColor">리비전 표 삽입</text>
-<rect x="286" y="479" width="110" height="22" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/><text x="341.0" y="493.96" font-size="11" text-anchor="middle" style="fill:currentColor">표 텍스트 복사</text>
-<text x="836" y="494" font-size="10.5" text-anchor="end" style="fill:var(--muted)">원본은 수정하지 않는다 · 출력은 derivatives 폴더</text>
+<rect x="24" y="479" width="124" height="22" rx="3" stroke-width="1" style="stroke:#B6304F;fill:#B6304F"/><text x="86.0" y="493.96" font-size="11" text-anchor="middle" font-weight="500" style="fill:#fff">세트 전체 출력…</text>
+<rect x="156" y="479" width="116" height="22" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/><text x="214.0" y="493.96" font-size="11" text-anchor="middle" style="fill:currentColor">이 도곽만 출력…</text>
+<rect x="280" y="479" width="110" height="22" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/><text x="335.0" y="493.96" font-size="11" text-anchor="middle" style="fill:currentColor">표 텍스트 복사</text>
+<text x="836" y="494" font-size="10.5" text-anchor="end" style="fill:var(--muted)">출력은 승인 항목만 · 원본은 수정하지 않는다</text>
 </g>
 </svg>
-    <figcaption>왼쪽은 전(회색)·후(청록) 겹쳐 보기와 클라우드 마크, 오른쪽은 변경 리스트다. 번호를 누르면 그 자리로 확대되고 항목마다 승인·무시를 정한다. 사소한 변경은 접혀 있고, 출력 버튼은 승인 항목만 내보낸다.</figcaption>
+    <figcaption>왼쪽은 전(회색)·후(청록) 겹쳐 보기와 클라우드 마크, 오른쪽은 변경 리스트다. 번호를 누르면 그 자리로 확대되고 항목마다 승인·무시를 정한다. 사소한 변경은 접혀 있다. 도곽을 하나씩 검토한 뒤 세트 전체 출력으로 넘어간다.</figcaption>
   </figure>
   <h3>화면 D · 출력</h3>
   <figure>
-    <svg viewBox="0 0 860 330" role="img" aria-label="출력 대화상자. 마크업 DWG 저장 위치와 레이어, 리비전 표 삽입 방법 세 가지 중 ZWCAD에 바로 삽입이 선택돼 있고, 취소와 만들기 버튼">
+    <svg viewBox="0 0 860 380" role="img" aria-label="출력 대화상자. 범위는 세트 전체가 기본이고 이 도곽만도 고를 수 있다. 마크업 DWG는 변경된 도곽마다 한 파일, 리비전 표는 도곽별 표와 전체 변경 리스트 두 가지, 넣는 방법은 ZWCAD에 바로 삽입, DXF 조각, 표 텍스트 복사 중 선택. 취소와 만들기 버튼">
 <g font-family="Noto Sans KR, sans-serif" font-size="11">
-<rect x="150" y="20" width="560" height="290" rx="4" stroke-width="1" style="stroke:currentColor;fill:var(--surface)"/>
-<text x="170" y="46" font-size="12" font-weight="600" style="fill:currentColor">출력 · A-102 2층 평면도 REV3</text>
-<line x1="150" y1="56" x2="710" y2="56" stroke-width="1" style="stroke:currentColor"/>
-<text x="170" y="82" font-size="11" font-weight="600" style="fill:currentColor">마크업 DWG</text>
-<text x="170" y="104" font-size="10.5" style="fill:var(--muted)">저장 위치</text>
-<text x="260" y="104" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:currentColor">…\derivatives\A-102_REV3_markup.dwg</text>
-<text x="170" y="126" font-size="10.5" style="fill:var(--muted)">레이어 · 색</text>
-<text x="260" y="126" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:currentColor">REV-CLOUD · 빨강 · 원 안 번호</text>
-<text x="170" y="158" font-size="11" font-weight="600" style="fill:currentColor">리비전 표</text>
-<circle cx="178" cy="176" r="5.5" fill="none" stroke-width="1.2" style="stroke:var(--accent)"/>
-<circle cx="178" cy="176" r="3" style="fill:var(--accent)"/>
-<text x="192" y="180" font-size="11" font-weight="600" style="fill:currentColor">ZWCAD에 바로 삽입</text>
-<text x="330" y="180" font-size="10.5" style="fill:var(--muted)">실행 중인 ZWCAD 감지됨 · COM 연동</text>
-<circle cx="178" cy="198" r="5.5" fill="none" stroke-width="1.2" style="stroke:var(--before)"/>
-<text x="192" y="202" font-size="11" style="fill:currentColor">DXF 조각으로 저장</text>
-<text x="330" y="202" font-size="10.5" style="fill:var(--muted)">ZWCAD에서 INSERT로 붙임</text>
-<circle cx="178" cy="220" r="5.5" fill="none" stroke-width="1.2" style="stroke:var(--before)"/>
-<text x="192" y="224" font-size="11" style="fill:currentColor">표 텍스트 복사</text>
-<text x="330" y="224" font-size="10.5" style="fill:var(--muted)">엑셀·ZWCAD 표에 붙여넣기</text>
-<text x="170" y="250" font-size="10.5" style="fill:var(--muted)">위치 · 내용</text>
-<text x="260" y="250" font-size="10.5" style="fill:currentColor">표제란 옆 · 승인 5건 → 리비전 표 5행 (번호·내용·일자·담당)</text>
-<rect x="546" y="268" width="64" height="26" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/><text x="578.0" y="284.96" font-size="11" text-anchor="middle" style="fill:currentColor">취소</text>
-<rect x="618" y="268" width="72" height="26" rx="3" stroke-width="1" style="stroke:#B6304F;fill:#B6304F"/><text x="654.0" y="284.96" font-size="11" text-anchor="middle" font-weight="500" style="fill:#fff">만들기</text>
+<rect x="110" y="20" width="640" height="340" rx="4" stroke-width="1" style="stroke:currentColor;fill:var(--surface)"/>
+<text x="130" y="46" font-size="12" font-weight="600" style="fill:currentColor">출력 · 실시도서 REV2 → REV3</text>
+<line x1="110" y1="56" x2="750" y2="56" stroke-width="1" style="stroke:currentColor"/>
+<text x="130" y="84" font-size="11" font-weight="600" style="fill:currentColor">범위</text>
+<circle cx="208" cy="80" r="5.5" fill="none" stroke-width="1.2" style="stroke:var(--accent)"/>
+<circle cx="208" cy="80" r="3" style="fill:var(--accent)"/>
+<text x="222" y="84" font-size="11" font-weight="600" style="fill:currentColor">세트 전체</text>
+<text x="282.5" y="84" font-size="10" style="fill:var(--muted)">변경 12 도곽 · 승인 23건 (미결 2건 제외)</text>
+<circle cx="518" cy="80" r="5.5" fill="none" stroke-width="1.2" style="stroke:var(--before)"/>
+<text x="532" y="84" font-size="11" style="fill:currentColor">이 도곽만</text>
+<text x="592.5" y="84" font-size="10" style="fill:var(--muted)">A-102 · 승인 5건</text>
+<line x1="130" y1="98" x2="730" y2="98" stroke-width="1" style="stroke:var(--line)"/>
+<text x="130" y="124" font-size="11" font-weight="600" style="fill:currentColor">마크업 DWG</text>
+<text x="130" y="146" font-size="10.5" style="fill:var(--muted)">저장 위치</text>
+<text x="230" y="146" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:currentColor">…\derivatives\REV3_markup\  (변경된 도곽마다 1개, 12개 파일)</text>
+<text x="130" y="168" font-size="10.5" style="fill:var(--muted)">레이어 · 색</text>
+<text x="230" y="168" font-size="10.5" font-family="IBM Plex Mono, monospace" style="fill:currentColor">REV-CLOUD · 빨강 · 원 안 번호</text>
+<line x1="130" y1="184" x2="730" y2="184" stroke-width="1" style="stroke:var(--line)"/>
+<text x="130" y="210" font-size="11" font-weight="600" style="fill:currentColor">리비전 표</text>
+<text x="130" y="232" font-size="10.5" style="fill:var(--muted)">도곽별 표</text>
+<text x="230" y="232" font-size="10.5" style="fill:currentColor">각 도곽의 표제란 옆에 그 도곽의 항목만</text>
+<text x="130" y="254" font-size="10.5" style="fill:var(--muted)">전체 변경 리스트</text>
+<text x="230" y="254" font-size="10.5" style="fill:currentColor">도곽별로 묶은 표 한 장 · 표지 도곽(또는 첫 도곽)에 삽입 · 23행</text>
+<text x="130" y="290" font-size="11" font-weight="600" style="fill:currentColor">넣는 방법</text>
+<circle cx="208" cy="286" r="5.5" fill="none" stroke-width="1.2" style="stroke:var(--accent)"/>
+<circle cx="208" cy="286" r="3" style="fill:var(--accent)"/>
+<text x="222" y="290" font-size="11" font-weight="600" style="fill:currentColor">ZWCAD에 바로 삽입</text>
+<text x="356.0" y="290" font-size="10" style="fill:var(--muted)">실행 중 감지됨 · COM 연동</text>
+<circle cx="518" cy="286" r="5.5" fill="none" stroke-width="1.2" style="stroke:var(--before)"/>
+<text x="532" y="290" font-size="11" style="fill:currentColor">DXF 조각으로 저장</text>
+<text x="222" y="312" font-size="10" style="fill:currentColor"></text>
+<circle cx="208" cy="312" r="5.5" fill="none" stroke-width="1.2" style="stroke:var(--before)"/>
+<text x="222" y="316" font-size="11" style="fill:currentColor">표 텍스트 복사</text>
+<text x="314.0" y="316" font-size="10" style="fill:var(--muted)">엑셀·ZWCAD 표에 붙여넣기</text>
+<rect x="590" y="318" width="64" height="26" rx="3" stroke-width="1" style="stroke:currentColor;fill:none"/><text x="622.0" y="334.96" font-size="11" text-anchor="middle" style="fill:currentColor">취소</text>
+<rect x="662" y="318" width="72" height="26" rx="3" stroke-width="1" style="stroke:#B6304F;fill:#B6304F"/><text x="698.0" y="334.96" font-size="11" text-anchor="middle" font-weight="500" style="fill:#fff">만들기</text>
 </g>
 </svg>
-    <figcaption>승인한 항목만 마크업 DWG와 리비전 표로 나간다. ZWCAD가 실행 중이면 COM 연동으로 바로 삽입하고, 아니면 DXF 조각이나 표 텍스트로 넘긴다.</figcaption>
+    <figcaption>출력은 세트 전체가 기본이다. 변경된 도곽 전부의 마크업 DWG와 전체 변경 리스트(도곽별 묶음)를 한 번에 만들고, 필요할 때만 한 도곽만 출력한다. ZWCAD가 실행 중이면 COM 연동으로 바로 삽입하고, 아니면 DXF 조각이나 표 텍스트로 넘긴다.</figcaption>
   </figure>
-  <p class="note">부가 화면으로 도곽 일괄 편집(날짜·리비전 기호)이 있다. 도곽 목록에서 여러 도곽을 골라 표제란 값을 한 번에 바꾸는 단순한 표 화면이라 그림은 생략한다.</p>
 
   <h2><span class="num">4</span>매뉴얼</h2>
   <ol>
@@ -566,7 +579,7 @@
     <li>도곽별 변경 요약이 변경 많은 순으로 나온다. 어느 시트부터 봐야 하는지 바로 안다. <span class="tag">화면 B</span></li>
     <li>도곽을 열면 전·후가 겹쳐 보이고 변경 영역마다 번호가 붙어 있다. 미세 이동 같은 사소한 항목은 접혀 있다. <span class="tag">화면 C</span></li>
     <li>번호별로 승인할지 무시할지 정하고 설명을 고친다. <span class="tag">화면 C</span></li>
-    <li>승인하면 마크업 DWG와 리비전 표가 만들어진다. 현장과 협력사에 배포한다. ZWCAD가 있는 자리에서는 마크업 도면을 열어 확인한다. <span class="tag">화면 D</span></li>
+    <li>도곽 검토가 끝나면 세트 전체를 한 번에 출력한다. 변경된 도곽마다 마크업 DWG가 나오고 전체 변경 리스트가 리비전 표로 들어간다. 필요하면 한 도곽만 출력한다. 현장과 협력사에 배포하고, ZWCAD가 있는 자리에서는 마크업 도면을 열어 확인한다. <span class="tag">화면 D</span></li>
   </ol>
 
   <h2><span class="num">5</span>왜 가능한가</h2>
@@ -590,8 +603,8 @@
     <tbody>
       <tr><td><strong>M1</strong> 도곽 추출·매칭</td><td>파일 속 도곽 목록, 도면번호·제목으로 전·후 짝 맞춤, 신규·삭제 감지, XR 자동 해석</td><td>실시도서 68장에서 도곽 전수 추출이 PDF 페이지 수와 일치. 사용자가 만든 리비전 쌍에서 짝 맞춤 100%</td><td class="num">1주</td></tr>
       <tr><td><strong>M2</strong> 비교·표기</td><td>도곽별 기하·치수·텍스트 비교, 변경 영역 묶음, 사소한 변경 필터, 클라우드 마크·번호, 마크업 DWG 생성</td><td>리비전 쌍에 넣어 둔 변경을 전부 검출하고 오탐은 목록에서 걸러진다. 마크업 DWG가 ZWCAD에서 열린다</td><td class="num">2주</td></tr>
-      <tr><td><strong>M3</strong> 검토 화면·변경 리스트</td><td>겹쳐 보기, 번호 이동, 승인·무시, 리스트 편집, 승인 → ZWCAD COM 연동으로 리비전 표 삽입, 표 텍스트·DXF 조각 복사</td><td>사용자 직접 시연. 승인한 항목만 도면에 들어간다</td><td class="num">2주</td></tr>
-      <tr><td><strong>M4</strong> 부가·2차</td><td>도곽 일괄 편집(날짜·리비전 기호), ZWCAD 애드인 명령(ZRX.NET)</td><td>ZWCAD에서 결과가 열리고 명령 한 번으로 비교가 뜬다</td><td class="num">1~2주</td></tr>
+      <tr><td><strong>M3</strong> 검토 화면·변경 리스트</td><td>겹쳐 보기, 번호 이동, 승인·무시, 리스트 편집, 세트 전체 출력(변경 도곽 전부의 마크업 DWG + 전체 변경 리스트) → ZWCAD COM 연동 삽입, 표 텍스트·DXF 조각</td><td>사용자 직접 시연. 승인한 항목만 도면에 들어간다</td><td class="num">2주</td></tr>
+      <tr><td><strong>M4</strong> 2차 애드인</td><td>ZWCAD 애드인 명령(ZRX.NET): 열린 도면에서 이전 리비전과 비교, 결과 불러오기</td><td>ZWCAD에서 결과가 열리고 명령 한 번으로 비교가 뜬다</td><td class="num">1~2주</td></tr>
     </tbody>
   </table></div>
   <p class="note">파일럿 현장은 두지 않고 담당자가 직접 검증한다. M2의 전제인 변경 전·후 리비전 쌍은 담당자가 만든다.</p>
@@ -615,7 +628,7 @@
     <ol>
       <li><strong>착수 시점.</strong> 계획서 승인 후 언제 시작할지.</li>
       <li><strong>클라우드 마크 규격.</strong> 레이어 이름, 색, 번호 표기 형식(예: <code>REV-CLOUD</code>, 빨강, 원 안 번호)과 회사 표준이 있으면 그것.</li>
-      <li><strong>리비전 표 양식.</strong> 도면에 넣을 변경 리스트의 열 구성(번호·내용·일자·담당)과 위치(표제란 옆).</li>
+      <li><strong>리비전 표 양식.</strong> 도곽별 표의 열 구성(번호·내용·일자·담당)과 위치(표제란 옆), 그리고 세트 전체 변경 리스트를 넣을 자리(표지 도곽 또는 첫 도곽).</li>
       <li><strong>"사소한 변경" 기준.</strong> 무시할 이동 허용오차(예: 1mm)와 접어 둘 항목 종류.</li>
     </ol>
   </div>

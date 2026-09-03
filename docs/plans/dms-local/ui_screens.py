@@ -114,29 +114,34 @@ def screen_c():
                   T(270, 437, "8,700", 10, AFTER, "middle", mono=True), T(120, 316, "주기: 방화문 FD-2", 10, AFTER)]
     b += plan_before + plan_after
     b += [CLOUD(236, 92, 68, 154, 7, 1), CLOUD(318, 226, 52, 30, 6, 2), CLOUD(232, 396, 90, 46, 7, 3), CLOUD(108, 286, 130, 40, 7, 4), CLOUD(386, 68, 32, 180, 7, 5)]
+    # a cloud the user drew as a polyline, with a text note
+    b += [CLOUD(330, 300, 120, 54, 9, 8), T(392, 332, "배수구 위치 확인 요망", 10, ACCENT, "middle", 600)]
+    # tool strip inside the canvas: select / draw cloud (polyline) / text / erase
+    b += [R(20, 46, 52, 20, stroke=AFTER, fill=SOFT_A, rx=3), T(46, 60, "선택", 10.5, AFTER, "middle", 600), BTN(80, 46, 124, 20, "마크 그리기 (폴리라인)", size=10.5), BTN(212, 46, 56, 20, "텍스트", size=10.5), BTN(276, 46, 56, 20, "지우기", size=10.5)]
     # legend + navigation inside the canvas
     b += [L(24, 448, 44, 448, BEFORE, 1.6), T(50, 452, "전", 10, BEFORE), L(70, 448, 90, 448, AFTER, 1.6), T(96, 452, "후", 10, AFTER),
           f'<circle cx="122" cy="448" r="5" fill="none" stroke-width="1.5" style="stroke:{ACCENT}"/>', T(132, 452, "변경 영역 · 번호를 누르면 확대", 10, MUTED),
           R(440, 436, 124, 18, rx=3, fill=CODEBG), T(502, 449, "‹  번호 2 / 7  ›", 10.5, INK, "middle", mono=True)]
-    # right panel: change list
-    b += [R(584, 40, 264, 420), T(596, 60, "변경 리스트 · 7건", 12, INK, weight=600), T(596, 78, "승인 5 · 무시 1 · 미결 1", 10.5, MUTED), L(584, 86, 848, 86)]
+    # right panel: change list (7 automatic + 1 manual)
+    b += [R(584, 40, 264, 420), T(596, 60, "변경 리스트 · 8건 (자동 7 · 수동 1)", 12, INK, weight=600), T(596, 78, "승인 6 · 무시 1 · 미결 1", 10.5, MUTED), L(584, 86, 848, 86)]
     items = [(1, "기하", "내벽 이동 (동쪽 400mm)", "승인", "전 x=250 → 후 x=290"), (2, "기하", "기둥 C3 이동 300mm", "승인", "블록 COL-600"),
              (3, "치수", "8,400 → 8,700", "승인", "1층 X2~X4 총치수"), (4, "텍스트", "주기 FD-1 → FD-2", "승인", "레이어 A-NOTE"),
-             (5, "기하", "벽 W2 신설", "승인", "레이어 A-WALL"), (6, "기하", "해치 미세 이동 0.4mm", "무시", "허용오차 이내"), (7, "텍스트", "날짜 표기 변경", "미결", "표제란 속성")]
+             (5, "기하", "벽 W2 신설", "승인", "레이어 A-WALL"), (6, "기하", "해치 미세 이동 0.4mm", "무시", "허용오차 이내"), (7, "텍스트", "날짜 표기 변경", "미결", "표제란 속성"),
+             (8, "수동", "배수구 위치 확인 요망", "승인", "직접 그림 · 텍스트")]
     for i, (n, kind, desc, state, detail) in enumerate(items):
-        top = 94 + i*46
-        muted = state == "무시"
-        b += [BADGE(602, top+14, n, filled=not muted), PILL(618, top+6, 36, kind, "ink" if not muted else "gray", h=16, size=9)]
-        b += [T(662, top+18, desc, 11, MUTED if muted else INK)]
+        top = 92 + i*42
+        muted = state == "무시"; manual = kind == "수동"
+        b += [BADGE(602, top+13, n, filled=not muted), PILL(618, top+5, 36, kind, "red" if manual else ("ink" if not muted else "gray"), h=16, size=9)]
+        b += [T(662, top+17, desc, 11, MUTED if muted else INK)]
         ok = state == "승인"
-        b += [R(662, top+25, 40, 15, stroke=AFTER if ok else "var(--line)", fill=SOFT_A if ok else "none", rx=3), T(682, top+36, "승인", 9.5, AFTER if ok else MUTED, "middle", 600 if ok else None),
-              R(708, top+25, 40, 15, stroke=BEFORE if muted else "var(--line)", fill=CODEBG if muted else "none", rx=3), T(728, top+36, "무시", 9.5, INK if muted else MUTED, "middle"),
-              T(842, top+36, detail, 9, MUTED, "end", mono=True), L(596, top+45.5, 840, top+45.5, stroke="var(--line)")]
+        b += [R(662, top+23, 40, 14, stroke=AFTER if ok else "var(--line)", fill=SOFT_A if ok else "none", rx=3), T(682, top+33.5, "승인", 9.5, AFTER if ok else MUTED, "middle", 600 if ok else None),
+              R(708, top+23, 40, 14, stroke=BEFORE if muted else "var(--line)", fill=CODEBG if muted else "none", rx=3), T(728, top+33.5, "무시", 9.5, INK if muted else MUTED, "middle"),
+              T(842, top+33.5, detail, 9, MUTED, "end", mono=True), L(596, top+41.5, 840, top+41.5, stroke="var(--line)")]
     b += [T(596, 450, "▸ 사소한 변경 41건 접힘 (레이어·색·미세 이동)", 10.5, MUTED)]
     # footer
     b += [R(12, 470, 836, 40, fill=CODEBG), BTN(24, 479, 124, 22, "전체 도곽 출력…", primary=True), BTN(156, 479, 116, 22, "선택 도곽 출력…"), BTN(280, 479, 110, 22, "표 텍스트 복사"),
           T(836, 494, "출력은 승인 항목만 · 원본은 수정하지 않는다", 10.5, MUTED, "end")]
-    return SVG(860, 520, "비교 작업 화면. 왼쪽 캔버스에 변경 전 회색과 변경 후 청록 도면이 겹쳐 있고 다섯 개의 붉은 클라우드 마크에 번호가 붙어 있다. 오른쪽 변경 리스트에는 항목마다 종류, 설명, 승인과 무시 버튼이 있고 아래에 사소한 변경이 접혀 있다. 하단에 전체 도곽 출력, 선택 도곽 출력, 표 텍스트 복사 버튼", b)
+    return SVG(860, 520, "비교 작업 화면. 왼쪽 캔버스에 변경 전 회색과 변경 후 청록 도면이 겹쳐 있고 다섯 개의 붉은 클라우드 마크에 번호가 붙어 있다. 캔버스 위에는 선택, 마크 그리기(폴리라인), 텍스트, 지우기 도구가 있고 사용자가 직접 그린 여덟 번째 클라우드 마크와 텍스트가 있다. 오른쪽 변경 리스트에는 자동 7건과 수동 1건이 있고 항목마다 종류, 설명, 승인과 무시 버튼이 있으며 아래에 사소한 변경이 접혀 있다. 하단에 전체 도곽 출력, 선택 도곽 출력, 표 텍스트 복사 버튼", b)
 
 # ---------- Screen D: 출력 ----------
 def screen_d():
@@ -163,8 +168,9 @@ def screen_d():
     b += radio(X+90, 290, "ZWCAD에 바로 삽입", "실행 중 감지됨 · COM 연동", True)
     b += radio(X+400, 290, "DXF 조각으로 저장", "", False)
     b += [T(X+90+22, 312, "", 10)] + radio(X+90, 316, "표 텍스트 복사", "엑셀·ZWCAD 표에 붙여넣기", False)
+    b += [T(X+20, 336, "✓ 리비전 이력.xlsx에 시트 '2026-09-03' 자동 추가됨 (전체 도면 목록 74행 · 도면별 변경 리스트 26행)", 10.5, AFTER)]
     b += [BTN(X+W-160, 318, 64, 26, "취소"), BTN(X+W-88, 318, 72, 26, "만들기", primary=True)]
-    return SVG(860, 380, "출력 대화상자. 범위는 전체 도곽이 기본이고 선택 도곽을 고르면 도곽 선택 대화상자가 뜬다. 마크업 DWG는 변경된 도곽마다 한 파일, 리비전 표는 도곽별 표와 전체 변경 리스트 두 가지, 넣는 방법은 ZWCAD에 바로 삽입, DXF 조각, 표 텍스트 복사 중 선택. 취소와 만들기 버튼", b)
+    return SVG(860, 380, "출력 대화상자. 범위는 전체 도곽이 기본이고 선택 도곽을 고르면 도곽 선택 대화상자가 뜬다. 마크업 DWG는 변경된 도곽마다 한 파일, 리비전 표는 도곽별 표와 전체 변경 리스트 두 가지, 넣는 방법은 ZWCAD에 바로 삽입, DXF 조각, 표 텍스트 복사 중 선택. 하단에 리비전 이력 엑셀에 오늘 날짜 시트가 자동 추가됐다는 안내와 취소, 만들기 버튼", b)
 
 def fig(svg, cap): return f'  <figure>\n    {svg}\n    <figcaption>{cap}</figcaption>\n  </figure>'
 
@@ -176,9 +182,9 @@ section = "\n".join([
   '  <h3>화면 B · 도곽 목록</h3>',
   fig(screen_b(), "짝이 맞은 도곽을 변경 많은 순으로 보여준다. 신규·삭제·짝 없음은 따로 표시하고, 짝 없음은 이 화면에서 수동으로 맞춘다. 검토가 끝나면 여기서 전체 도곽 또는 선택 도곽을 출력한다."),
   '  <h3>화면 C · 비교 작업 화면</h3>',
-  fig(screen_c(), "왼쪽은 전(회색)·후(청록) 겹쳐 보기와 클라우드 마크, 오른쪽은 변경 리스트다. 번호를 누르면 그 자리로 확대되고 항목마다 승인·무시를 정한다. 사소한 변경은 접혀 있다. 도곽을 하나씩 검토한 뒤 전체 도곽 출력으로 넘어간다."),
+  fig(screen_c(), "왼쪽은 전(회색)·후(청록) 겹쳐 보기와 클라우드 마크, 오른쪽은 변경 리스트다. 번호를 누르면 그 자리로 확대되고 항목마다 승인·무시를 정한다. 자동 비교가 놓친 곳은 클라우드 마크를 폴리라인으로 직접 그리고 텍스트를 붙이며, 직접 그린 항목은 리스트에 수동으로 들어간다. 사소한 변경은 접혀 있다. 도곽을 하나씩 검토한 뒤 출력으로 넘어간다."),
   '  <h3>화면 D · 출력</h3>',
-  fig(screen_d(), "출력 범위는 전체 도곽이 기본이다. 변경된 도곽 전부의 마크업 DWG와 전체 변경 리스트(도곽별 묶음)를 한 번에 만들고, 일부만 필요하면 선택 도곽으로 고른다. ZWCAD가 실행 중이면 COM 연동으로 바로 삽입하고, 아니면 DXF 조각이나 표 텍스트로 넘긴다."),
+  fig(screen_d(), "화면 C에서 넘어오는 순간 리비전 이력 엑셀에 실행 날짜 이름의 시트가 자동으로 추가된다. 출력 범위는 전체 도곽이 기본이다. 변경된 도곽 전부의 마크업 DWG와 전체 변경 리스트(도곽별 묶음)를 한 번에 만들고, 일부만 필요하면 선택 도곽으로 고른다. ZWCAD가 실행 중이면 COM 연동으로 바로 삽입하고, 아니면 DXF 조각이나 표 텍스트로 넘긴다."),
   '  <p class="note"><strong>도곽 선택 대화상자.</strong> 출력 범위를 선택 도곽으로 고르면 변경된 도곽의 목록이 대화상자로 뜬다. 도면번호·도면명·승인 건수가 체크 목록으로 나오고 전체 선택·해제와 검색이 있다. 체크한 도곽만 마크업 DWG와 변경 리스트로 나간다.</p>',
   ''])
 

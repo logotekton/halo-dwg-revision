@@ -143,20 +143,29 @@ FastAPI 앱의 OpenAPI 스키마를 JSON으로 내보낸다(`packages/shared-typ
    `NEEDS_MANUAL_CONVERSION` + 각 후보가 실패한 이유.
 5. 결과를 `drawing_file`에 쓰고 `job.progress`/`job.done` WS 이벤트를 보낸다.
 
-**중요한 실측:** acad-ts CLI 폴백은 두 가지 알려진 이유로 실제 도면에서 거의 항상
-`NEEDS_MANUAL_CONVERSION`으로 끝난다 — (a) ADR-0002 개정 1항이 이미 문서화한 대로 acad-ts가
+**중요한 실측:** acad-ts CLI 폴백은 알려진 이유로 실제 도면에서 종종
+`NEEDS_MANUAL_CONVERSION`으로 끝난다 — ADR-0002 개정 1항이 이미 문서화한 대로 acad-ts가
 쓴 DXF에 ezdxf가 못 읽는 결함이 있다(ATTRIB 서브클래스 마커 누락, 중복 핸들 — `fixtures/generated`의
-F01/F02/F06.dwg로 재현), (b) `ingest/xref.py`의 XREF 임베드가 ezdxf 기반이라 **DXF만** 읽을 수
-있는데, `samples/2026-09-02-실시도서/`의 실제 도면은 표지 한 장까지도 포함해 거의 전부 다른
-DWG(주로 XR/ 폴더의 도곽·타이틀블록)를 XREF로 문다 — 그 DWG를 먼저 DXF로 변환해 두지 않는 한
-`FileNotFoundError`로 실패한다(중첩 XREF 변환은 W3-06 범위). 실측: `samples/.../XR/PLAN.dwg`
-(AC1024, 1656엔티티)와 `01_건축/A-100 평면도.dwg`(AC1024, 1488엔티티) 모두 acad-ts 자체 DWG
-읽기는 성공하지만(엔티티 수까지 정확히 보고) 정본 DXF 빌드 단계에서 중첩 XREF를 못 찾아
-`NEEDS_MANUAL_CONVERSION`으로 끝났다 — 실패 사유 문자열에 어느 XREF가 문제인지 그대로 남는다.
-`fixtures/generated/F10_host.dwg`처럼 XREF가 없고 acad-ts가 깨끗이 쓰는 도면은 폴백으로
-끝까지 성공한다. 결론은 ADR-0002가 이미 내린 것과 같다: **실제 운영 경로는 데스크톱의
+F01/F02/F06.dwg로 재현). `fixtures/generated/F10_host.dwg`처럼 그 결함을 피해가는 도면은
+폴백으로 끝까지 성공한다. 결론은 ADR-0002가 이미 내린 것과 같다: **실제 운영 경로는 데스크톱의
 `dxfOut()`**이고, acad-ts subprocess 폴백은 데스크톱이 없는 개발/CI 환경에서 "아무것도 안
 하는 것보다 낫다" 수준의 보조 수단이다.
+
+**W3-06(2026-09-03)이 XREF DWG 대상 재귀 변환을 넣었다** — 예전에는 여기서
+"`ingest/xref.py`의 XREF 임베드가 ezdxf 기반이라 DXF만 읽을 수 있는데 실제 도면은 XR/ 폴더의
+DWG를 XREF로 물어 FileNotFoundError로 실패한다"고 적혀 있었다. 지금은 해석된 XREF 대상이
+`.dwg`면 `ingest/pipeline.py`의 `make_dwg_xref_converter`가 (오늘은 acad-ts 폴백으로) 먼저
+DXF로 바꿔 `cache/dxf/<대상 sha256>.working.dxf`에 캐시해 두고 그 DXF를 임베드한다 — 데스크톱
+`convert.request` 경로는 아직 XREF 대상까지는 배선하지 않았다(호스트 자신의 변환에만 쓰인다,
+`docs/dev/xref.md` 참고). 대상 파일 자신의 중첩 XREF도 깊이 우선으로 재귀 처리하고, 순환
+참조는 감지해서 멈춘다. 해석·변환·임베드 중 어느 하나라도 실패하면(예: 실측으로 새로 발견한
+`ezdxf.xref.Loader`의 ATTRIB 서브엔티티 복제 결함 — `'Attrib' object has no attribute 'doc'`,
+acad-ts DXF 라이터의 같은 계열 결함이 임베드 단계에서도 나타난 경우) 그 XREF 하나만
+"미해결"로 남고 호스트 임포트 전체는 실패하지 않는다(`GET /files/{id}/xrefs`로 노출, UI
+다이얼로그가 검색 경로 추가·수동 매칭을 받는다). 실측: `01_건축/A-100 평면도.dwg`를 `XR/`를
+검색 경로로 주고 임포트하면 XREF 3건 중 2건(`TITLE BLOCK-V.dwg`, `단위세대_평면.dwg`)이
+끝까지 임베드되고 `PLAN.dwg`는 위 ATTRIB 결함으로 미해결로 남는다 — 자세한 내용은
+`docs/dev/xref.md`.
 
 ## 파일 인입 (ingest, `docs/adr/0002-working-dxf.md`)
 

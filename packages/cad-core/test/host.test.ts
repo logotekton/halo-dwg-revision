@@ -168,6 +168,7 @@ function stubSurface(overrides: Partial<ViewSurface> = {}): Stub {
     activeLayoutHandle: () => null,
     setActiveLayout: () => true,
     waitUntilIdle: () => Promise.resolve(true),
+    nextFrame: () => Promise.resolve(true),
     regen: () => undefined,
     pick: () => [],
     search: () => [],

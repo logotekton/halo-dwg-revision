@@ -88,9 +88,12 @@ test('opens the DXF fixture, renders it and reports its layers', async () => {
 })
 
 test('picks an entity by world coordinate and highlights it', async () => {
-  // (8000, 23400) is the first GRID-BUBBLE insert of F06.
-  const handles = await viewerPick(session.page, 8000, 23400, 400)
+  // (8000, 23400) is the first GRID-BUBBLE insert of F06. The radius is in
+  // *pixels*, not drawing units (spike C.3), so a small one keeps the hit to
+  // the entities under the point rather than half the sheet.
+  const handles = await viewerPick(session.page, 8000, 23400, 12)
   expect(handles.length).toBeGreaterThan(0)
+  expect(handles.length).toBeLessThan(F06_ENTITIES)
 
   expect(await viewerSelectAndHighlight(session.page, handles)).toEqual(handles)
   await session.page.screenshot({ path: join(SCREENSHOT_DIR, 'f06-picked.png') })

@@ -1025,6 +1025,12 @@ type ThreeRendererModule = typeof MlightcadThreeRenderer;
 type MTextRendererModule = typeof MlightcadMTextRenderer;
 
 let viewerModules: Promise<ViewerModules> | null = null;
+/**
+ * `AcApOpenViewMode` is a runtime enum from the lazily imported viewer bundle,
+ * so it is captured when the modules load rather than imported statically —
+ * a static import would drag the DOM-dependent viewer into every Node consumer.
+ */
+let AcApOpenViewMode: ViewerModule['AcApOpenViewMode'];
 
 async function loadViewerModules(): Promise<ViewerModules> {
   viewerModules ??= (async (): Promise<ViewerModules> => {
@@ -1099,6 +1105,15 @@ function overlayEntity(spec: ViewOverlayEntity): AcDbEntity {
   }
 }
 
+/** Finite, inside the ±1e20 sentinel, and not degenerate in x or y. */
+function usableExtents(min: { x: number; y: number }, max: { x: number; y: number }): boolean {
+  const values = [min.x, min.y, max.x, max.y];
+  if (!values.every((value) => Number.isFinite(value) && Math.abs(value) < EXTENTS_SENTINEL)) {
+    return false;
+  }
+  return max.x > min.x && max.y > min.y;
+}
+
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -1113,6 +1128,7 @@ function delay(ms: number): Promise<void> {
  */
 export async function createViewSurface(options: ViewSurfaceOptions): Promise<ViewSurface> {
   const { viewer, three, fonts } = await loadViewerModules();
+  AcApOpenViewMode = viewer.AcApOpenViewMode;
   const assetsBaseUrl = options.assetsBaseUrl.replace(/\/+$/, '');
   const workerBaseUrl = `${assetsBaseUrl}/workers`;
 
@@ -1219,7 +1235,16 @@ class MlightcadViewSurface implements ViewSurface {
     // the caller's copy (spike C.7), so hand the viewer a copy of our own.
     const copy = bytes.slice(0);
     try {
-      return await this.manager.openDocument(name, copy, { mode: OPEN_MODE[mode] });
+      // `openViewMode` is always `Saved`. `Extents` starts a poller that
+      // re-frames the view on a later 300 ms tick (`zoomToFitDrawing`), which
+      // would overwrite the fit `CadHost.open()` applies once the scene is
+      // idle — measured on F06, where the deferred fit won and left the camera
+      // on an empty corner of the sheet. Framing therefore happens in exactly
+      // one place: `CadHost.open()`.
+      return await this.manager.openDocument(name, copy, {
+        mode: OPEN_MODE[mode],
+        openViewMode: AcApOpenViewMode.Saved,
+      });
     } finally {
       this.bindDatabaseEvents();
     }
@@ -1336,6 +1361,27 @@ class MlightcadViewSurface implements ViewSurface {
     return this.view().waitUntilIdle(timeoutMs);
   }
 
+  async nextFrame(timeoutMs: number): Promise<boolean> {
+    const events = this.view().events.renderFrame;
+    return new Promise<boolean>((resolve) => {
+      let done = false;
+      const finish = (painted: boolean): void => {
+        if (done) return;
+        done = true;
+        events.removeEventListener(listener);
+        clearTimeout(timer);
+        resolve(painted);
+      };
+      const listener = (): void => {
+        finish(true);
+      };
+      const timer = setTimeout(() => {
+        finish(false);
+      }, timeoutMs);
+      events.addEventListener(listener);
+    });
+  }
+
   regen(): void {
     this.manager.regen();
   }
@@ -1382,8 +1428,50 @@ class MlightcadViewSurface implements ViewSurface {
     this.view().zoomTo(box2d(box), margin);
   }
 
+  /**
+   * Frames the whole drawing.
+   *
+   * `zoomToFitDrawing()` is not enough on its own: it starts a poller that
+   * checks `isProcessingEntities` **every 300 ms** and applies the fit only on
+   * a later tick, so a caller that renders or screenshots straight afterwards
+   * still sees the previous camera (measured on F06). When the file carries
+   * usable `$EXTMIN`/`$EXTMAX` the box is therefore applied directly, which is
+   * both immediate and deterministic; the poller stays as the fallback for
+   * files whose header extents are missing or degenerate.
+   */
   zoomToFit(timeoutMs?: number): void {
-    this.view().zoomToFitDrawing(timeoutMs);
+    const view = this.view();
+    const box = this.drawingExtents();
+    if (box) {
+      view.zoomTo(box2d(box), 1.05);
+      return;
+    }
+    view.zoomToFitDrawing(timeoutMs);
+  }
+
+  /**
+   * The box to frame, in drawing units.
+   *
+   * First choice is the scene's own bounding box (`AcTrScene.box`): it covers
+   * exactly the geometry that was converted, which is what the user is about
+   * to look at, and it is ready as soon as the scene is idle. The header's
+   * `$EXTMIN`/`$EXTMAX` are the fallback — and often useless: both
+   * `fixtures/generated/F06.dxf` and its `dxfOut()` conversion carry the ±1e20
+   * "no extents" sentinel. `null` means neither is usable.
+   */
+  private drawingExtents(): ViewBox | null {
+    const sceneBox: { min: Vec3; max: Vec3 } | undefined = this.view().cadScene.box;
+    if (sceneBox && usableExtents(sceneBox.min, sceneBox.max)) {
+      return {
+        min: { x: sceneBox.min.x, y: sceneBox.min.y },
+        max: { x: sceneBox.max.x, y: sceneBox.max.y },
+      };
+    }
+    const database = this.manager.curDocument.database;
+    const min = database.extmin;
+    const max = database.extmax;
+    if (!usableExtents(min, max)) return null;
+    return { min: { x: min.x, y: min.y }, max: { x: max.x, y: max.y } };
   }
 
   zoomToLayer(layerName: string): boolean {

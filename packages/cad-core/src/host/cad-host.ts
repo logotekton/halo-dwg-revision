@@ -36,6 +36,8 @@ const DEFAULT_OVERLAY_COLOR = 1;
 const DEFAULT_OVERLAY_LAYER = 'HALO-OVERLAY';
 const DEFAULT_OVERLAY_TEXT_HEIGHT_MM = 250;
 const DEFAULT_RENDER_TIMEOUT_MS = 60_000;
+/** A repaint after a camera change; generous, but never the whole render budget. */
+const FRAME_TIMEOUT_MS = 2_000;
 
 type Listener<E extends CadHostEvent> = (payload: CadHostEventMap[E]) => void;
 
@@ -50,6 +52,12 @@ export interface OpenOptions {
   /** `'dxf'` (default) or `'dwg'`; DWG needs the GPL converter registered. */
   format?: 'dxf' | 'dwg';
   mode?: CadOpenMode;
+  /**
+   * How the first frame is composed. `'extents'` (default) fits the drawing;
+   * `'saved'` restores the viewport stored in the file, which is what AutoCAD
+   * does in write mode and is rarely what a viewer wants.
+   */
+  viewMode?: 'extents' | 'saved';
   /** sha256 of the bytes, forwarded to the document handle for evidence refs. */
   fileSha256?: string;
 }
@@ -242,6 +250,20 @@ export class CadHost {
     this.syncStatus();
 
     const renderIdle = await this.surface.waitUntilIdle(this.renderTimeoutMs);
+    if ((options.viewMode ?? 'extents') === 'extents') {
+      // Framing happens here, after the scene is idle, and nowhere else: the
+      // viewer's own `openViewMode: Extents` re-frames on a later 300 ms tick
+      // and would overwrite this (`ViewSurface.open` therefore always asks for
+      // `Saved`). The second idle wait is what makes `open()` resolve on a
+      // *painted* frame — `zoomTo` only marks the view dirty, so a caller that
+      // screenshots immediately would still catch the previous camera.
+      this.surface.zoomToFit(this.renderTimeoutMs);
+      // `zoomTo` only marks the view dirty; the camera reaches the canvas on
+      // the next animation frame. Waiting for `renderFrame` is what makes
+      // `open()` resolve on a *painted* frame, so a caller that screenshots
+      // straight afterwards sees the drawing and not the previous camera.
+      await this.surface.nextFrame(FRAME_TIMEOUT_MS);
+    }
     if (!renderIdle) {
       warnings.push({ code: 'render-timeout', i18nKey: 'viewer.warning.renderTimeout' });
     }

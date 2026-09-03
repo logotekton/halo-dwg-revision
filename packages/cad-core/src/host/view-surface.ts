@@ -46,6 +46,12 @@ export interface ViewSurface {
   /** `areWorkersReady()`; false when the HEAD probe failed. */
   workersReady(): Promise<boolean>;
 
+  /**
+   * Opens a document. Framing is *not* part of this call: the viewer's own
+   * post-open fit runs on a delayed tick and would race the facade's, so the
+   * surface always opens with the file's saved view and `CadHost` decides what
+   * the camera does next.
+   */
   open(name: string, bytes: ArrayBuffer, mode: CadOpenMode): Promise<boolean>;
   activate(name: string): Promise<boolean>;
   close(name: string): Promise<boolean>;
@@ -63,6 +69,13 @@ export interface ViewSurface {
 
   /** `waitUntilIdle`: resolves true when the scene settled inside the timeout. */
   waitUntilIdle(timeoutMs: number): Promise<boolean>;
+  /**
+   * Resolves on the view's next painted frame (`renderFrame`), or false on
+   * timeout. `waitUntilIdle` is not a substitute: it reports that no entity
+   * conversion is pending, which is already true when a camera change has only
+   * marked the view dirty.
+   */
+  nextFrame(timeoutMs: number): Promise<boolean>;
   regen(): void;
 
   pick(worldPoint: ViewPoint, hitRadiusPx: number): CadHandle[];

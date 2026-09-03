@@ -87,13 +87,18 @@
   .sidenav a.active { background: var(--nav-active); font-weight: 600; }
   .sidenav a.active .n { color: var(--nav-accent); }
   .sidenav a:focus-visible { outline: 2px solid var(--nav-accent); outline-offset: 2px; }
-  .sidenav .navmeta { margin-top: auto; padding: 24px 12px 0; font-size: 12px; line-height: 1.6; color: var(--nav-muted); }
+  .sidenav .zoomctl { margin-top: auto; display: flex; align-items: center; gap: 6px; padding: 16px 12px 0; font-size: 12px; color: var(--nav-muted); }
+  .sidenav .zoomctl button { min-width: 26px; height: 24px; padding: 0 6px; border: 1px solid var(--nav-active); border-radius: 4px; background: transparent; color: var(--nav-ink); font: inherit; cursor: pointer; }
+  .sidenav .zoomctl button:hover { background: var(--nav-active); }
+  .sidenav .zoomctl button:focus-visible { outline: 2px solid var(--nav-accent); outline-offset: 2px; }
+  .sidenav .zoomctl .zv { min-width: 46px; font-family: "IBM Plex Mono", monospace; }
+  .sidenav .navmeta { margin-top: 12px; padding: 12px 12px 0; font-size: 12px; line-height: 1.6; color: var(--nav-muted); }
   .content { margin-left: 264px; }
   .page > h2 { scroll-margin-top: 24px; }
   @media (max-width: 1100px) {
     .sidenav { position: static; width: auto; padding: 24px 20px; }
     .sidenav ol { display: flex; flex-wrap: wrap; gap: 4px; }
-    .sidenav .navmeta { display: none; }
+    .sidenav .navmeta, .sidenav .zoomctl { display: none; }
     .content { margin-left: 0; }
   }
   header { border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 36px; }
@@ -148,6 +153,7 @@
     <li><a href="#sec-8"><span class="n">08</span>필요한 것과 결정 요청</a></li>
     <!-- NAV:END -->
   </ol>
+  <div class="zoomctl" role="group" aria-label="본문 크기"><span>본문 크기</span><button type="button" data-zoom="-" aria-label="축소">−</button><button type="button" class="zv" data-zoom="0" aria-label="원래 크기">100%</button><button type="button" data-zoom="+" aria-label="확대">+</button></div>
   <p class="navmeta">개발 계획서 v1 · 2026-09-03<br>개략 보고용 · 개발 착수 전<br>결정 요청 5건 대기</p>
 </nav>
 
@@ -757,6 +763,7 @@
   var links = Array.prototype.slice.call(document.querySelectorAll('.sidenav a[href^="#sec-"]'));
   var heads = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); }).filter(Boolean);
   var pinned = null, arrivedY = null; // the section the reader clicked; kept until they scroll on their own
+  function docTop(el) { return el.getBoundingClientRect().top + window.scrollY; }
   function setActive(el) {
     links.forEach(function (a) { a.classList.toggle('active', !!el && a.getAttribute('href') === '#' + el.id); });
   }
@@ -764,8 +771,8 @@
   function pick() {
     var top = window.scrollY, bottom = top + window.innerHeight, best = heads[0], bestArea = -1;
     for (var i = 0; i < heads.length; i++) {
-      var start = heads[i].offsetTop - 24;
-      var end = i + 1 < heads.length ? heads[i + 1].offsetTop - 24 : document.documentElement.scrollHeight;
+      var start = docTop(heads[i]) - 24;
+      var end = i + 1 < heads.length ? docTop(heads[i + 1]) - 24 : document.documentElement.scrollHeight;
       var area = Math.min(end, bottom) - Math.max(start, top);
       if (area > bestArea) { bestArea = area; best = heads[i]; }
     }
@@ -807,6 +814,40 @@
   window.addEventListener('keydown', function (e) {
     if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].indexOf(e.key) >= 0) unpin();
   });
+  // Zoom only the main column: Ctrl/Cmd + wheel, Ctrl/Cmd + = / - / 0, or the sidebar buttons. The sidebar keeps its size.
+  var page = document.querySelector('.page'), zv = document.querySelector('.zoomctl .zv');
+  var steps = [0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75], zoomLevel = 1, lastWheel = 0;
+  var zoomable = page && ('zoom' in page.style);
+  function applyZoom(z) {
+    if (!zoomable) return;
+    zoomLevel = Math.min(1.75, Math.max(0.8, z));
+    page.style.zoom = zoomLevel;
+    if (zv) zv.textContent = Math.round(zoomLevel * 100) + '%';
+    try { localStorage.setItem('page-zoom', String(zoomLevel)); } catch (e) {}
+    update();
+  }
+  function stepZoom(dir) {
+    var i = steps.indexOf(zoomLevel); if (i < 0) i = 2;
+    applyZoom(steps[Math.min(steps.length - 1, Math.max(0, i + dir))]);
+  }
+  if (zoomable) {
+    try { var saved = parseFloat(localStorage.getItem('page-zoom')); if (saved && saved !== 1) applyZoom(saved); } catch (e) {}
+    Array.prototype.forEach.call(document.querySelectorAll('.zoomctl button'), function (b) {
+      b.addEventListener('click', function () { var k = b.getAttribute('data-zoom'); k === '+' ? stepZoom(1) : k === '-' ? stepZoom(-1) : applyZoom(1); });
+    });
+    window.addEventListener('keydown', function (e) {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      if (e.key === '=' || e.key === '+') { e.preventDefault(); stepZoom(1); }
+      else if (e.key === '-') { e.preventDefault(); stepZoom(-1); }
+      else if (e.key === '0') { e.preventDefault(); applyZoom(1); }
+    });
+    window.addEventListener('wheel', function (e) {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      var now = Date.now(); if (now - lastWheel < 120) return; lastWheel = now;
+      stepZoom(e.deltaY < 0 ? 1 : -1);
+    }, { passive: false });
+  } else if (zv) { zv.parentElement.style.display = 'none'; }
   update();
 })();
 </script>

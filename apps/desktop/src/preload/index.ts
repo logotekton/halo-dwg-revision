@@ -22,8 +22,10 @@ export interface EngineConnection {
 }
 
 const ENGINE_STATUS_CHANNEL = 'halocad:engine:status'
+const VIEWER_ASSETS_BASE_CHANNEL = 'halocad:viewer:assets-base'
 
-// Minimal API surface per brief W1-01 (app.*) plus W2-01 (engine.*).
+// Minimal API surface per brief W1-01 (app.*) plus W2-01 (engine.*) and
+// W3-02 (viewer.*).
 const haloApi = {
   app: {
     getVersion: (): Promise<string> => ipcRenderer.invoke('halocad:app:getVersion') as Promise<string>,
@@ -42,6 +44,16 @@ const haloApi = {
       }
     },
   },
+  viewer: {
+    /**
+     * Root the viewer's workers, wasm and fonts are served from
+     * (`docs/contracts/wave-3.md` "뷰어 자산 배치"): `halocad://app/viewer/`.
+     * Asked over IPC rather than hard-coded in the renderer so a packaged
+     * build can move the assets without rebuilding apps/web.
+     */
+    assetsBase: (): Promise<string> =>
+      ipcRenderer.invoke(VIEWER_ASSETS_BASE_CHANNEL) as Promise<string>,
+  },
 }
 
 export type HaloApi = typeof haloApi
@@ -53,3 +65,21 @@ contextBridge.exposeInMainWorld('halocad', haloApi)
 // leaking process.env itself into the renderer's main world
 // (docs/contracts/wave-2.md "테스트 훅").
 contextBridge.exposeInMainWorld('__HALO_E2E_ENABLED__', process.env.HALO_E2E === '1')
+
+// Viewer e2e bridge (W3-02), likewise test-only and gated the same way. It
+// gives tests/e2e/viewer.spec.ts the fixture paths from HALO_E2E_PICK_FILES,
+// their bytes, and the hidden DWG converter. The matching main-process
+// handlers exist only when HALO_E2E=1 (apps/desktop/src/main/convert/e2e.ts),
+// so exposing the functions here can never widen the production surface.
+if (process.env.HALO_E2E === '1') {
+  contextBridge.exposeInMainWorld('__haloViewerTest', {
+    pickFiles: (): Promise<string[]> =>
+      ipcRenderer.invoke('halocad:e2e:pick-files') as Promise<string[]>,
+    readFile: (path: string): Promise<Uint8Array> =>
+      ipcRenderer.invoke('halocad:e2e:read-file', path) as Promise<Uint8Array>,
+    convertDwg: (job: { dwgPath: string; outPath: string }): Promise<unknown> =>
+      ipcRenderer.invoke('halocad:e2e:convert-dwg', job),
+    tmpPath: (name: string): Promise<string> =>
+      ipcRenderer.invoke('halocad:e2e:tmp-path', name) as Promise<string>,
+  })
+}

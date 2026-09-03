@@ -67,11 +67,15 @@ export type { DxfPostProcessReport, DxfPostProcessResult } from './dxfout-postpr
 // only touches the DOM once `CadHost.create()` is called.
 export { CadHost } from './host';
 export type {
+  CadEditTx,
   CadHostEvent,
   CadHostEventMap,
   CadHostOptions,
   CadHostStatus,
+  CadHostWarning,
+  CadOpenMode,
   EntityTier,
+  OpenProgress,
   OpenResult,
   OverlayEntitySpec,
   OverlayId,

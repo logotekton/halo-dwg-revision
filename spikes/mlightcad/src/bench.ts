@@ -25,6 +25,13 @@ import {
   type AcDbEntity,
 } from '@mlightcad/data-model';
 import { AcDbLibreDwgConverter } from '@mlightcad/libredwg-converter';
+import { AcGeBox2d } from '@mlightcad/geometry-engine';
+
+/** Minimal shape of the OCS point pair `geometricExtents` returns. */
+interface AcGePoint {
+  x: number;
+  y: number;
+}
 
 interface ParseResult {
   ok: boolean;
@@ -55,6 +62,21 @@ interface RenderResult {
   error?: string;
 }
 
+/**
+ * W3-09 -- what the *parser* (not the produced DXF) says about a real drawing:
+ * per-space entity counts, so a drawing whose content lives in paper space is
+ * not reported as empty, plus the table sizes the inventory needs.
+ */
+interface SurveyResult {
+  ok: boolean;
+  spaces?: Record<string, { count: number; byType: Record<string, number> }>;
+  totalEntities?: number;
+  layerNames?: string[];
+  blockCount?: number;
+  xrefBlocks?: string[];
+  error?: string;
+}
+
 interface RunAllResult {
   ok: boolean;
   marks: Record<string, number>;
@@ -72,10 +94,14 @@ declare global {
       fetchFile: (url: string) => Promise<{ ok: boolean; bytes: number; error?: string }>;
       parse: () => Promise<ParseResult>;
       recount: (waitMs?: number) => Promise<{ entityCount: number; byType: Record<string, number> }>;
+      survey: () => SurveyResult;
       runAll: (url: string, sinkName: string, settleMs?: number) => Promise<RunAllResult>;
       dxfOut: (sinkName: string, version?: string, precision?: number) => Promise<DxfOutResult>;
       render: (url: string, settleMs?: number) => Promise<RenderResult>;
+      zoomToText: (nth?: number, expand?: number) => { ok: boolean; box?: number[]; error?: string };
+      zoomBox: (x0: number, y0: number, x1: number, y1: number) => { ok: boolean; error?: string };
       release: () => void;
+      setSinkLimit: (bytes: number) => void;
       log: string[];
     };
   }
@@ -94,8 +120,13 @@ function line(cls: string, text: string) {
 
 const base = location.origin;
 
-/** Above this, the dxfOut() result is measured but not POSTed back (see dxfOut). */
-const SINK_LIMIT_BYTES = 64 * 1024 * 1024;
+/**
+ * Above this, the dxfOut() result is measured but not POSTed back (see dxfOut).
+ * W3-09 made it settable: one real sheet set produced a 111 MB DXF, which is
+ * well inside Playwright's transport limit but past W2-06's conservative cap,
+ * and skipping the sink would leave that file with no DXF for the engine to read.
+ */
+let sinkLimitBytes = 64 * 1024 * 1024;
 
 // GPL boundary: the only libredwg registration in this file.
 AcDbDatabaseConverterManager.instance.register(
@@ -204,6 +235,60 @@ window.__bench = {
     return c;
   },
 
+  /**
+   * Step 2c (W3-09) -- per-space counts and table names from the *parsed*
+   * database. `countEntities` walks model space only, which is right for the
+   * synthetic fixtures and wrong for a real sheet set where the title block and
+   * often the whole drawing live in a layout.
+   */
+  survey(): SurveyResult {
+    if (!db) return { ok: false, error: 'call parse() first' };
+    try {
+      const spaces: Record<string, { count: number; byType: Record<string, number> }> = {};
+      const layerNames: string[] = [];
+      const xrefBlocks: string[] = [];
+      let blockCount = 0;
+      let totalEntities = 0;
+
+      for (const layer of db.tables.layerTable.newIterator()) {
+        layerNames.push(String((layer as { name?: string }).name ?? ''));
+      }
+      for (const btr of db.tables.blockTable.newIterator()) {
+        blockCount++;
+        const rec = btr as unknown as {
+          name?: string;
+          isXref?: boolean;
+          pathName?: string;
+          newIterator?: () => Iterable<AcDbEntity>;
+        };
+        const name = String(rec.name ?? '');
+        if (rec.isXref === true) xrefBlocks.push(name);
+        const isModel = /^\*Model_Space/i.test(name);
+        const isPaper = /^\*Paper_Space/i.test(name);
+        if (!isModel && !isPaper) continue;
+        const key = isModel ? 'MODEL' : `PAPER:${name}`;
+        const byType: Record<string, number> = {};
+        let count = 0;
+        try {
+          for (const e of rec.newIterator?.() ?? []) {
+            const t = (e as AcDbEntity).dxfTypeName;
+            byType[t] = (byType[t] ?? 0) + 1;
+            count++;
+          }
+        } catch (e) {
+          byType[`<iterator-error>`] = 1;
+          line('bad', `space ${key}: ${errText(e)}`);
+        }
+        spaces[key] = { count, byType };
+        totalEntities += count;
+      }
+      line('ok', `survey: ${String(totalEntities)} entities across ${String(Object.keys(spaces).length)} spaces`);
+      return { ok: true, spaces, totalEntities, layerNames, blockCount, xrefBlocks };
+    } catch (e) {
+      return { ok: false, error: errText(e) };
+    }
+  },
+
   /** Step 3 -- ADR-0002 tier-2 writer: dxfOut(), shipped back to disk. */
   async dxfOut(sinkName: string, version = 'AC1032', precision = 6) {
     const t0 = performance.now();
@@ -218,7 +303,7 @@ window.__bench = {
       // 512 MB string cap in Playwright's transport (`ERR_STRING_TOO_LONG`),
       // killing the driver before any result is returned. Above the cap we
       // measure the write and report the size without shipping the bytes.
-      if (bytes > SINK_LIMIT_BYTES) {
+      if (bytes > sinkLimitBytes) {
         dxf = undefined;
         line('warn', `dxfOut ${String(bytes)} B in ${ms.toFixed(0)} ms (not shipped: over sink limit)`);
         return { ok: true, ms, bytes, sinkSkipped: true };
@@ -277,6 +362,54 @@ window.__bench = {
     }
   },
 
+  /** W3-09 -- frame an explicit model-space window (mm). */
+  zoomBox(x0: number, y0: number, x1: number, y1: number) {
+    try {
+      const mgr = docManager;
+      if (!mgr) return { ok: false, error: 'call render() first' };
+      const view = mgr.curView as unknown as { zoomTo: (b: AcGeBox2d, m?: number) => void };
+      view.zoomTo(new AcGeBox2d({ x: x0, y: y0 }, { x: x1, y: y1 }), 0);
+      line('ok', `zoomBox [${String(x0)}, ${String(y0)}, ${String(x1)}, ${String(y1)}]`);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: errText(e) };
+    }
+  },
+
+  /**
+   * W3-09 -- frame a text entity so a screenshot can be compared with the
+   * office's own PDF page at a legible scale. At zoom-to-extents a sheet set is
+   * tens of metres wide and 3 mm text is sub-pixel, which says nothing about
+   * whether the font resolved.
+   */
+  zoomToText(nth = 0, expand = 40) {
+    try {
+      const mgr = docManager;
+      if (!mgr) return { ok: false, error: 'call render() first' };
+      const database = mgr.curDocument.database;
+      let seen = 0;
+      for (const e of database.tables.blockTable.modelSpace.newIterator()) {
+        const t = (e as AcDbEntity).dxfTypeName;
+        if (t !== 'TEXT' && t !== 'MTEXT') continue;
+        if (seen++ < nth) continue;
+        const box = (e as unknown as { geometricExtents?: { min: AcGePoint; max: AcGePoint } }).geometricExtents;
+        if (!box || !Number.isFinite(box.min.x)) continue;
+        const w = Math.max(box.max.x - box.min.x, 1) * expand;
+        const h = Math.max(box.max.y - box.min.y, 1) * expand;
+        const cx = (box.min.x + box.max.x) / 2;
+        const cy = (box.min.y + box.max.y) / 2;
+        const view = mgr.curView as unknown as { zoomTo: (b: AcGeBox2d, m?: number) => void };
+        const b = new AcGeBox2d({ x: cx - w / 2, y: cy - h / 2 }, { x: cx + w / 2, y: cy + h / 2 });
+        view.zoomTo(b, 0);
+        line('ok', `zoomToText #${String(nth)} -> [${String(cx - w / 2)}, ${String(cy - h / 2)}, ${String(cx + w / 2)}, ${String(cy + h / 2)}]`);
+        return { ok: true, box: [cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2] };
+      }
+      return { ok: false, error: 'no TEXT/MTEXT with finite extents in model space' };
+    } catch (e) {
+      return { ok: false, error: errText(e) };
+    }
+  },
+
   /**
    * fetch -> parse -> recount -> dxfOut in ONE call, with wall-clock marks so
    * the driver can still attribute its RSS samples to a phase.
@@ -310,6 +443,11 @@ window.__bench = {
       marks.failed = Date.now();
       return out;
     }
+  },
+
+  /** Raise or lower the dxfOut sink cap for this page (W3-09). */
+  setSinkLimit(bytes: number) {
+    sinkLimitBytes = bytes;
   },
 
   /** Drop every big reference so a follow-up run in the same tab starts clean. */

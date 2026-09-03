@@ -31,7 +31,7 @@ fixtures/**/F11*.dwg
 fixtures/**/F12*.dwg
 
 # Real drawings and project bundles never enter the repo
-samples/
+/samples/
 *.halo/
 *.dwg.bak
 *.sv$

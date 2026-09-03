@@ -747,23 +747,58 @@
 <script>
 (function () {
   var links = Array.prototype.slice.call(document.querySelectorAll('.sidenav a[href^="#sec-"]'));
-  var heads = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); });
-  function update() {
-    var y = window.scrollY + 140, cur = heads[0];
-    for (var i = 0; i < heads.length; i++) { if (heads[i] && heads[i].offsetTop <= y) cur = heads[i]; }
-    links.forEach(function (a) { a.classList.toggle('active', !!cur && a.getAttribute('href') === '#' + cur.id); });
+  var heads = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); }).filter(Boolean);
+  var pinned = null, arrivedY = null; // the section the reader clicked; kept until they scroll on their own
+  function setActive(el) {
+    links.forEach(function (a) { a.classList.toggle('active', !!el && a.getAttribute('href') === '#' + el.id); });
+  }
+  // the section that occupies the most of the viewport (a section runs from its heading to the next one)
+  function pick() {
+    var top = window.scrollY, bottom = top + window.innerHeight, best = heads[0], bestArea = -1;
+    for (var i = 0; i < heads.length; i++) {
+      var start = heads[i].offsetTop - 24;
+      var end = i + 1 < heads.length ? heads[i + 1].offsetTop - 24 : document.documentElement.scrollHeight;
+      var area = Math.min(end, bottom) - Math.max(start, top);
+      if (area > bestArea) { bestArea = area; best = heads[i]; }
+    }
+    return best;
+  }
+  function update() { setActive(pinned || pick()); }
+  function unpin() { if (pinned) { pinned = null; arrivedY = null; update(); } }
+  // scrollbar drags fire no wheel/key events: once the click's scroll has settled (250ms idle),
+  // any further movement of more than 40px unpins
+  var idleTimer = null;
+  function armArrival() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () { if (pinned && arrivedY === null) arrivedY = window.scrollY; }, 250);
+  }
+  function onScroll() {
+    if (pinned) {
+      if (arrivedY === null) armArrival();
+      else if (Math.abs(window.scrollY - arrivedY) > 40) { pinned = null; arrivedY = null; }
+    }
+    update();
   }
   links.forEach(function (a, i) {
     a.addEventListener('click', function (e) {
-      if (!heads[i]) return;
+      var target = document.getElementById(a.getAttribute('href').slice(1));
+      if (!target) return;
       e.preventDefault();
+      pinned = target; arrivedY = null;
+      setActive(pinned);
+      armArrival();
       var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      heads[i].scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-      if (history.replaceState) history.replaceState(null, '', '#' + heads[i].id);
+      target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+      if (history.replaceState) history.replaceState(null, '', '#' + target.id);
     });
   });
-  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', update);
+  window.addEventListener('wheel', function (e) { if (e.deltaY) unpin(); }, { passive: true });
+  window.addEventListener('touchstart', unpin, { passive: true });
+  window.addEventListener('keydown', function (e) {
+    if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].indexOf(e.key) >= 0) unpin();
+  });
   update();
 })();
 </script>

@@ -46,10 +46,17 @@ interface ViewerTestHooks {
   setSelection(handles: string[]): void;
   highlight(handles: string[]): void;
   zoomToFit(): void;
+  /** Every layer in the layer table. */
   layers(): string[];
+  /** Layers that actually carry a top-level entity, sorted. */
+  populatedLayers(): string[];
   close(fileId: string): Promise<void>;
   dispose(): Promise<void>;
   heapUsedBytes(): number | null;
+  /** How many documents the host still tracks. */
+  viewerDocumentCount(): number;
+  /** Forces a collection when the app was started with `--expose-gc`. */
+  collectGarbage(): Promise<boolean>;
 }
 
 declare global {
@@ -123,11 +130,29 @@ function installTestHooks(): void {
       currentHost()?.zoomToFit();
     },
     layers: () => (currentHost()?.layers() ?? []).map((layer) => layer.name),
+    populatedLayers: () => {
+      const host = currentHost();
+      if (!host) return [];
+      const names = new Set<string>();
+      for (const entity of host.entities()) names.add(entity.layer);
+      return [...names].sort();
+    },
     close: closeDrawing,
     dispose: disposeCadHost,
     heapUsedBytes: () => {
       const memory = (performance as unknown as { memory?: { usedJSHeapSize?: number } }).memory;
       return typeof memory?.usedJSHeapSize === 'number' ? memory.usedJSHeapSize : null;
+    },
+    viewerDocumentCount: () => currentHost()?.documents().length ?? 0,
+    collectGarbage: async () => {
+      const gc = (globalThis as unknown as { gc?: () => void }).gc;
+      if (!gc) return false;
+      // Two passes with a macrotask in between: the first drops the documents,
+      // the second collects what their finalizers released.
+      gc();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      gc();
+      return true;
     },
   };
   window.__haloViewer = hooks;

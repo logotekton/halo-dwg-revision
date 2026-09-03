@@ -14,6 +14,16 @@ const PACKAGE_ROOT = join(__dirname, '..', '..')
 
 const ENGINE_STATUS_CHANNEL = 'halocad:engine:status'
 
+// Test-only (HALO_E2E=1): expose V8's `gc()` and precise `performance.memory`
+// in every renderer so tests/e2e/viewer.spec.ts can measure the heap after a
+// forced collection instead of guessing from Chromium's 100 kB buckets
+// (docs/spikes/mlightcad-api.md C.12). Both switches must be set before
+// 'ready'; neither is set in a normal run.
+if (process.env.HALO_E2E === '1') {
+  app.commandLine.appendSwitch('js-flags', '--expose-gc')
+  app.commandLine.appendSwitch('enable-precise-memory-info')
+}
+
 // Custom scheme must be registered as privileged before app 'ready' (Electron
 // requirement). standard+secure+supportFetchAPI+corsEnabled per brief W1-01 /
 // ADR reference so the renderer behaves like a normal https-ish origin

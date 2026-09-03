@@ -1153,6 +1153,8 @@ class MlightcadViewSurface implements ViewSurface {
     (handles: CadHandle[], kind: 'append' | 'modify' | 'erase') => void
   >();
   private lastError: string | null = null;
+  /** Detaches the entity listeners of the database currently bound. */
+  private databaseCleanup: (() => void) | null = null;
 
   constructor(
     private readonly manager: AcApDocManager,
@@ -1216,21 +1218,27 @@ class MlightcadViewSurface implements ViewSurface {
     // The DWG path transfers the buffer into the parser worker and detaches
     // the caller's copy (spike C.7), so hand the viewer a copy of our own.
     const copy = bytes.slice(0);
-    const database = this.manager.curDocument.database;
-    const detach = this.wireDatabaseEvents(database);
     try {
       return await this.manager.openDocument(name, copy, { mode: OPEN_MODE[mode] });
     } finally {
-      detach();
-      this.wireDatabaseEvents(this.manager.curDocument.database, true);
+      this.bindDatabaseEvents();
     }
   }
 
   /**
-   * `entityAppended` / `entityModified` / `entityErased` live on the database,
-   * which is replaced on every open, so the binding is refreshed after each one.
+   * Rebinds the entity events onto the *current* database.
+   *
+   * They live on `AcDbDatabase`, which is replaced by every open and close, so
+   * the previous binding is released first: keeping the old detach closure
+   * around would pin the closed document's whole entity graph and leak one
+   * drawing per tab (measured on the 20-document heap test of this task).
    */
-  private wireDatabaseEvents(database: AcDbDatabase, keep = false): () => void {
+  private bindDatabaseEvents(): void {
+    this.databaseCleanup?.();
+    this.databaseCleanup = this.wireDatabaseEvents(this.manager.curDocument.database);
+  }
+
+  private wireDatabaseEvents(database: AcDbDatabase): () => void {
     const emit =
       (kind: 'append' | 'modify' | 'erase') =>
       (payload: { entity: AcDbEntity | AcDbEntity[] }): void => {
@@ -1245,13 +1253,11 @@ class MlightcadViewSurface implements ViewSurface {
     database.events.entityAppended.addEventListener(appended);
     database.events.entityModified.addEventListener(modified);
     database.events.entityErased.addEventListener(erased);
-    const detach = (): void => {
+    return (): void => {
       database.events.entityAppended.removeEventListener(appended);
       database.events.entityModified.removeEventListener(modified);
       database.events.entityErased.removeEventListener(erased);
     };
-    if (keep) this.cleanups.push(detach);
-    return keep ? (): void => undefined : detach;
   }
 
   async activate(name: string): Promise<boolean> {
@@ -1263,7 +1269,13 @@ class MlightcadViewSurface implements ViewSurface {
   async close(name: string): Promise<boolean> {
     const document = this.documentByName(name);
     if (!document) return false;
-    return this.manager.closeDocument(document);
+    try {
+      return await this.manager.closeDocument(document);
+    } finally {
+      // Closing swaps `curDocument` (the last close is replaced by a fresh
+      // Untitled document — spike C.10), so the entity events move with it.
+      this.bindDatabaseEvents();
+    }
   }
 
   documentNames(): string[] {
@@ -1593,6 +1605,8 @@ class MlightcadViewSurface implements ViewSurface {
    * starting, and the heap test measures the result, not the path.
    */
   async dispose(): Promise<void> {
+    this.databaseCleanup?.();
+    this.databaseCleanup = null;
     for (const cleanup of this.cleanups.splice(0)) {
       try {
         cleanup();

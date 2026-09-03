@@ -38,6 +38,35 @@ pnpm --filter @halo-cad/desktop start
 
 `pnpm build`는 `apps/web/dist`(Vite 빌드)와 `apps/desktop/out/{main,preload}`(electron-vite 빌드)를 만든다. `start`는 `electron .`으로 빌드 결과를 실행하며, `HALO_WEB_DEV_SERVER_URL`이 없으므로 main 프로세스가 `halocad://app/index.html`을 로드한다. 이 커스텀 스킴은 `apps/desktop/src/main/index.ts`에서 `protocol.handle()`로 등록되고, `apps/web/dist`를 앱 디렉터리 기준 상대 경로(`app.getAppPath()/../web/dist`)로 서빙한다. 패키징(electron-builder, 리소스 배치)은 W2-08에서 다룬다.
 
+## 장시간 작업 시 잠자기 방지 (caffeinate)
+
+`tools/verify.sh`(특히 `--e2e`), 대용량 픽스처 교차검증(`tools/crosscheck.sh`), 패키징
+(`pnpm --filter @halo-cad/desktop build:app`), 또는 `engine`의 100만 엔티티급 변환·통계
+실측처럼 수 분 이상 걸리는 작업 도중 macOS가 유휴 상태로 판단해 잠들면, 실행 중이던
+자식 프로세스(uv/electron-builder/spawn된 엔진 사이드카 등)가 멈추거나 타임아웃으로 죽어
+작업을 처음부터 다시 해야 하는 경우가 있다. 랩톱이 전원에 연결돼 있어도 디스플레이가
+꺼지며 잠자기로 넘어가는 절전 설정이면 마찬가지다.
+
+macOS 내장 `caffeinate`로 해당 명령이 끝날 때까지만 잠자기를 막는다(별도 설치 불필요,
+관리자 권한 불필요).
+
+```bash
+# 명령 하나를 감싸기 — 명령이 끝나면 잠자기 제한도 자동으로 풀린다.
+caffeinate -i tools/verify.sh --e2e
+caffeinate -i pnpm --filter @halo-cad/desktop build:app
+
+# 터미널 세션 전체(예: 여러 명령을 순서대로 실행하는 긴 작업) 동안 유지하려면
+# 백그라운드로 띄워 두고, 작업이 끝나면 반드시 종료한다.
+caffeinate -dis &
+CAFFEINATE_PID=$!
+# ... 여러 명령 실행 ...
+kill "$CAFFEINATE_PID"
+```
+
+`-i`는 유휴 잠자기만 막고(짧은 명령에 충분), `-d`는 디스플레이 잠자기도, `-s`는 전원이
+연결된 동안의 시스템 잠자기도 함께 막는다. 뚜껑을 닫는 강제 절전(clamshell sleep)까지
+막을 필요는 거의 없다 — 랩톱을 열어 둔 채로 두는 것을 전제한다.
+
 ## 개발자 도구 / 디버그
 
 - 개발 모드에서는 일반 Chromium DevTools를 그대로 쓸 수 있다(렌더러가 `http://127.0.0.1:5173`이므로 브라우저에서 직접 열어 확인해도 된다).

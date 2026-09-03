@@ -27,11 +27,14 @@ from fastapi import APIRouter, FastAPI, HTTPException, Request
 
 from halo_engine.api.ws import ConnectionManager, get_connection_manager
 from halo_engine.bundle.create import BundleHandle
+from halo_engine.bundle.originals import sha256_file
 from halo_engine.config import Settings
 from halo_engine.db import repos
 from halo_engine.db.ids import new_ulid
 from halo_engine.ingest import pipeline
+from halo_engine.ingest.xref import is_ignored_name
 from halo_engine.model.drawing import DrawingFormat, ImportStatus, JobStatus, JobSummary
+from halo_engine.model.xref import XrefLinkStatus
 
 logger = logging.getLogger("halo_engine.api.jobs")
 
@@ -177,14 +180,27 @@ async def _import_one_file(
     connections: ConnectionManager,
     settings: Settings,
     bundle: BundleHandle,
+    drawing_set_id: str,
     file_id: str,
     source_path: Path,
     extra_search_paths: list[Path],
     converter_fallback: str | None,
+    ignore_patterns: list[str],
 ) -> None:
     def update(**fields: Any) -> None:
         with bundle.session_factory() as session:
             repos.update_drawing_file(session, file_id, **fields)
+
+    # W3-06 addendum 3 / G1 답변: matched `import.ignore_patterns` (default
+    # `*_recover.dwg`, `*.bak`) -- never copied, never converted, just
+    # marked excluded so the file list can show why (drawing_sets.py's
+    # `list_drawing_set_files` surfaces `error_message` as-is).
+    if is_ignored_name(source_path.name, ignore_patterns):
+        update(
+            import_status=ImportStatus.EXCLUDED.value,
+            error_message="제외됨(복구 파일)",
+        )
+        return
 
     update(import_status=ImportStatus.COPYING.value)
 
@@ -198,6 +214,7 @@ async def _import_one_file(
     )
 
     search_paths = _dedup_paths([source_path.parent, *extra_search_paths])
+    acad_bridge_bin = _resolve_acad_bridge_bin(settings)
 
     if copy_result.format is DrawingFormat.DXF:
         try:
@@ -207,6 +224,8 @@ async def _import_one_file(
                 str(source_path),
                 str(bundle.layout.cache_dxf_dir),
                 [str(p) for p in search_paths],
+                str(acad_bridge_bin) if acad_bridge_bin else None,
+                ignore_patterns,
             )
         except Exception as exc:
             logger.warning("build_working_dxf failed for %s: %s", source_path, exc)
@@ -214,6 +233,9 @@ async def _import_one_file(
             return
         _finalize_success(
             bundle=bundle, file_id=file_id, working=working, converter=None, dwg_version=None
+        )
+        _register_xref_results(
+            bundle=bundle, drawing_set_id=drawing_set_id, host_file_id=file_id, working=working
         )
         return
 
@@ -241,7 +263,6 @@ async def _import_one_file(
 
     effective_fallback = converter_fallback or settings.converter_fallback
     if effective_fallback == "acad-ts":
-        acad_bridge_bin = _resolve_acad_bridge_bin(settings)
         if acad_bridge_bin is not None:
 
             async def via_fallback() -> _ConvertedInfo:
@@ -284,6 +305,8 @@ async def _import_one_file(
                 converted.dxf_path,
                 str(bundle.layout.cache_dxf_dir),
                 [str(p) for p in search_paths],
+                str(acad_bridge_bin) if acad_bridge_bin else None,
+                ignore_patterns,
             )
         except Exception as exc:
             reasons.append(
@@ -304,6 +327,9 @@ async def _import_one_file(
                 converter=converted.converter,
                 dwg_version=converted.dwg_version,
                 codepage_declared_override=converted.codepage_declared,
+            )
+            _register_xref_results(
+                bundle=bundle, drawing_set_id=drawing_set_id, host_file_id=file_id, working=working
             )
             return
         reasons.append(f"{converted.converter}: " + "; ".join(gate.reasons))
@@ -340,6 +366,70 @@ def _finalize_success(
         )
 
 
+def _register_xref_results(
+    *,
+    bundle: BundleHandle,
+    drawing_set_id: str,
+    host_file_id: str,
+    working: pipeline.WorkingDxfStepResult,
+) -> None:
+    """Persists this build's XREF outcome (brief W3-06):
+
+    - every definition (resolved or not) as one ``xref_link`` row, replacing
+      whatever a previous import of this same host left behind, so the file
+      panel's XREF tree (Goal: "호스트 -> 참조, 상태 아이콘") and the
+      unresolved-XREF dialog read the *current* state, not a stale mix;
+    - every XREF target that turned out to be a DWG and had to be converted
+      (addendum 1) as its own ``drawing_file(is_xref=1)`` row, deduplicated
+      by content hash within this drawing set -- the real set's 8 XREF
+      target files are each referenced by dozens of hosts, and
+      ``ingest/pipeline.py``'s ``make_dwg_xref_converter`` already dedupes
+      the actual conversion work by the same sha256, so the DB row follows
+      the same key instead of one row per host reference.
+    """
+    with bundle.session_factory() as session:
+        links: list[dict[str, str | None]] = [
+            {
+                "block_name": r["block_name"],
+                "declared_path": r["declared_path"],
+                "resolved_path": r["resolved_path"],
+                "status": XrefLinkStatus.RESOLVED.value,
+            }
+            for r in working.resolved_xrefs
+        ]
+        links += [
+            {
+                "block_name": u["block_name"],
+                "declared_path": u["declared_path"],
+                "resolved_path": None,
+                "status": XrefLinkStatus.UNRESOLVED.value,
+            }
+            for u in working.unresolved_xrefs
+        ]
+        repos.replace_xref_links(session, host_file_id=host_file_id, links=links)
+
+        for converted in working.converted_xref_dwgs:
+            source_dwg = Path(converted["source_dwg"])
+            if not source_dwg.is_file():
+                continue  # defensive: cache could have been cleared mid-job
+            xref_sha256 = sha256_file(source_dwg)
+            if repos.get_drawing_file_by_sha256(
+                session, drawing_set_id=drawing_set_id, sha256=xref_sha256
+            ):
+                continue
+            xref_row = repos.create_drawing_file(
+                session,
+                drawing_set_id=drawing_set_id,
+                original_path=str(source_dwg),
+                original_name=source_dwg.name,
+                sha256=xref_sha256,
+                format=DrawingFormat.DWG.value,
+                import_status=ImportStatus.DONE.value,
+                is_xref=True,
+            )
+            repos.update_drawing_file(session, xref_row.id, working_dxf_path=converted["dxf_path"])
+
+
 async def run_drawing_set_import(
     app: FastAPI,
     *,
@@ -350,12 +440,27 @@ async def run_drawing_set_import(
     search_paths: list[str],
     converter_fallback: str | None,
 ) -> None:
-    """The whole job: one entry in ``files`` at a time, cooperative-cancel between entries."""
+    """The whole job: one entry in ``files`` at a time, cooperative-cancel between entries.
+
+    W3-06: the project's own persisted ``search_paths``/``ignore_patterns``
+    (``PUT /projects/{id}/search-paths``, ``PUT .../import-settings``) are
+    read once here and merged into every file's own -- so a folder a user
+    already added stays in effect for every later import, not just the one
+    request that added it, and a search-path-only re-import
+    (``api/routers/xrefs.py``'s ``_start_reimport``) does not need to pass
+    anything beyond the file itself.
+    """
     jobs = get_job_manager(app)
     connections = get_connection_manager(app)
     settings: Settings = app.state.settings
     loop = asyncio.get_running_loop()
     executor = jobs.executor
+
+    with bundle.session_factory() as session:
+        project = repos.get_project(session, bundle.id)
+        project_search_paths = list(project.search_paths) if project else []
+        ignore_patterns = list(project.ignore_patterns) if project else []
+    merged_search_paths = [*project_search_paths, *search_paths]
 
     jobs.update(job_id, status=JobStatus.RUNNING, message="importing")
     await connections.broadcast(
@@ -380,10 +485,12 @@ async def run_drawing_set_import(
                     connections=connections,
                     settings=settings,
                     bundle=bundle,
+                    drawing_set_id=drawing_set_id,
                     file_id=file_id,
                     source_path=Path(source_path_str),
-                    extra_search_paths=[Path(p) for p in search_paths],
+                    extra_search_paths=[Path(p) for p in merged_search_paths],
                     converter_fallback=converter_fallback,
+                    ignore_patterns=ignore_patterns,
                 )
             except Exception:
                 logger.exception("import failed for %s", source_path_str)

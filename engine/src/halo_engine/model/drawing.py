@@ -32,6 +32,10 @@ class ImportStatus(StrEnum):
     DONE = "DONE"
     FAILED = "FAILED"
     NEEDS_MANUAL_CONVERSION = "NEEDS_MANUAL_CONVERSION"
+    #: W3-06 addendum 3 / G1 답변: matched ``import.ignore_patterns``
+    #: (default ``*_recover.dwg``, ``*.bak``) -- copied nowhere, listed as
+    #: "제외됨(복구 파일)" instead of imported.
+    EXCLUDED = "EXCLUDED"
 
 
 class JobStatus(StrEnum):
@@ -93,8 +97,43 @@ class DrawingFileSummary(BaseModel):
     parser_crosscheck: dict[str, Any] | None = None
 
 
+class XrefMeta(BaseModel):
+    """One entry of ``ConvertedRequest.xrefs`` -- an XREF block's declared path,
+    verbatim (Windows backslashes and all; the engine normalises it)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    block_name: str
+    path: str
+
+
+class StyleMeta(BaseModel):
+    """One entry of ``ConvertedRequest.styles`` -- a STYLE table record, as read
+    by a second parser pass (``acad-bridge info --xrefs``) that still has it."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    name: str
+    font: str
+    bigfont: str
+    typeface: str | None = None
+
+
 class ConvertedRequest(BaseModel):
-    """``POST /files/{id}/converted`` body -- the desktop's DWG->DXF conversion result."""
+    """``POST /files/{id}/converted`` body -- the desktop's DWG->DXF conversion result.
+
+    ``xrefs``/``styles`` (``docs/contracts/wave-3.md`` "계약 갱신", W3-06
+    addendum 2): ``dxfOut()``-produced DXF loses XREF path strings and STYLE
+    XDATA typeface names entirely (W3-09 실측 §3, 0/133 and 0/838), so the
+    desktop reads them straight off the source DWG with acad-ts (a second,
+    cheap pass -- ADR-0002 already keeps acad-ts around as the DWG-read
+    fallback/third parser) and sends them alongside the converted DXF path
+    instead of expecting the engine to recover them from the DXF itself.
+    Both default to empty: the acad-ts *fallback* converter path
+    (``ingest/pipeline.py``) does not go through this endpoint at all -- its
+    own DXF output keeps XREF paths natively (W3-09 §3: 133/133), so there
+    is nothing to backfill.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -104,6 +143,8 @@ class ConvertedRequest(BaseModel):
     )
     converter: ConverterName
     warnings: list[str] = Field(default_factory=list)
+    xrefs: list[XrefMeta] = Field(default_factory=list)
+    styles: list[StyleMeta] = Field(default_factory=list)
 
 
 class ConvertedAck(BaseModel):

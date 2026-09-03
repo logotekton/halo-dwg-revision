@@ -45,6 +45,16 @@ class ProjectRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime)
     updated_at: Mapped[datetime] = mapped_column(DateTime)
 
+    #: W3-06: extra XREF-resolution search directories, persisted so a
+    #: dialog-driven folder pick (brief Goal) survives past the one import
+    #: request that triggered it. ``PUT /projects/{id}/search-paths``.
+    search_paths: Mapped[list[str]] = mapped_column(JSON, default=list)
+    #: W3-06 addendum 3 / G1 답변: ``import.ignore_patterns``, default
+    #: ``["*_recover.dwg", "*.bak"]`` (set at project creation, see
+    #: ``bundle/create.py``) -- files matching these are excluded from
+    #: import instead of being copied in.
+    ignore_patterns: Mapped[list[str]] = mapped_column(JSON, default=list)
+
     drawing_sets: Mapped[list[DrawingSetRow]] = relationship(
         back_populates="project", cascade="all, delete-orphan"
     )
@@ -80,6 +90,10 @@ class DrawingFileRow(Base):
     original_name: Mapped[str] = mapped_column(String(255))
     sha256: Mapped[str] = mapped_column(String(64), doc="Of the original file's bytes.")
     format: Mapped[str] = mapped_column(String(8), doc="DrawingFormat: DWG | DXF.")
+    #: W3-06 addendum 1: set when this row is a recursively-converted XREF
+    #: target rather than a file the user picked directly (brief: "변환된
+    #: XREF는 drawing_file(is_xref=1)로 등록").
+    is_xref: Mapped[bool] = mapped_column(default=False)
     dwg_version: Mapped[str | None] = mapped_column(String(16), default=None)
     fingerprint_guid: Mapped[str | None] = mapped_column(String(64), default=None)
     codepage_declared: Mapped[str | None] = mapped_column(String(32), default=None)

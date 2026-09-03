@@ -36,6 +36,15 @@ from halo_engine.model.project import (
     ProjectSummary,
     RecentProjectEntry,
 )
+from halo_engine.model.xref import (
+    ImportSettings,
+    SearchPathsUpdateRequest,
+    SearchPathsUpdateResponse,
+    XrefLinkStatus,
+    XrefLinkSummary,
+    XrefResolveRequest,
+    XrefResolveResponse,
+)
 
 __all__ = [
     "ConverterName",
@@ -48,6 +57,7 @@ __all__ = [
     "DrawingFormat",
     "DrawingSetCreateRequest",
     "DrawingSetCreateResponse",
+    "ImportSettings",
     "ImportStatus",
     "JobStatus",
     "JobSummary",
@@ -58,5 +68,11 @@ __all__ = [
     "ProjectOpenRequest",
     "ProjectSummary",
     "RecentProjectEntry",
+    "SearchPathsUpdateRequest",
+    "SearchPathsUpdateResponse",
     "Severity",
+    "XrefLinkStatus",
+    "XrefLinkSummary",
+    "XrefResolveRequest",
+    "XrefResolveResponse",
 ]

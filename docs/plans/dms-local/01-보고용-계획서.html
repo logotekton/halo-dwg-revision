@@ -14,6 +14,11 @@
     --after-soft: #DFEFF2;
     --before: #8A949B;
     --code-bg: #ECEFF0;
+    --nav-bg: #1F262B;
+    --nav-ink: #E6EAED;
+    --nav-muted: #98A3AA;
+    --nav-active: #2C353C;
+    --nav-accent: #E06C86;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
@@ -30,6 +35,11 @@
       --after-soft: #17333A;
       --before: #74808A;
       --code-bg: #242C32;
+      --nav-bg: #0F1417;
+      --nav-ink: #E6EAED;
+      --nav-muted: #93A0A9;
+      --nav-active: #1F272E;
+      --nav-accent: #E06C86;
       color-scheme: dark;
     }
   }
@@ -46,9 +56,16 @@
     --after-soft: #17333A;
     --before: #74808A;
     --code-bg: #242C32;
+    --nav-bg: #0F1417;
+    --nav-ink: #E6EAED;
+    --nav-muted: #93A0A9;
+    --nav-active: #1F272E;
+    --nav-accent: #E06C86;
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   body {
     margin: 0;
     background: var(--ground);
@@ -59,6 +76,26 @@
     word-break: keep-all;
   }
   .page { max-width: 900px; margin: 0 auto; padding: 48px 24px 96px; }
+  .sidenav { position: fixed; top: 0; left: 0; bottom: 0; width: 264px; background: var(--nav-bg); color: var(--nav-ink); padding: 40px 20px 28px; display: flex; flex-direction: column; overflow-y: auto; }
+  .sidenav .kicker { font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--nav-accent); margin: 0 0 14px 12px; }
+  .sidenav .navtitle { font-family: "IBM Plex Sans KR", "Noto Sans KR", sans-serif; font-weight: 700; font-size: 20px; line-height: 1.35; margin: 0 12px 28px; color: var(--nav-ink); text-wrap: balance; }
+  .sidenav ol { list-style: none; margin: 0; padding: 0; }
+  .sidenav li { margin: 0; }
+  .sidenav a { display: flex; align-items: baseline; gap: 12px; padding: 9px 12px; border-radius: 6px; color: var(--nav-ink); text-decoration: none; font-size: 14px; line-height: 1.4; }
+  .sidenav a .n { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--nav-muted); min-width: 18px; }
+  .sidenav a:hover { background: var(--nav-active); }
+  .sidenav a.active { background: var(--nav-active); font-weight: 600; }
+  .sidenav a.active .n { color: var(--nav-accent); }
+  .sidenav a:focus-visible { outline: 2px solid var(--nav-accent); outline-offset: 2px; }
+  .sidenav .navmeta { margin-top: auto; padding: 24px 12px 0; font-size: 12px; line-height: 1.6; color: var(--nav-muted); }
+  .content { margin-left: 264px; }
+  .page > h2 { scroll-margin-top: 24px; }
+  @media (max-width: 1100px) {
+    .sidenav { position: static; width: auto; padding: 24px 20px; }
+    .sidenav ol { display: flex; flex-wrap: wrap; gap: 4px; }
+    .sidenav .navmeta { display: none; }
+    .content { margin-left: 0; }
+  }
   header { border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 36px; }
   .eyebrow { font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; display: flex; gap: 16px; flex-wrap: wrap; }
   h1 { font-family: "IBM Plex Sans KR", "Noto Sans KR", sans-serif; font-weight: 700; font-size: 30px; line-height: 1.25; margin: 12px 0 14px; text-wrap: balance; }
@@ -94,6 +131,24 @@
   a:focus-visible, button:focus-visible { outline: 2px solid var(--after); outline-offset: 2px; }
 </style>
 
+<nav class="sidenav" aria-label="목차">
+  <p class="kicker">대명건설 / 리비전 도면 관리 앱</p>
+  <p class="navtitle">변경 전·후 도면 비교·표기 도구 구축 계획</p>
+  <ol>
+      <li><a href="#sec-0"><span class="n">00</span>도면 형식 비교</a></li>
+      <li><a href="#sec-1"><span class="n">01</span>지금의 문제</a></li>
+      <li><a href="#sec-2"><span class="n">02</span>제안</a></li>
+      <li><a href="#sec-3"><span class="n">03</span>화면 구상</a></li>
+      <li><a href="#sec-4"><span class="n">04</span>매뉴얼</a></li>
+      <li><a href="#sec-5"><span class="n">05</span>왜 가능한가</a></li>
+      <li><a href="#sec-6"><span class="n">06</span>단계와 확인 방법</a></li>
+      <li><a href="#sec-7"><span class="n">07</span>리스크와 대응</a></li>
+      <li><a href="#sec-8"><span class="n">08</span>필요한 것과 결정 요청</a></li>
+  </ol>
+  <p class="navmeta">개발 계획서 v1 · 2026-09-03<br>팀장 보고용 · 개발 착수 전<br>결정 요청 5건 대기</p>
+</nav>
+
+<div class="content">
 <div class="page">
   <header>
     <div class="eyebrow"><span>대명건설 · 리비전 도면 관리 앱</span><span>개발 계획서 v1 · 2026-09-03</span></div>
@@ -101,7 +156,7 @@
     <p class="thesis">설계사에서 변경 도면 세트가 오면, DWG 파일을 열지 않고 두 세트를 넣는 것만으로 <strong>어느 도곽(도면)의 무엇이 바뀌었는지</strong>를 겹쳐 보기와 클라우드 마크 도면, 변경 리스트로 확인하고 배포한다.</p>
   </header>
 
-  <h2><span class="num">0</span>도면 형식 비교 · DWG, DXF, DWF</h2>
+  <h2 id="sec-0"><span class="num">0</span>도면 형식 비교 · DWG, DXF, DWF</h2>
   <p>설계사에서 오는 파일은 DWG다. 비교 도구가 어느 형식으로 일할지는 "비교에 필요한 정보가 그 형식 안에 남아 있는가"로 정해진다. 필요한 정보는 네 가지다. 선·문자 하나하나를 전·후에서 짝지을 <strong>객체 식별자</strong>, 도곽을 찾는 <strong>표제란 속성</strong>, 참조 도면을 따라가는 <strong>XREF 경로</strong>, 마크업을 얹어 저장할 <strong>편집·쓰기</strong>다.</p>
   <div class="tablewrap"><table>
     <thead><tr><th>항목</th><th>DWG</th><th>DXF</th><th>DWF</th></tr></thead>
@@ -119,7 +174,7 @@
   </table></div>
   <p>결론은 세 줄이다. 받는 것은 DWG이고 원본은 손대지 않는다. 비교는 DWG에서 만든 DXF 사본 위에서 하며, 변환해도 객체 식별자·속성·XREF 경로가 그대로 남아 비교 정확도에 손해가 없다. DWF는 사람이 보기에는 편하지만 비교에 쓸 데이터가 빠져 있어 후보에서 뺀다. 마크업 결과는 다시 DWG로 저장해 ZWCAD에서 연다.</p>
 
-  <h2><span class="num">1</span>지금의 문제</h2>
+  <h2 id="sec-1"><span class="num">1</span>지금의 문제</h2>
   <p>변경 도면이 오면 어느 시트가 바뀌었는지 사람이 한 장씩 겹쳐 봐야 한다. 한 파일에 도곽이 수십 개 들어 있는 경우도 있어 더 어렵다. 놓친 변경은 시공 오류와 재작업으로 이어진다.</p>
   <p>실제 실시도서 세트 68장을 분석한 결과, 비교 도구가 어떻게 생겨야 하는지는 이미 정해졌다.</p>
   <div class="tablewrap"><table>
@@ -131,7 +186,7 @@
     </tbody>
   </table></div>
 
-  <h2><span class="num">2</span>제안</h2>
+  <h2 id="sec-2"><span class="num">2</span>제안</h2>
   <h3>두 가지 사용 방식</h3>
   <div class="tablewrap"><table>
     <thead><tr><th>방식</th><th>내용</th><th>장점</th><th>단점</th><th>순서</th></tr></thead>
@@ -284,7 +339,7 @@
     </tbody>
   </table></div>
 
-  <h2><span class="num">3</span>화면 구상</h2>
+  <h2 id="sec-3"><span class="num">3</span>화면 구상</h2>
   <p>화면은 네 장이다. 세트 지정 → 도곽 목록 → 비교 작업 → 출력 순서로 이어지고, 시간은 대부분 세 번째 화면에서 쓴다. 출력 범위는 전체 도곽이 기본이고 선택 도곽도 된다. 앱 전체는 CAD 화면과 같은 어두운 톤이다. 레이어 원색이 검정 배경 전제라 캔버스와 주변 UI의 톤을 맞추고, 조명이 고르지 않은 현장 사무실에서 반사에 강하다. 그림은 배치와 동작을 잡기 위한 초안이라 세부 모양은 개발하면서 바뀐다.</p>
   <h3>화면 A · 세트 지정</h3>
   <figure>
@@ -624,7 +679,7 @@
   </figure>
   <p class="note"><strong>도곽 선택 대화상자.</strong> 출력 범위를 선택 도곽으로 고르면 변경된 도곽의 목록이 대화상자로 뜬다. 도면번호·도면명·승인 건수가 체크 목록으로 나오고 전체 선택·해제와 검색이 있다. 체크한 도곽만 마크업 DWG와 변경 리스트로 나간다.</p>
 
-  <h2><span class="num">4</span>매뉴얼</h2>
+  <h2 id="sec-4"><span class="num">4</span>매뉴얼</h2>
   <ol>
     <li>변경 도면 세트를 받는다. 앱에 <strong>변경 전 폴더</strong>와 <strong>변경 후 폴더</strong>를 지정한다. XR 폴더가 같이 있으면 자동으로 읽는다. <span class="tag">화면 A</span></li>
     <li>앱이 도곽을 뽑아 도면번호와 제목으로 짝을 맞춘다. 짝이 없는 도곽은 신규 또는 삭제된 시트로 따로 보인다. <span class="tag">화면 B</span></li>
@@ -634,7 +689,7 @@
     <li>도곽 검토가 끝나면 출력으로 넘어간다. 이때 리비전 이력 엑셀에 오늘 날짜 시트가 자동으로 추가된다. 전체 도곽을 한 번에 출력하면 변경된 도곽마다 마크업 DWG가 나오고 전체 변경 리스트가 리비전 표로 들어간다. 일부만 필요하면 선택 도곽으로 골라 출력한다. 현장과 협력사에 배포하고, ZWCAD가 있는 자리에서는 마크업 도면을 열어 확인한다. <span class="tag">화면 D</span></li>
   </ol>
 
-  <h2><span class="num">5</span>왜 가능한가</h2>
+  <h2 id="sec-5"><span class="num">5</span>왜 가능한가</h2>
   <div class="tablewrap"><table>
     <thead><tr><th>근거</th><th>확인된 내용</th></tr></thead>
     <tbody>
@@ -648,7 +703,7 @@
   </table></div>
   <p class="note">"도면에 바로 넣기"는 ZWCAD SDK를 확인한 결과 클립보드가 아니라 COM 연동으로 푼다. ZWCAD는 LISP·VBA·COM(ActiveX)·ZRX.NET·ZRX(C++) 다섯 가지 API와 문서를 무료로 공개하며(<a href="https://www.zwsoft.com/support/zwcad-devdoc">ZWCAD 개발 문서</a>), COM API는 외부 프로그램이 실행 중인 ZWCAD를 직접 조작하는 용도다. 외부 앱이 이 API로 열린 도면에 클라우드 마크·번호·리비전 표를 바로 그려 넣을 수 있어 애드인 없이도 삽입이 된다. ZWCAD가 꺼져 있을 때는 표 텍스트(엑셀·ZWCAD 표에 붙여넣기)와 DXF 조각 삽입으로 대신한다. 클립보드 형식 자체는 비공개라 쓰지 않는다. 개발 전반에서 이 SDK를 적극 활용하고 2차 애드인은 ZRX.NET으로 만든다.</p>
 
-  <h2><span class="num">6</span>단계와 확인 방법</h2>
+  <h2 id="sec-6"><span class="num">6</span>단계와 확인 방법</h2>
   <p>개발은 착수 시점을 정한 뒤 시작한다. 기간은 착수 후 상대 주차다.</p>
   <div class="tablewrap"><table>
     <thead><tr><th>단계</th><th>내용</th><th>확인 방법</th><th>기간</th></tr></thead>
@@ -661,7 +716,7 @@
   </table></div>
   <p class="note">파일럿 현장은 두지 않고 담당자가 직접 검증한다. M2의 전제인 변경 전·후 리비전 쌍은 담당자가 만든다.</p>
 
-  <h2><span class="num">7</span>리스크와 대응</h2>
+  <h2 id="sec-7"><span class="num">7</span>리스크와 대응</h2>
   <div class="tablewrap"><table>
     <thead><tr><th>리스크</th><th>대응</th></tr></thead>
     <tbody>
@@ -674,7 +729,7 @@
     </tbody>
   </table></div>
 
-  <h2><span class="num">8</span>필요한 것과 결정 요청</h2>
+  <h2 id="sec-8"><span class="num">8</span>필요한 것과 결정 요청</h2>
   <p>자원은 이미 확보된 Windows PC와 ZWCAD, 담당자의 검증 시간이면 된다. 소프트웨어 비용은 없다. 개발은 AI가 수행하고 담당자가 방향을 잡는다.</p>
   <div class="decision">
     <ol>
@@ -687,3 +742,28 @@
   </div>
 
 </div>
+</div>
+
+<script>
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.sidenav a[href^="#sec-"]'));
+  var heads = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); });
+  function update() {
+    var y = window.scrollY + 140, cur = heads[0];
+    for (var i = 0; i < heads.length; i++) { if (heads[i] && heads[i].offsetTop <= y) cur = heads[i]; }
+    links.forEach(function (a) { a.classList.toggle('active', !!cur && a.getAttribute('href') === '#' + cur.id); });
+  }
+  links.forEach(function (a, i) {
+    a.addEventListener('click', function (e) {
+      if (!heads[i]) return;
+      e.preventDefault();
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      heads[i].scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+      if (history.replaceState) history.replaceState(null, '', '#' + heads[i].id);
+    });
+  });
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  update();
+})();
+</script>

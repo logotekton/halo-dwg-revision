@@ -92,6 +92,7 @@ declare global {
       dxfOut: (sinkName: string, version?: string, precision?: number) => Promise<DxfOutResult>;
       render: (url: string, settleMs?: number) => Promise<RenderResult>;
       release: () => void;
+      setSinkLimit: (bytes: number) => void;
       log: string[];
     };
   }
@@ -110,8 +111,13 @@ function line(cls: string, text: string) {
 
 const base = location.origin;
 
-/** Above this, the dxfOut() result is measured but not POSTed back (see dxfOut). */
-const SINK_LIMIT_BYTES = 64 * 1024 * 1024;
+/**
+ * Above this, the dxfOut() result is measured but not POSTed back (see dxfOut).
+ * W3-09 made it settable: one real sheet set produced a 111 MB DXF, which is
+ * well inside Playwright's transport limit but past W2-06's conservative cap,
+ * and skipping the sink would leave that file with no DXF for the engine to read.
+ */
+let sinkLimitBytes = 64 * 1024 * 1024;
 
 // GPL boundary: the only libredwg registration in this file.
 AcDbDatabaseConverterManager.instance.register(
@@ -288,7 +294,7 @@ window.__bench = {
       // 512 MB string cap in Playwright's transport (`ERR_STRING_TOO_LONG`),
       // killing the driver before any result is returned. Above the cap we
       // measure the write and report the size without shipping the bytes.
-      if (bytes > SINK_LIMIT_BYTES) {
+      if (bytes > sinkLimitBytes) {
         dxf = undefined;
         line('warn', `dxfOut ${String(bytes)} B in ${ms.toFixed(0)} ms (not shipped: over sink limit)`);
         return { ok: true, ms, bytes, sinkSkipped: true };
@@ -380,6 +386,11 @@ window.__bench = {
       marks.failed = Date.now();
       return out;
     }
+  },
+
+  /** Raise or lower the dxfOut sink cap for this page (W3-09). */
+  setSinkLimit(bytes: number) {
+    sinkLimitBytes = bytes;
   },
 
   /** Drop every big reference so a follow-up run in the same tab starts clean. */

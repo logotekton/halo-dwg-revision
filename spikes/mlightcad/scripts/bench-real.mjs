@@ -29,7 +29,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..');
 
 function parseArgs(argv) {
-  const a = { ids: [], timeout: 300, settle: 1500, budgetMs: 0, redo: false, render: false };
+  const a = { ids: [], timeout: 300, settle: 1500, budgetMs: 0, redo: false, render: false, sinkLimit: 0 };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     if (k === '--manifest') a.manifest = resolve(argv[++i]);
@@ -40,6 +40,7 @@ function parseArgs(argv) {
     else if (k === '--settle') a.settle = Number(argv[++i]);
     else if (k === '--budget-ms') a.budgetMs = Number(argv[++i]);
     else if (k === '--redo') a.redo = true;
+    else if (k === '--sink-limit') a.sinkLimit = Number(argv[++i]);
     else if (k === '--render') a.render = true;
     else throw new Error(`unknown argument: ${k}`);
   }
@@ -154,6 +155,7 @@ async function runOne(id, absPath, base, args, handle) {
     await page.goto(`${base}/bench.html`, { waitUntil: 'load' });
     await page.waitForFunction(() => window.__bench?.ready === true, null, { timeout: 120_000 });
     row.baselineRssBytes = sampler.peak(0, Date.now())?.totalRssBytes ?? null;
+    if (args.sinkLimit) await page.evaluate((n) => window.__bench.setSinkLimit(n), args.sinkLimit);
 
     const all = await page.evaluate(([u, s, ms]) => window.__bench.runAll(u, s, ms), [url, sink, args.settle]);
     const m = all.marks;

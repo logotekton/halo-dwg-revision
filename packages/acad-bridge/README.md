@@ -116,6 +116,87 @@ observed once in a fixture.
    are still recorded in `*.drops.json` (`reason: "read-notification"`) for full transparency, but
    are not evidence of data loss the way an `acad-ts-unsupported`/`stats-schema-unsupported-type`
    drop is.
+5. **`DxfSectionWriterBase.writeEntity`'s `instanceof` dispatch chain never routes an ATTRIB to
+   `_writeAttributeBase`.** `AttributeEntity extends AttributeBase extends TextEntity`, and the
+   dispatch chain (`node_modules/@node-projects/acad-ts/dist/IO/DXF/DxfStreamWriter/DxfSectionWriterBase.js`)
+   has a branch for `entity instanceof TextEntity` and none for `AttributeBase`/`AttributeEntity`
+   above it in the chain -- so every ATTRIB falls into the generic `_writeTextEntity` branch.
+   `_writeAttributeBase` (same file) exists, correctly writes the `AcDbAttribute` subclass, `tag`
+   (group 2), `flags`, etc., and is never called from anywhere. Compounding this,
+   `_writeTextEntity` itself writes its own subclass marker (`100`/`AcDbText`) *twice* -- once at
+   the top of the method, once again right before its final field (group 73) -- harmless
+   duplication for a plain TEXT entity, but for an ATTRIB it leaves an empty, wrongly-named second
+   `AcDbText` marker exactly where `AcDbAttribute` belongs, and no tag anywhere in the record.
+   ezdxf's own `Attrib.audit()` deletes any ATTRIB without a tag
+   (`ezdxf/entities/attrib.py`: `if not self.dxf.hasattr("tag"): auditor.trash(self)`) -- confirmed
+   empirically on `fixtures/generated/F06.dwg` -> `dwg2dxf`: every other field (value, layer,
+   geometry) reads correctly from the malformed record, but `ezdxf.readfile(...).audit()` destroys
+   the entity anyway purely because the tag is missing. Repaired in `repair-dxf.ts`'s
+   `restoreAttributeSubclass` -- see "DXF writer repair" below.
+6. **`insert.attributes` can independently contain the terminating SEQEND (gap #2), and `_writeInsert`
+   writes it twice when it does.** `_writeInsert`: `for (const att of insert.attributes) {
+   this.writeEntity(att); } if (insert.hasAttributes && insert.attributes.seqend) {
+   this.writeEntity(insert.attributes.seqend); }` -- when gap #2's runtime shape (the SEQEND present
+   as a plain element of `insert.attributes`, not only via the separate `.seqend` property) applies,
+   the loop's `writeEntity(att)` call writes that SEQEND once, and the explicit call right after
+   writes the *same object* again: two byte-identical `SEQEND` records, same handle, immediately
+   adjacent. ezdxf's `Drawing.audit()` resolves the resulting duplicate handle by destroying
+   whichever entity is no longer the entity database's canonical entry for it, which is silent (no
+   `auditor.errors` entry -- only a `logger.warning("Found non-unique entity handle #...")` during
+   the earlier bind step) and, because the destroyed object is still referenced by its owning
+   INSERT's `attribs`, crashes any later code that touches it
+   (`engine/src/halo_engine/ingest/stats.py`'s `dead-attrib` diagnostic guards exactly this when it
+   is *not* repaired first). Repaired in `repair-dxf.ts`'s `dedupeDuplicateSeqend`.
+7. **MTEXT's `alignmentPoint` (DXF group 11/21/31, the X-axis direction vector) defaults to the
+   zero vector, and `_writeMText` writes it unconditionally.** A source MTEXT with no explicit
+   direction override (the ordinary case; ezdxf itself omits group 11 entirely rather than writing
+   a default) reads back into acad-ts's model with `alignmentPoint` at its zero-vector default
+   rather than the X axis, and `_writeMText`'s `this._writer.writeVector(11, mtext.alignmentPoint,
+   subclass)` serializes that default faithfully. ezdxf loads MTEXT's `text_direction` through
+   `fast_load_dxfattribs`, which bypasses the validator (`is_not_null_vector`/
+   `fixer=RETURN_DEFAULT`) that would otherwise catch this on read, so the zero vector survives
+   into the document and `ezdxf.bbox.extents()` crashes building an OCS/UCS from it
+   (`ZeroDivisionError` inside `ezdxf.math.OCS.__init__`'s `Vec3(extrusion).normalize()`) --
+   confirmed on `fixtures/generated/F03.dwg` -> `dwg2dxf`, all 10 MTEXT entities.
+   `engine/src/halo_engine/ingest/stats.py`'s `zero-length-ocs-vector` diagnostic guards this when
+   it is *not* repaired first. Repaired in `repair-dxf.ts`'s `normalizeZeroLengthMTextDirection`
+   (replaces the zero vector with `(1, 0, 0)`, ezdxf's own default -- "normalizes" it, per the
+   brief's own wording).
+8. **`AttributeBase.tag` is never populated on read, from any source (DWG or DXF, well-formed or
+   not).** `_tag` defaults to `''` (`Entities/AttributeBase.js`) and no code path in the DXF reader
+   (`IO/DXF/DxfStreamReader/DxfSectionReaderBase.js`'s `_readAttributeDefinition`) or the DWG reader
+   ever assigns `.tag` from group 2 -- confirmed by reading `fixtures/generated/F06.dxf` directly
+   (bypassing this package's writer entirely): every ATTRIB's `tag` comes back `''` even though the
+   file's `AcDbAttribute` subclass and group 2 are perfectly well formed. This means gap #5's repair
+   (`restoreAttributeSubclass`) can restore the `AcDbAttribute` subclass structure -- which is what
+   stops ezdxf's audit from deleting the entity -- but cannot recover the *tag string itself*, since
+   the in-memory `CadDocument` this package repairs from never had it to begin with. Harmless for
+   this task's purposes (`stats-definition.md`'s measures never read an ATTRIB's tag, only its
+   value and layer, both unaffected), but worth knowing before relying on `AttributeBase.tag` for
+   anything else.
+
+## DXF writer repair (`repair-dxf.ts`)
+
+Every `writeDxfFile` call (`dwg2dxf`, `dxf2dwg`'s round-trip tests, `stats` on a freshly-converted
+file) post-processes the raw DXF text `DxfWriter.writeToStream` produced before it reaches disk --
+pure text -> text, acad-ts itself is never forked or monkey-patched (brief W3-08 Constraints).
+Fixes gaps #5-#7 above:
+
+| Fix | Gap | What it does |
+|---|---|---|
+| `dedupeDuplicateSeqend` | #6 | Removes the second of two byte-identical, adjacent `SEQEND` records. |
+| `restoreAttributeSubclass` | #5 | Renames ATTRIB's erroneous second `AcDbText` marker to `AcDbAttribute` and inserts a tag (group 2), read from the in-memory `CadDocument` by handle -- empty per gap #8, but present, which is what matters to ezdxf's audit. |
+| `normalizeZeroLengthMTextDirection` | #7 | Replaces a `(0, 0, 0)` MTEXT direction vector (group 11/21/31) with `(1, 0, 0)`. |
+| `reassignRemainingDuplicateHandles` | general safety net | Mints a fresh handle for any handle collision the three fixes above did not already resolve (none observed in F01-F10 once they have run; guards a *different*, not-yet-seen acad-ts writer bug producing the same symptom). |
+
+Verified end to end against `fixtures/generated/F06.dwg` and `F03.dwg`: `engine ingest.stats`
+(Python/ezdxf) reads the repaired output without exception, and F06's `stats` output matches
+`fixtures/truth/F06.json` exactly except for the `INSERT`/`insert_by_block` count for `X-TITLE`
+(gap #1, unrelated to and not fixed by this repair) -- `count_by_type`, `length_sum_mm`,
+`hatch_area_sum_mm2`, and every `X-GRID` ATTRIB's `text_count` contribution match. F03's `stats`
+output (`count_by_type`, `bbox`, `text_hash`) matches `fixtures/truth/F03.json` exactly.
+`repair-dxf.test.ts` covers each fix in isolation (synthetic DXF text) and the two real fixtures
+end to end.
 
 ## `stats`: schema and contract notes
 
@@ -178,6 +259,7 @@ src/cli.ts                    CLI entry (argv dispatch)
 src/commands/*.ts              dwg2dxf / dxf2dwg / stats / info
 src/acad/read.ts, write.ts     acad-ts reader/writer wrappers (keepUnknownEntities, notification capture)
 src/acad/decode-fix.ts         windows-1252-forced-decode workaround (see "Known acad-ts gaps" #3)
+src/acad/repair-dxf.ts         DXF writer output repair: duplicate SEQEND, ATTRIB subclass, MTEXT direction (see "Known acad-ts gaps" #5-#7, "DXF writer repair")
 src/acad/walk.ts               (space, entity) iteration incl. INSERT.attributes, SeqendCollection guard
 src/acad/entity-types.ts       raw DXF record name -> count_by_type key (DimensionArc normalisation, key-pattern guard)
 src/acad/length.ts             length_sum_mm (bulge analytic formula; SPLINE/ELLIPSE flattened via acad-ts's polygonalVertexes)

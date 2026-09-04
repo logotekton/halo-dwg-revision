@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      Standalone viewer page (W3-02). Same CSP as index.html plus what the
+      mlightcad workers need: 'wasm-unsafe-eval' for libredwg-web, worker-src
+      for the two workers, and blob: images for the MTEXT glyph atlases
+      (docs/spikes/mlightcad-api.md §A, requirement 3).
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' halocad:; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' halocad: http://127.0.0.1:* ws://127.0.0.1:*; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Halo CAD</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/features/viewer/standalone.tsx"></script>
+  </body>
+</html>

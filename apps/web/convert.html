@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      Hidden DWG converter window (apps/desktop/src/main/convert).
+      'wasm-unsafe-eval' is required by libredwg-web, worker-src by the
+      LibreDWG parser worker; the wasm is fetched from the same halocad://
+      origin as the worker (docs/spikes/mlightcad-api.md §A).
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' halocad:; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' halocad:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:"
+    />
+    <title>Halo CAD converter</title>
+  </head>
+  <body>
+    <script type="module" src="/src/features/viewer/convert-entry.ts"></script>
+  </body>
+</html>

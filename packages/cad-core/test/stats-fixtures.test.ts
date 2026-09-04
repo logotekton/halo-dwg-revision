@@ -6,14 +6,11 @@
  * `hatch_area_sum`, `insert_by_block` and `bbox` are compared; `text_count`,
  * `text_hash` and the bucket layout are left to W2-03 / W2-04.
  *
- * Two measured cross-parser gaps are encoded below instead of being hidden by
- * a loose tolerance. Both are documented in the W2-02 report:
+ * One measured cross-parser gap is encoded below instead of being hidden by a
+ * loose tolerance (the `length_sum` gap of the W2-02 report is gone: W3-02
+ * replaced the spline length with our own ezdxf-compatible flattening):
  *
- * 1. `length_sum` — `fixtures_gen.LENGTH_TYPES` omits ELLIPSE, and it measures
- *    SPLINE with ezdxf `flattening(0.01)` while mlightcad returns the analytic
- *    NURBS arc length. F01 is the only fixture with either type; the test
- *    reconstructs the expected number from both sides rather than skipping it.
- * 2. `bbox` — extents of TEXT, MTEXT, INSERT, DIMENSION, LEADER, MLEADER and
+ * 1. `bbox` — extents of TEXT, MTEXT, INSERT, DIMENSION, LEADER, MLEADER and
  *    SPLINE are derived (font metrics, block expansion, curve approximation)
  *    and the two parsers disagree by tens to hundreds of millimetres. Buckets
  *    made only of exactly-representable geometry are held to the contract's
@@ -62,12 +59,10 @@ interface Case {
   truthPart?: string;
   /** Recorded deviation bound of the totals bbox, in mm (see the header note). */
   bboxTotalsMm: number;
-  /** Set for the one fixture whose `length_sum` is not comparable as-is. */
-  lengthGap?: 'ellipse-and-spline';
 }
 
 const CASES: Case[] = [
-  { id: 'F01', file: 'F01.dxf', truthId: 'F01', bboxTotalsMm: BBOX_EXACT_MM, lengthGap: 'ellipse-and-spline' },
+  { id: 'F01', file: 'F01.dxf', truthId: 'F01', bboxTotalsMm: BBOX_EXACT_MM },
   { id: 'F02', file: 'F02.dxf', truthId: 'F02', bboxTotalsMm: 362 },
   { id: 'F03', file: 'F03.dxf', truthId: 'F03', bboxTotalsMm: 158 },
   { id: 'F04', file: 'F04.dxf', truthId: 'F04', bboxTotalsMm: BBOX_EXACT_MM },
@@ -126,24 +121,14 @@ describe.each(CASES)('statsByLayer $id', (testCase) => {
         0.005
       );
 
-      // --- length: +/-0.1%, with the F01 gap reconstructed ---------------
-      let expectedLength = truthTotals.length_sum;
-      if (testCase.lengthGap === 'ellipse-and-spline') {
-        // Known gap (follow-up for W3-02/W2-04): mlightcad's spline length is
-        // not a flattening(0.01)-grade approximation, so it disagrees with
-        // ezdxf by ~11% on F01. GEOM-PHTM holds the two SPLINEs and six POINTs,
-        // so its truth `length_sum` is exactly ezdxf's flattened spline length;
-        // substitute the viewer's spline length and compare everything else.
-        const model = document.spaces().find((space) => space.space === 'MODEL');
-        let spline = 0;
-        for (const entity of model?.entities() ?? []) {
-          if (entity.dxfType === 'SPLINE') spline += entity.curveLength() ?? 0;
-        }
-        const truthSpline = truthModelLayers(entry)['GEOM-PHTM']?.length_sum ?? 0;
-        expect(spline).toBeGreaterThan(0);
-        expectedLength = truthTotals.length_sum + (spline - truthSpline);
-      }
-      expect(relativeDelta(stats.totals.length_sum_mm, expectedLength)).toBeLessThanOrEqual(0.001);
+      // --- length: +/-0.1% against the ezdxf truth, no exceptions ---------
+      // W3-02 closed the last gap: SPLINE length now comes from this package's
+      // own NURBS flattening (`src/curve-length.ts`), rebuilt from the fit
+      // points in the file exactly as ezdxf does, so F01 needs no correction
+      // term any more (whitelist W01 is retired).
+      expect(relativeDelta(stats.totals.length_sum_mm, truthTotals.length_sum)).toBeLessThanOrEqual(
+        0.001
+      );
 
       // --- bbox ----------------------------------------------------------
       expect(bboxDelta(stats.totals.bbox, truthTotals.bbox)).toBeLessThanOrEqual(testCase.bboxTotalsMm);

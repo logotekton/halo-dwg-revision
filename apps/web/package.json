@@ -4,15 +4,18 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "dev": "pnpm run copy-viewer-assets && vite",
+    "build": "pnpm run copy-viewer-assets && tsc --noEmit -p tsconfig.json && vite build",
     "preview": "vite preview",
     "lint": "cd ../.. && eslint apps/web/src apps/web/scripts apps/web/vite.config.ts apps/web/vitest.config.ts --config eslint.config.js",
     "lint:fixtures": "cd ../.. && eslint apps/web/lint-fixtures --config eslint.config.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run && node scripts/check-lint-fixtures.mjs"
+    "test": "vitest run && node scripts/check-lint-fixtures.mjs",
+    "copy-viewer-assets": "node ../../packages/dwg-io-gpl/scripts/copy-worker-assets.mjs public/viewer/workers --quiet"
   },
   "dependencies": {
+    "@halo-cad/cad-core": "workspace:*",
+    "@halo-cad/dwg-io-gpl": "workspace:*",
     "i18next": "26.4.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",

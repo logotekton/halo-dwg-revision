@@ -91,7 +91,7 @@
 
 머리글 행은 `revtable.columns` 값 그대로 1행이다(별도 `header` 키 없음).
 
-- LINE + TEXT로만 그린다(TABLE 엔티티 금지). 레이어 `REV-<YYYYMMDD>[-n]`.
+- LINE + TEXT로만 그린다(TABLE 엔티티 금지). 레이어 `REV-<YYYYMMDD>[-n]`. 리비전 표 엔티티에는 XDATA를 달지 않는다(§4의 `role` 목록은 클라우드·배지·라벨 전용, R1-09).
 - 행 = 승인된 클러스터(번호 순). 내용 = `user_label`이 있으면 그것, 없으면 `label`. 일자 = `run_date`(`YYYY-MM-DD`).
 - 승인 클러스터가 0이면 표를 그리지 않는다(도곽 자체가 출력 대상에서 빠진다).
 

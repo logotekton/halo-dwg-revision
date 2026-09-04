@@ -1,18 +1,27 @@
-"""Request and acknowledgement bodies for ``/api/v1/compare/...`` (``docs/contracts/r1.md`` §7).
+"""Request and response bodies for ``/api/v1/compare/...`` (``docs/contracts/r1.md`` §7).
 
-Only the *inputs* and the small 202 acknowledgements live here. Everything the
-engine hands back as a record -- ``SheetFrame``, ``SheetPair``, ``Change``,
-``Cluster``, ``Run``, ``CompareSetSummary`` -- is generated from the JSON
-schemas instead (``halo_schema.models.compare.*``), because the viewer has to
-read exactly the same shape and one hand-written copy per language is how the
-two drift apart (``packages/schema/README.md``).
+The *inputs* and the small 202 acknowledgements live here. Records the engine
+hands back -- ``SheetFrame``, ``SheetPair``, ``Change``, ``Cluster``, ``Run``,
+``CompareSetSummary`` -- are defined by the JSON schemas
+(``packages/schema/src/compare/*.schema.json``), and the contract (§4) allows a
+router to serve them either as the generated ``halo_schema.models.compare.*``
+models or as "같은 필드의 자체 모델".
+
+R1-04 had to take the second option: ``halo-schema`` (the generated package at
+``packages/schema/gen/python``) is not among ``engine/pyproject.toml``'s
+dependencies, and that file belongs to Fable rather than to a task
+(``CLAUDE.md`` 디렉터리 소유권). :class:`SheetFrameView` and
+:class:`SheetPairView` below are therefore hand-written mirrors, and
+``engine/tests/api/test_compare_pairs.py`` reads the schema files themselves
+and fails if the field sets ever diverge -- so the copy cannot drift silently
+while the dependency is being sorted out (report: Shared-file patch).
 
 Strict mypy applies to this package (``engine/pyproject.toml``).
 """
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -155,6 +164,78 @@ class CompareFileEntry(BaseModel):
     converter_meta: dict[str, object] | None = None
 
 
+FrameKind = Literal["titleblock", "unrecognized_file"]
+"""``sheet_frame.kind``: a recognised title block, or a whole file that had none."""
+
+PairStatus = Literal[
+    "pending",
+    "changed",
+    "same",
+    "added",
+    "removed",
+    "unpaired",
+    "unrecognized",
+    "converter_mismatch",
+]
+"""``sheet_pair.status`` (contract §3). Matching writes all but ``changed``."""
+
+MatchMethod = Literal["number", "title", "position", "manual"]
+"""How the two frames were paired (contract §3)."""
+
+
+class SheetFrameView(BaseModel):
+    """One 도곽, as ``GET /compare/sets/{id}/pairs`` embeds it.
+
+    Field-for-field ``compare/sheet-frame.schema.json``. ``entity_handles`` is
+    ``None`` in the pairs list -- the schema says the summary omits it, and a
+    sheet's handle list is thousands of strings the list screen never reads.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str
+    compare_set_id: str
+    role: Literal["before", "after"]
+    file_id: str
+    kind: FrameKind
+    titleblock_handle: str | None = None
+    block_name: str | None = None
+    bbox: list[float] = Field(min_length=4, max_length=4, description="[x0, y0, x1, y1] in mm.")
+    sheet_no: str | None = None
+    sheet_title: str | None = None
+    scale_text: str | None = None
+    scale_denominator: int | None = Field(default=None, ge=1)
+    date_text: str | None = None
+    norm_key: str
+    sort_index: int = Field(ge=0)
+    entity_handles: list[str] | None = None
+    provenance: dict[str, Any]
+    attributes: dict[str, Any] | None = None
+
+
+class SheetPairView(BaseModel):
+    """One 도곽 짝 with both frame summaries (``compare/sheet-pair.schema.json``)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str
+    compare_set_id: str
+    before_frame_id: str | None = None
+    after_frame_id: str | None = None
+    status: PairStatus
+    match_method: MatchMethod | None = None
+    score: float | None = Field(default=None, ge=0.0, le=1.0)
+    sort_key: str
+    change_count: int = Field(ge=0)
+    minor_count: int = Field(ge=0)
+    cluster_count: int = Field(ge=0)
+    compare_dxf_path: str | None = None
+    clusters_json_path: str | None = None
+    warnings: list[str] | None = None
+    before_frame: SheetFrameView | None = None
+    after_frame: SheetFrameView | None = None
+
+
 __all__ = [
     "RUN_DATE_PATTERN",
     "ClusterDecisionRequest",
@@ -164,6 +245,11 @@ __all__ = [
     "CompareSetCreateResponse",
     "ExportAcceptedResponse",
     "ExportRequest",
+    "FrameKind",
     "JobAcceptedResponse",
     "ManualPairRequest",
+    "MatchMethod",
+    "PairStatus",
+    "SheetFrameView",
+    "SheetPairView",
 ]

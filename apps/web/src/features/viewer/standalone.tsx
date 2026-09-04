@@ -33,6 +33,9 @@ interface ConvertResult {
   entity_count: number;
   converter: string;
   warnings: string[];
+  /** Read out of the DWG by acad-bridge, because `dxfOut()` loses them (W3-09). */
+  xrefs: { block_name: string; path: string }[];
+  styles: { name: string; font: string; bigfont: string; typeface?: string | null }[];
 }
 
 interface ViewerTestBridge {
@@ -49,7 +52,7 @@ interface ViewerTestHooks {
   /** Absolute paths from `HALO_E2E_PICK_FILES`. */
   pickFiles(): Promise<string[]>;
   /** Opens one of those paths; DWG goes through the hidden converter window. */
-  openFile(path: string): Promise<{ fileId: string; converter: string; entityCount: number }>;
+  openFile(path: string): Promise<OpenedDrawing>;
   pick(x: number, y: number, radius?: number): string[];
   setSelection(handles: string[]): void;
   highlight(handles: string[]): void;
@@ -110,11 +113,18 @@ function count(items: Iterable<unknown>): number {
   return total;
 }
 
-async function openPath(path: string): Promise<{
+/** What the e2e sees for one opened fixture. */
+interface OpenedDrawing {
   fileId: string;
   converter: string;
   entityCount: number;
-}> {
+  /** Counts only: the e2e checks that the metadata round trip happened at all. */
+  xrefs: number;
+  styles: number;
+  warnings: string[];
+}
+
+async function openPath(path: string): Promise<OpenedDrawing> {
   const bridge = window.__haloViewerTest;
   if (!bridge) throw new Error('__haloViewerTest bridge is missing (HALO_E2E=1 required)');
   const name = baseName(path);
@@ -127,12 +137,26 @@ async function openPath(path: string): Promise<{
     const result = await bridge.convertDwg({ dwgPath: path, outPath });
     const bytes = await bridge.readFile(result.dxf_path);
     const opened = await openDrawing(fileId, name, toArrayBuffer(bytes));
-    return { fileId, converter: result.converter, entityCount: opened.entityCount };
+    return {
+      fileId,
+      converter: result.converter,
+      entityCount: opened.entityCount,
+      xrefs: result.xrefs.length,
+      styles: result.styles.length,
+      warnings: result.warnings,
+    };
   }
 
   const bytes = await bridge.readFile(path);
   const opened = await openDrawing(fileId, name, toArrayBuffer(bytes));
-  return { fileId, converter: 'none', entityCount: opened.entityCount };
+  return {
+    fileId,
+    converter: 'none',
+    entityCount: opened.entityCount,
+    xrefs: 0,
+    styles: 0,
+    warnings: [],
+  };
 }
 
 function installTestHooks(): void {

@@ -13,7 +13,7 @@
  *   rather than something the viewer tells us.
  *
  * The machine is pure: it never touches mlightcad or the DOM, which is what
- * makes the ordering rules testable (`test/host-state-machine.test.ts`).
+ * makes the ordering rules testable (`test/host.test.ts`, "DocumentStateMachine").
  */
 
 import type { CadHostStatus } from './types';

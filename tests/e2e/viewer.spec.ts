@@ -153,6 +153,13 @@ test('converts the DWG fixture in the hidden window and renders the result', asy
   expect(opened.converter).toBe('mlightcad-dxfout')
   expect(opened.entityCount).toBeGreaterThan(0)
 
+  // The second pass that reads what `dxfOut()` drops: `acad-bridge info --xrefs`
+  // (W3-06's implementation, which R1-00a kept over W3-02's duplicate). F06 has
+  // no external reference but does have text styles, so a zero here means the
+  // metadata call itself broke.
+  expect(opened.styles).toBeGreaterThan(0)
+  expect(opened.warnings.join(' ')).not.toMatch(/could not be read|not built/)
+
   await expect.poll(() => viewerStatus(session.page), { timeout: 120_000 }).toBe('ready')
 
   const documents = await viewerDocuments(session.page)

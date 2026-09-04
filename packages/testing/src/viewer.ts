@@ -29,6 +29,11 @@ export interface OpenedDrawing {
   fileId: string
   converter: string
   entityCount: number
+  /** XREF definitions the converter read back out of the DWG with acad-bridge. */
+  xrefs: number
+  /** Text styles from the same second pass; 0 for a DXF, which needs none. */
+  styles: number
+  warnings: string[]
 }
 
 export interface HeapGrowth {

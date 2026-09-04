@@ -17,3 +17,11 @@ pnpm install --frozen-lockfile
 cd engine && uv sync --frozen && uv run pytest
 tools/verify.sh
 ```
+
+## 사용자 확인
+
+R1의 마지막 합격 판정은 사용자가 Windows 노트북에서 CI 설치본으로 직접 한다(개발 체크아웃
+없음). 절차와 자동 검사 결과는 [docs/gates/R1.md](docs/gates/R1.md), 인쇄해서 따라갈 체크리스트는
+[docs/gates/R1-user-checklist.md](docs/gates/R1-user-checklist.md)에 있다. 사용자 리비전 쌍
+폴더 규약은 [samples/revision-pairs/README.md](samples/revision-pairs/README.md), 확인 중
+나온 질문은 [docs/gates/R1-questions.md](docs/gates/R1-questions.md)에 모은다.

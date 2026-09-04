@@ -176,6 +176,13 @@ def _shoelace(points: list[tuple[float, float]]) -> float:
     return abs(acc) / 2.0
 
 
+def _round6(value: float) -> float:
+    """``round(x, 6)`` with negative zero normalised to ``0.0`` (mirrors the
+    engine's ``halo_engine.ingest.stats._round6``; spline flattening yields
+    ``-0.0`` on some platforms and JSON keeps the sign)."""
+    return round(float(value), 6) + 0.0
+
+
 def _bbox_of(entities: list[DXFGraphic]) -> dict[str, list[float]] | None:
     if not entities:
         return None
@@ -183,8 +190,8 @@ def _bbox_of(entities: list[DXFGraphic]) -> dict[str, list[float]] | None:
     if not box.has_data:
         return None
     return {
-        "min": [round(float(box.extmin.x), 6), round(float(box.extmin.y), 6)],
-        "max": [round(float(box.extmax.x), 6), round(float(box.extmax.y), 6)],
+        "min": [_round6(box.extmin.x), _round6(box.extmin.y)],
+        "max": [_round6(box.extmax.x), _round6(box.extmax.y)],
     }
 
 

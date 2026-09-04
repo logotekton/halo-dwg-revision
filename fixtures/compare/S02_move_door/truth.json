@@ -1,0 +1,47 @@
+{
+  "schema_version": "0.1",
+  "scenario": "S02_move_door",
+  "description": "문 INSERT 1개(D1)를 동쪽으로 1,250mm 이동한다.",
+  "before_dir": "before",
+  "after_dir": "after",
+  "expected_pairs": [
+    {
+      "sheet_no": "A-101",
+      "status": "changed",
+      "match_method": "number",
+      "expected_changes": [
+        {
+          "kind": "moved",
+          "etype": "INSERT",
+          "minor": false,
+          "before_handle": "F8",
+          "after_handle": "F8",
+          "minor_reason": null,
+          "layer": "A-DOOR",
+          "bbox": [
+            14050.0,
+            17000.0,
+            16200.0,
+            18110.0
+          ],
+          "note": "door D1 moved 1250mm east"
+        }
+      ],
+      "expected_cluster_count": 1,
+      "clean_regions": [
+        [
+          0.0,
+          32000.0,
+          84100.0,
+          59400.0
+        ],
+        [
+          0.0,
+          0.0,
+          8000.0,
+          59400.0
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "schema_version": "0.1",
+  "scenario": "S07_hatch_regen",
+  "description": "해치 1개를 같은 경계로, 시작 정점만 다르게 다시 생성한다(핸들이 바뀐다).",
+  "before_dir": "before",
+  "after_dir": "after",
+  "expected_pairs": [
+    {
+      "sheet_no": "A-101",
+      "status": "same",
+      "match_method": "number",
+      "expected_changes": [
+        {
+          "kind": "modified",
+          "etype": "HATCH",
+          "minor": true,
+          "before_handle": "155",
+          "after_handle": "158",
+          "minor_reason": "hatch_regen",
+          "layer": "A-HATCH",
+          "bbox": [
+            8500.0,
+            2000.0,
+            20000.0,
+            4500.0
+          ],
+          "note": "hatch re-generated with the same boundary, rotated start vertex"
+        }
+      ],
+      "expected_cluster_count": 0,
+      "clean_regions": [
+        [
+          0.0,
+          32000.0,
+          84100.0,
+          59400.0
+        ],
+        [
+          0.0,
+          0.0,
+          8000.0,
+          59400.0
+        ]
+      ]
+    }
+  ],
+  "notes": "경계 다각형은 동일하고(bbox 동일) 시작 정점 순서만 바뀌었다. minor.fold의 hatch_regen으로 접혀야 한다."
+}

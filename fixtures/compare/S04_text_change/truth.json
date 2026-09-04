@@ -1,0 +1,47 @@
+{
+  "schema_version": "0.1",
+  "scenario": "S04_text_change",
+  "description": "실명 TEXT 1개의 문구를 바꾼다.",
+  "before_dir": "before",
+  "after_dir": "after",
+  "expected_pairs": [
+    {
+      "sheet_no": "A-101",
+      "status": "changed",
+      "match_method": "number",
+      "expected_changes": [
+        {
+          "kind": "text",
+          "etype": "TEXT",
+          "minor": false,
+          "before_handle": "112",
+          "after_handle": "112",
+          "minor_reason": null,
+          "layer": "A-TEXT",
+          "bbox": [
+            14500.0,
+            11666.508,
+            15757.299,
+            12050.0
+          ],
+          "note": "room text '거실' -> '리빙룸'"
+        }
+      ],
+      "expected_cluster_count": 1,
+      "clean_regions": [
+        [
+          0.0,
+          32000.0,
+          84100.0,
+          59400.0
+        ],
+        [
+          0.0,
+          0.0,
+          8000.0,
+          59400.0
+        ]
+      ]
+    }
+  ]
+}

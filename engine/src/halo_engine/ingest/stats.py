@@ -268,6 +268,17 @@ def hatch_area(entity: DXFGraphic) -> float:
     return total
 
 
+def _round6(value: float) -> float:
+    """``round(x, 6)`` with negative zero normalised to ``0.0``.
+
+    Spline flattening can yield ``-0.0`` on one platform and ``0.0`` on
+    another (observed: macOS vs windows-latest for F01), and JSON keeps the
+    sign, so a byte comparison of stats documents would differ for a value
+    that is numerically identical. ``+ 0.0`` folds ``-0.0`` into ``0.0``.
+    """
+    return round(float(value), 6) + 0.0
+
+
 def _bbox_of(
     entities: list[DXFGraphic], diagnostics: list[dict[str, Any]]
 ) -> dict[str, list[float]] | None:
@@ -350,8 +361,8 @@ def _bbox_of(
     if not box.has_data:
         return None
     return {
-        "min": [round(float(box.extmin.x), 6), round(float(box.extmin.y), 6)],
-        "max": [round(float(box.extmax.x), 6), round(float(box.extmax.y), 6)],
+        "min": [_round6(box.extmin.x), _round6(box.extmin.y)],
+        "max": [_round6(box.extmax.x), _round6(box.extmax.y)],
     }
 
 

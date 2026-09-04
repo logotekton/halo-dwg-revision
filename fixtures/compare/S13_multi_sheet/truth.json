@@ -1,0 +1,85 @@
+{
+  "schema_version": "0.1",
+  "scenario": "S13_multi_sheet",
+  "description": "한 파일에 도곽 2개(A-101, A-102)를 가로로 배치한다. 변경은 A-102에만 심는다.",
+  "before_dir": "before",
+  "after_dir": "after",
+  "expected_pairs": [
+    {
+      "sheet_no": "A-101",
+      "status": "same",
+      "match_method": "number",
+      "expected_changes": [],
+      "expected_cluster_count": 0,
+      "clean_regions": [
+        [
+          0.0,
+          32000.0,
+          84100.0,
+          59400.0
+        ],
+        [
+          0.0,
+          0.0,
+          8000.0,
+          59400.0
+        ]
+      ]
+    },
+    {
+      "sheet_no": "A-102",
+      "status": "changed",
+      "match_method": "number",
+      "expected_changes": [
+        {
+          "kind": "added",
+          "etype": "LWPOLYLINE",
+          "minor": false,
+          "before_handle": null,
+          "after_handle": "203",
+          "minor_reason": null,
+          "layer": "A-WALL",
+          "bbox": [
+            136100.0,
+            6400.0,
+            140100.0,
+            6600.0
+          ],
+          "note": "new wall added on A-102 only"
+        },
+        {
+          "kind": "added",
+          "etype": "INSERT",
+          "minor": false,
+          "before_handle": null,
+          "after_handle": "204",
+          "minor_reason": null,
+          "layer": "A-DOOR",
+          "bbox": [
+            149650.0,
+            6500.0,
+            150550.0,
+            7610.0
+          ],
+          "note": "new door D7 added on A-102 only"
+        }
+      ],
+      "expected_cluster_count": 2,
+      "clean_regions": [
+        [
+          90100.0,
+          32000.0,
+          174200.0,
+          59400.0
+        ],
+        [
+          90100.0,
+          0.0,
+          98100.0,
+          59400.0
+        ]
+      ]
+    }
+  ],
+  "notes": "A-101과 A-102는 서로 84,100 + 6,000mm 만큼 떨어져 있어 도곽 배정(bbox_center)이 겹치지 않는다."
+}

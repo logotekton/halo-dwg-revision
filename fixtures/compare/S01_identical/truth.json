@@ -1,0 +1,31 @@
+{
+  "schema_version": "0.1",
+  "scenario": "S01_identical",
+  "description": "변경이 전혀 없는 도면 짝. pair status same, 클러스터 0이 유일한 합격 기준이다.",
+  "before_dir": "before",
+  "after_dir": "after",
+  "expected_pairs": [
+    {
+      "sheet_no": "A-101",
+      "status": "same",
+      "match_method": "number",
+      "expected_changes": [],
+      "expected_cluster_count": 0,
+      "clean_regions": [
+        [
+          0.0,
+          32000.0,
+          84100.0,
+          59400.0
+        ],
+        [
+          0.0,
+          0.0,
+          8000.0,
+          59400.0
+        ]
+      ]
+    }
+  ],
+  "notes": "같은 코드로 두 번 만든 동일한 도면. 지문 매칭이 오탐을 만들면 안 된다."
+}

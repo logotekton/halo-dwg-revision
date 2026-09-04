@@ -93,6 +93,10 @@ jobs:
       # implementation, docs/briefs/R1-00b.md "Reference implementation"):
       # sidecar first, then `pnpm build`, then electron-builder.
       - name: Build PyInstaller sidecar (halo-engine.exe)
+        # PyInstaller itself finishes in ~70s on windows-latest; the READY
+        # smoke check is bounded (20s wait + 10s kill loop). Anything longer
+        # is a hang (first run: 43 minutes stuck in `wait`), so fail fast.
+        timeout-minutes: 15
         env:
           HALO_SIDECAR_SMOKE: ${{ (github.event_name == 'workflow_dispatch' && inputs.skip_sidecar_smoke == true) && '0' || '1' }}
         run: bash engine/scripts/build-sidecar.sh

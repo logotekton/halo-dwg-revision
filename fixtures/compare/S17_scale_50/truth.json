@@ -1,0 +1,48 @@
+{
+  "schema_version": "0.1",
+  "scenario": "S17_scale_50",
+  "description": "SCALE=1:50 도곽(A1x50 = 42,050x29,700mm)에서 문 1개를 1,250mm 동쪽으로 이동한다.",
+  "before_dir": "before",
+  "after_dir": "after",
+  "expected_pairs": [
+    {
+      "sheet_no": "A-101",
+      "status": "changed",
+      "match_method": "number",
+      "expected_changes": [
+        {
+          "kind": "moved",
+          "etype": "INSERT",
+          "minor": false,
+          "before_handle": "F8",
+          "after_handle": "F8",
+          "minor_reason": null,
+          "layer": "A-DOOR",
+          "bbox": [
+            7025.0,
+            8500.0,
+            8725.0,
+            9055.0
+          ],
+          "note": "door D1 moved 1250mm east on a 1:50 sheet"
+        }
+      ],
+      "expected_cluster_count": 1,
+      "clean_regions": [
+        [
+          0.0,
+          16000.0,
+          42050.0,
+          29700.0
+        ],
+        [
+          0.0,
+          0.0,
+          4000.0,
+          29700.0
+        ]
+      ]
+    }
+  ],
+  "notes": "scale_denominator=50 -> scale_factor=0.5(docs/contracts/compare-dxf.md SS5). 이 truth는 좌표·frame 인식만 보증하고, 클라우드/배지 크기 산정은 R1-06 책임이다."
+}

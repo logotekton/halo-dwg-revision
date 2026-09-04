@@ -1,0 +1,85 @@
+{
+  "schema_version": "0.1",
+  "scenario": "S14_sheet_added_removed",
+  "description": "전에는 A-101/A-102, 후에는 A-102/A-103. A-101은 removed, A-103은 added, A-102는 same이어야 한다.",
+  "before_dir": "before",
+  "after_dir": "after",
+  "expected_pairs": [
+    {
+      "sheet_no": "A-101",
+      "status": "removed",
+      "match_method": null,
+      "expected_changes": [],
+      "expected_cluster_count": 0,
+      "clean_regions": [
+        [
+          0.0,
+          32000.0,
+          84100.0,
+          59400.0
+        ],
+        [
+          0.0,
+          0.0,
+          8000.0,
+          59400.0
+        ],
+        [
+          0.0,
+          0.0,
+          84100.0,
+          59400.0
+        ]
+      ]
+    },
+    {
+      "sheet_no": "A-102",
+      "status": "same",
+      "match_method": "number",
+      "expected_changes": [],
+      "expected_cluster_count": 0,
+      "clean_regions": [
+        [
+          90100.0,
+          32000.0,
+          174200.0,
+          59400.0
+        ],
+        [
+          90100.0,
+          0.0,
+          98100.0,
+          59400.0
+        ]
+      ]
+    },
+    {
+      "sheet_no": "A-103",
+      "status": "added",
+      "match_method": null,
+      "expected_changes": [],
+      "expected_cluster_count": 0,
+      "clean_regions": [
+        [
+          0.0,
+          32000.0,
+          84100.0,
+          59400.0
+        ],
+        [
+          0.0,
+          0.0,
+          8000.0,
+          59400.0
+        ],
+        [
+          0.0,
+          0.0,
+          84100.0,
+          59400.0
+        ]
+      ]
+    }
+  ],
+  "notes": "A-101(전 파일)과 A-103(후 파일)은 같은 좌표 슬롯(ORIGIN_0)을 재사용하지만 서로 다른 파일에 있어 겹치지 않는다. added/removed 도곽은 change/cluster 레코드를 만들지 않아 expected_cluster_count=0이고 clean_regions에 도곽 전체를 넣었다."
+}

@@ -1,11 +1,17 @@
-# electron-builder config for Halo CAD (W2-08 packaging spike, macOS arm64
-# only -- Intel/Windows are out of scope, see docs/briefs/W2-08.md "Defaults
-# for ambiguity"). Invoked via `pnpm --filter @halo-cad/desktop build:app`,
-# which is step 3 of `tools/package.sh` (sidecar build -> `pnpm build` ->
-# electron-builder), always with cwd = apps/desktop -- every relative path
-# below is resolved from there.
+# electron-builder config for Halo CAD. Originally a macOS arm64-only
+# packaging spike (W2-08); the `win` target below was added by R1-00b for
+# the Windows installer CI (`.github/workflows/windows-installer.yml`),
+# which is the only way the user verifies this app (installer only, no dev
+# checkout, docs/briefs/R1-00b.md). Invoked via
+# `pnpm --filter @halo-cad/desktop build:app`, which is step 3 of
+# `tools/package.sh` (mac) / the windows-installer workflow (Windows) --
+# sidecar build -> `pnpm build` -> electron-builder -- always with
+# cwd = apps/desktop, so every relative path below is resolved from there.
+# electron-builder builds whichever platform matches the host OS by default
+# (no `--mac`/`--win` flag passed), so this one config serves both CI legs.
 #
-# Resource layout matches docs/contracts/wave-2.md "패키징":
+# Resource layout matches docs/contracts/r1.md (carried over from
+# docs/contracts/wave-2.md "패키징"):
 #   engine/dist/halo-engine/  -> <resources>/engine/  (PyInstaller onedir sidecar)
 #   apps/web/dist/            -> <resources>/web/     (flat, no nested dist/)
 # `apps/desktop/src/main/protocol.ts`'s `resolveWebDistDir()` encodes the
@@ -66,3 +72,33 @@ dmg:
 # contract's `Halo CAD-<version>-arm64-mac.zip` (arch + platform suffix), so
 # no override is needed here -- see docs/dev/packaging.md for the verified
 # artifact names from an actual build.
+
+win:
+  # `build/icon.png` (512px, generated from `build/icon.icns` via
+  # `sips -s format png icon.icns --out build/icon.png -Z 512`,
+  # docs/briefs/R1-00b.md "Inputs") -- electron-builder converts a single
+  # PNG source to the multi-resolution .ico a Windows target needs; no
+  # hand-authored .ico required. Regenerate after the macOS icon changes.
+  icon: build/icon.png
+  target:
+    - target: nsis
+      arch: [x64]
+  # No code signing certificate in this environment -- Windows SmartScreen
+  # will warn on first run (unsigned). Documented user procedure:
+  # docs/dev/packaging.md "Windows".
+  signAndEditExecutable: true
+  signExecutable: false
+
+nsis:
+  # Assisted (not one-click) installer so the user can see/change the
+  # install path (docs/briefs/R1-00b.md Goal 2).
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  # Korean installer UI (CLAUDE.md "한국어 UI"). `language` pins the NSIS
+  # LCID (1042 = ko-KR); `multiLanguageInstaller: false` keeps the installer
+  # single-language instead of packing every locale + a picker page.
+  language: '1042'
+  installerLanguages: ['ko_KR']
+  multiLanguageInstaller: false
+  artifactName: '${productName} Setup ${version}.${ext}'

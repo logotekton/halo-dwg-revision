@@ -1,0 +1,134 @@
+name: Windows Installer
+
+# Builds a Windows NSIS x64 installer of Halo CAD (docs/briefs/R1-00b.md) and
+# uploads it as an artifact. This is the ONLY way the user verifies this app
+# right now (`docs/contracts/r1.md` §0: installer-only, no dev checkout, no
+# self-hosted runner). Deliberately separate from `.github/workflows/ci.yml`
+# (lint/typecheck/test) -- packaging is heavier and only needs to run on
+# pushes, not every PR-shaped event.
+"on":
+  push:
+    branches:
+      - main
+      - 'task/**'
+  workflow_dispatch:
+    inputs:
+      skip_sidecar_smoke:
+        description: >-
+          사이드카 READY 스모크 체크 건너뛰기 (windows-latest 러너의 포트 바인딩
+          문제로 실패할 경우의 비상 스위치, docs/briefs/R1-00b.md "Defaults for
+          ambiguity")
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    # Constraint (docs/briefs/R1-00b.md): Bash (Git Bash) shell steps only,
+    # no PowerShell-only steps -- keeps this workflow's steps identical in
+    # spirit to ci.yml's and to `tools/package.sh` / `engine/scripts/build-
+    # sidecar.sh`, which are themselves bash.
+    shell: bash
+
+env:
+  PYTHONUTF8: "1"
+
+jobs:
+  build:
+    name: build (windows-latest)
+    runs-on: windows-latest
+    steps:
+      # Same rationale as ci.yml: windows-latest runners default
+      # core.autocrlf=true, which would rewrite the LF line endings in
+      # engine/scripts/build-sidecar.sh (and every other bash script here)
+      # to CRLF on checkout, breaking their shebang under Git Bash.
+      - name: Disable git autocrlf
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      # Contract (docs/contracts/r1.md, carried over from
+      # docs/contracts/wave-2.md "CI"): use corepack, never
+      # `pnpm/action-setup`.
+      - name: Enable corepack and activate pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare --activate
+
+      - name: Resolve pnpm store directory
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install TS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            engine/pyproject.toml
+
+      - name: Install Python 3.12
+        run: uv python install 3.12
+
+      # Step order mirrors tools/package.sh (the macOS reference
+      # implementation, docs/briefs/R1-00b.md "Reference implementation"):
+      # sidecar first, then `pnpm build`, then electron-builder.
+      - name: Build PyInstaller sidecar (halo-engine.exe)
+        env:
+          HALO_SIDECAR_SMOKE: ${{ (github.event_name == 'workflow_dispatch' && inputs.skip_sidecar_smoke == true) && '0' || '1' }}
+        run: bash engine/scripts/build-sidecar.sh
+
+      - name: Build web + desktop (pnpm build)
+        run: pnpm build
+
+      - name: electron-builder (NSIS x64)
+        run: pnpm --filter @halo-cad/desktop build:app
+
+      # `latest.yml` is only produced when electron-builder resolves a
+      # GitHub-hosted publish config from `repository`/a `github.com` git
+      # remote (see updateInfoBuilder.js `getPublishConfigsForUpdateInfo`);
+      # this repo has neither yet (`git remote -v` is a local path,
+      # docs/briefs/R1-00b.md Constraints), so it will not appear -- the
+      # glob below tolerates that (`if-no-files-found: warn`, the default)
+      # rather than failing the upload over a file nobody consumes (no
+      # electron-builder `publish`/auto-update config exists, by design).
+      - name: Upload Windows installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: halo-dwg-revision-windows-x64
+          path: |
+            dist/*.exe
+            dist/latest.yml
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: halo-dwg-revision-windows-x64-failure-logs
+          path: |
+            engine/build/**
+            engine/dist/**
+            dist/**
+          retention-days: 7
+          if-no-files-found: ignore

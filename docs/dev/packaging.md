@@ -90,8 +90,69 @@ app.isPackaged
    ```
    이 저장소에서 직접 빌드한 dmg는 Finder/브라우저를 거치지 않는 한 quarantine 속성이 붙지 않는다(로컬 빌드 확인됨: `xattr -l`에 `com.apple.quarantine` 없음, `com.apple.provenance`만 있음) — 사내에서 dmg를 공유(에어드랍, 사내 파일 공유 등)하면 붙을 수 있으므로 1번/2번 절차를 우선한다.
 
+## Windows (NSIS x64, R1-00b)
+
+사용자는 Windows에서 **설치본으로만** 확인한다 — 개발 체크아웃도 셀프호스티드 러너도 없다
+(`docs/briefs/R1-00b.md`). `.github/workflows/windows-installer.yml`이 `main`·`task/**`
+푸시마다 GitHub Actions `windows-latest`에서 빌드한다. 순서는 macOS의 `tools/package.sh`와
+같다: ① `engine/scripts/build-sidecar.sh`(Git Bash, `halo-engine.exe` onedir) ② `pnpm build`
+③ `pnpm --filter @halo-cad/desktop build:app`(electron-builder NSIS x64). 산출물은 Actions
+아티팩트 `halo-dwg-revision-windows-x64`(보존 14일)로 올라간다.
+
+### 사이드카(Windows)
+
+`engine/halo-engine.spec`은 `sys.platform`으로 분기한다: `target_arch`는 macOS 링커
+전용 옵션이라 darwin에서만 넘기고(Windows/Linux는 `None`), comtypes(ADR-0007)는
+`sys_platform == 'win32'` 환경 마커로만 설치되므로 `collect_all("comtypes")`도 Windows
+빌드에서만 호출한다(그렇지 않으면 comtypes가 없는 mac 빌드 환경에서
+`ModuleNotFoundError`). `engine/scripts/build-sidecar.sh`는 `uname -s`/`OS` 환경변수로
+Windows를 감지해 실행 파일 이름에 `.exe`를 붙이고, READY 스모크 체크의 프로세스 종료를
+`taskkill //PID <pid> //T //F`로 한다(트리 종료 필요, `docs/dev/ci.md`의 "스폰 pid ≠
+서버 pid" 참고 — `//`는 Git Bash의 MSYS 경로 변환이 `/PID`·`/T`·`/F`를 윈도우 경로로
+오인하지 않게 하는 관용적 우회다). 이 스모크 체크가 CI 러너의 포트 바인딩 문제로 실패하면
+`HALO_SIDECAR_SMOKE=0` 환경변수로 건너뛸 수 있다(워크플로의 `workflow_dispatch` 입력
+`skip_sidecar_smoke`로 켤 수 있음) — 기본은 항상 실행.
+
+### electron-builder(Windows)
+
+`apps/desktop/electron-builder.yml`의 `win` 블록: `target: nsis`, `arch: [x64]`, 아이콘은
+`build/icon.png`(mac `build/icon.icns`에서 `sips -s format png icon.icns --out
+build/icon.png -Z 512`로 512px PNG 추출 — electron-builder가 단일 PNG에서 다중 해상도
+`.ico`를 자동 생성하므로 `.ico`를 직접 만들 필요가 없다). `nsis` 블록: `oneClick: false`
++ `allowToChangeInstallationDirectory: true`(설치 경로를 사용자가 바꿀 수 있는 어시스트형
+설치 마법사), `perMachine: false`(사용자별 설치, 관리자 권한 불필요), `language: '1042'`
++ `installerLanguages: ['ko_KR']` + `multiLanguageInstaller: false`(한국어 고정 UI,
+CLAUDE.md "한국어 UI"). 산출물 이름은 electron-builder 기본값
+`Halo CAD Setup <version>.exe`.
+
+### 코드 서명 없음 (SmartScreen 경고만)
+
+이 환경에는 Windows 코드 서명 인증서가 없다(CLAUDE.md/브리프 제약). 설치본은 서명되지
+않은 채로 배포되며, 처음 실행 시 Windows SmartScreen이 "Windows에서 PC를 보호했습니다"
+경고를 띄운다 — 사내 전용 배포이므로 "추가 정보" → "실행"으로 진행한다. 자동 업데이트
+(`electron-builder`의 `publish` 설정)는 구성하지 않았다(CLAUDE.md "런타임 외부 네트워크
+없음").
+
+### 사용자 절차 (다운로드 → 설치 → 실행 → 로그)
+
+1. GitHub Actions의 `Windows Installer` 워크플로 실행 목록에서 확인하려는 커밋의 실행을
+   연다 → Artifacts에서 `halo-dwg-revision-windows-x64.zip`을 내려받는다(14일 안에
+   내려받아야 한다 — 만료되면 같은 브랜치를 다시 푸시하거나 `workflow_dispatch`로 재실행).
+2. zip을 풀면 `Halo CAD Setup <version>.exe`가 나온다. 더블클릭해 실행한다.
+3. SmartScreen 경고가 뜨면 "추가 정보" → "실행"(위 "코드 서명 없음" 참고).
+4. 한국어 설치 마법사가 뜬다 — 설치 경로를 바꾸려면 이 단계에서 지정한다(기본은
+   `%LOCALAPPDATA%\Programs\Halo CAD`, `perMachine: false`이므로 관리자 권한 불필요).
+   "설치" → 완료 후 "Halo CAD 실행" 체크박스를 두거나 시작 메뉴에서 직접 실행한다.
+5. 앱이 뜨지 않거나 "엔진 시작 실패" 상태바가 보이면 로그를 확인한다:
+   `%APPDATA%\Halo CAD\logs\engine.log`(회전 로그, 최대 5개 —
+   `docs/dev/engine-sidecar.md` "로그 위치"와 같은 메커니즘, Windows에서는
+   `app.getPath('userData')`가 `%APPDATA%\Halo CAD`로 해석된다). 문제를 보고할 때는 이
+   파일을 첨부한다.
+
 ## 알려진 제한사항 / 후속 작업
 
 - **`index.ts`의 `isPackaged` 분기 미적용** (위 "리소스 레이아웃" 참조) — 병합 시 `apps/desktop/src/main/index.ts`에 `resolveWebDistDir()` 배선 필요.
 - ifcopenshell 하나가 onedir 크기의 대부분(`_internal/ifcopenshell` 약 175MB, 컴파일된 `_ifcopenshell_wrapper*.so`가 그중 대부분)을 차지한다. 향후 산출물 크기를 줄이려면 `--onefile`(콜드 스타트 비용과 트레이드오프) 또는 필요 시점까지 ifcopenshell을 지연 로드하는 방향을 검토할 수 있다(이번 스파이크 범위 밖).
-- Intel(x64) mac과 Windows 패키징, 코드 서명/공증, CI 통합은 각각 W5-05 / W2-09 범위.
+- Intel(x64) mac 패키징은 아직 범위 밖(추후 태스크). Windows 패키징/CI는 R1-00b에서 이 문서와 `docs/dev/ci.md`의 "Windows Installer 워크플로"로 완료됐다 — 단, 이 저장소에 아직 GitHub 원격이 없어 워크플로 자체가 실제 Windows 러너에서 실행된 적은 없다(YAML 파싱 검사와 로컬 mac 검증만 마쳤다, `docs/briefs/R1-00b.md` 보고서 참고). 원격이 생기고 처음 push되면 실제 실행 결과로 이 절을 갱신해야 한다.
+- `latest.yml`(electron-updater용 업데이트 메타파일)은 이 저장소에 `repository` 필드나 GitHub 리모트가 없어 생성되지 않는다(electron-builder가 publish 대상을 못 찾음) — 자동 업데이트를 쓰지 않으므로(CLAUDE.md) 의도된 상태다. 워크플로는 이 파일이 없어도 실패하지 않는다(`if-no-files-found: warn`).
+- 아이콘(`build/icon.png`)은 `build/icon.icns`와 동일하게 알파 채널이 없다(원본 아이콘 자체가 불투명 RGB) — 둥근 모서리 밖 배경이 흰 사각형으로 보일 수 있다. 투명 아이콘이 필요해지면 별도 태스크에서 알파 채널이 있는 원본을 새로 준비해야 한다.

@@ -1,10 +1,13 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller spec for the halo_engine sidecar (W2-08 packaging spike).
+"""PyInstaller spec for the halo_engine sidecar.
 
 Produces an *onedir* bundle at `engine/dist/halo-engine/` whose entry point
-is `engine/dist/halo-engine/halo-engine` -- the layout the packaging contract
-(`docs/contracts/wave-2.md` "패키징") pins for electron-builder's
-`extraResources` (-> `<resources>/engine/`).
+is `engine/dist/halo-engine/halo-engine` (`halo-engine.exe` on Windows) --
+the layout the packaging contract (`docs/contracts/r1.md`, carried over from
+`docs/contracts/wave-2.md` "패키징") pins for electron-builder's
+`extraResources` (-> `<resources>/engine/`). Originally built for macOS
+arm64 only (W2-08); R1-00b (`docs/briefs/R1-00b.md`) made this spec build on
+`windows-latest` too, for `.github/workflows/windows-installer.yml`.
 
 Build with `engine/scripts/build-sidecar.sh` (never invoke `pyinstaller`
 directly -- the script pins the PyInstaller version via `uv run --with` so
@@ -24,6 +27,8 @@ it at runtime:
 `/health` endpoint resolves via `importlib.metadata.version()`, so the
 bundled binary reports real versions instead of "unknown".
 """
+
+import sys
 
 from PyInstaller.utils.hooks import collect_all, copy_metadata
 
@@ -66,6 +71,18 @@ for _pkg in ("ifcopenshell", "shapely", "manifold3d", "trimesh"):
 for _pkg in ("ezdxf", "shapely", "manifold3d", "trimesh", "ifcopenshell", "numpy", "fastapi"):
     datas += copy_metadata(_pkg)
 
+# comtypes (ADR-0007) is a Windows-only runtime dependency (`sys_platform ==
+# 'win32'` marker in engine/pyproject.toml) used by the ZWCAD COM bridge
+# (`halo_engine.compare.zwcad`, R1-02). It is simply not installed in the
+# build venv on macOS/Linux, so `collect_all`/`copy_metadata` must only run
+# when actually building on Windows -- calling them otherwise would raise
+# ModuleNotFoundError and break the mac sidecar build.
+if sys.platform == "win32":
+    _comtypes_datas, _comtypes_binaries, _comtypes_hidden = collect_all("comtypes")
+    datas += _comtypes_datas
+    binaries += _comtypes_binaries
+    hiddenimports += _comtypes_hidden
+
 a = Analysis(  # noqa: F821 (PyInstaller injects Analysis/PYZ/EXE/COLLECT globals)
     ["src/halo_engine/__main__.py"],
     pathex=["src"],
@@ -99,7 +116,10 @@ exe = EXE(  # noqa: F821
     strip=False,
     upx=False,
     console=True,
-    target_arch="arm64",
+    # `target_arch` only means anything to PyInstaller's macOS Mach-O linker
+    # (arm64/x86_64/universal2); on Windows/Linux it must be left at the
+    # default (None) or PyInstaller raises on non-Darwin hosts.
+    target_arch="arm64" if sys.platform == "darwin" else None,
 )
 
 coll = COLLECT(  # noqa: F821

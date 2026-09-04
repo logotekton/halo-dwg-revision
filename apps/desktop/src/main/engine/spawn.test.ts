@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { findUvBinary, resolveEngineCommand } from './spawn'
+import { engineSpawnOptions, findUvBinary, resolveEngineCommand } from './spawn'
 
 describe('findUvBinary', () => {
   it('finds uv on PATH', () => {
@@ -129,5 +129,19 @@ describe('resolveEngineCommand', () => {
     if (result.ok) {
       expect(result.command).toBe(String.raw`C:\Program Files\Halo CAD\resources\engine\halo-engine.exe`)
     }
+  })
+})
+
+describe('engineSpawnOptions', () => {
+  it('hides the console window on win32 and does not detach', () => {
+    expect(engineSpawnOptions('win32')).toEqual({ windowsHide: true, detached: false })
+  })
+
+  it('detaches into its own process group on darwin and does not set windowsHide', () => {
+    expect(engineSpawnOptions('darwin')).toEqual({ windowsHide: false, detached: true })
+  })
+
+  it('detaches into its own process group on linux and does not set windowsHide', () => {
+    expect(engineSpawnOptions('linux')).toEqual({ windowsHide: false, detached: true })
   })
 })

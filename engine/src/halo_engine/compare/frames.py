@@ -698,6 +698,21 @@ def _anchored_box(
     return (x1 - width, y0, x1, y0 + height)
 
 
+def _transform_box(
+    box: tuple[float, float, float, float], matrix: Matrix44
+) -> tuple[float, float, float, float]:
+    """The axis-aligned box around ``box``'s four corners after ``matrix``."""
+    corners = [
+        matrix.transform((box[0], box[1], 0.0)),
+        matrix.transform((box[2], box[1], 0.0)),
+        matrix.transform((box[2], box[3], 0.0)),
+        matrix.transform((box[0], box[3], 0.0)),
+    ]
+    xs = [float(point.x) for point in corners]
+    ys = [float(point.y) for point in corners]
+    return (min(xs), min(ys), max(xs), max(ys))
+
+
 def _union(
     box: tuple[float, float, float, float], other: list[float]
 ) -> tuple[float, float, float, float]:
@@ -764,17 +779,8 @@ def _unrecognized_frame(doc: Drawing, *, file_id: str) -> FrameRecord:
     Dropping the file would hide it: the user has to see that a drawing was
     read but not understood, and be able to pair it by hand on screen B.
     """
-    box = ezdxf.bbox.extents(doc.modelspace(), fast=True)
-    bbox = (
-        [
-            _round(box.extmin.x),
-            _round(box.extmin.y),
-            _round(box.extmax.x),
-            _round(box.extmax.y),
-        ]
-        if box.has_data
-        else [0.0, 0.0, 0.0, 0.0]
-    )
+    box = _CentreFinder(doc).model_extents()
+    bbox = _round_box(box) if box is not None else [0.0, 0.0, 0.0, 0.0]
     first = next(iter(doc.modelspace()), None)
     handle = str(first.dxf.handle) if first is not None else "0"
     return FrameRecord(
@@ -940,13 +946,12 @@ class _CentreFinder:
     with 70,000 entities spends most of its assignment re-expanding the same
     handful of block definitions.
 
-    So INSERTs are answered from a per-block cache instead. The block's own
-    extents are measured once per definition, and the centre is pushed through
-    the INSERT's transformation matrix. That is not an approximation: an affine
-    map sends the centre of a box to the centre of the mapped box, which is
-    what the fixture ``test_insert_centres_match_the_full_bounding_box`` pins
-    down. (Attributes attached to the reference are not counted -- a title
-    block's stamp text cannot move its centre onto another sheet.)
+    So INSERTs are answered from a per-block memo instead: a definition is
+    measured once, and every reference to it costs four point transforms
+    (:meth:`_block_box`). On the real 기계 drawing that is 12.4 seconds down to
+    3.2 for 128,000 entities. Attributes attached to a reference are not
+    counted -- a title block's stamp text cannot move its centre onto another
+    sheet.
 
     Everything else goes through ``ezdxf.bbox.extents(fast=True)``: control
     points rather than the exact curve envelope, off by a bulge on an arc and
@@ -957,37 +962,98 @@ class _CentreFinder:
     def __init__(self, doc: Drawing) -> None:
         self._doc = doc
         self._cache = ezdxf.bbox.Cache()
-        self._block_centres: dict[str, tuple[float, float] | None] = {}
+        self._block_boxes: dict[str, tuple[float, float, float, float] | None] = {}
 
-    def _block_centre(self, name: str) -> tuple[float, float] | None:
-        if name in self._block_centres:
-            return self._block_centres[name]
-        centre: tuple[float, float] | None = None
+    def _block_box(self, name: str) -> tuple[float, float, float, float] | None:
+        """The extents of one block definition, in its own coordinates.
+
+        Written as an explicit recursion with a per-name memo instead of one
+        ``ezdxf.bbox.extents(block)`` call, because ezdxf re-expands every
+        nested block on every visit. In the real set's 기계 drawing the four
+        floor-plan blocks cost 2.5 seconds each that way, and they share most
+        of their content; memoised, each definition is measured once and a
+        nested reference costs four point transforms.
+
+        A nested reference contributes the axis-aligned box of its transformed
+        box, which for a *rotated* nested block is slightly larger than its
+        true extents. That is deliberate: it is conservative, it is bounded by
+        the block's own size, and the only use of the result is deciding which
+        metre-wide sheet an entity sits on.
+        """
+        if name in self._block_boxes:
+            return self._block_boxes[name]
+        self._block_boxes[name] = None  # cycle guard: a block that inserts itself
         block = self._doc.blocks.get(name)
-        if block is not None:
-            box = ezdxf.bbox.extents(block, fast=True, cache=self._cache)
-            if box.has_data:
-                centre = (
-                    (float(box.extmin.x) + float(box.extmax.x)) / 2.0,
-                    (float(box.extmin.y) + float(box.extmax.y)) / 2.0,
-                )
-        self._block_centres[name] = centre
-        return centre
+        if block is None:
+            return None
 
-    def centre(self, entity: Any) -> tuple[float, float] | None:
+        box: tuple[float, float, float, float] | None = None
+        for entity in block:
+            part: tuple[float, float, float, float] | None
+            if entity.dxftype() == "INSERT":
+                child = self._block_box(_nfc(str(entity.dxf.name)))
+                part = None if child is None else _transform_box(child, entity.matrix44())
+            else:
+                measured = ezdxf.bbox.extents([entity], fast=True, cache=self._cache)
+                part = (
+                    (
+                        float(measured.extmin.x),
+                        float(measured.extmin.y),
+                        float(measured.extmax.x),
+                        float(measured.extmax.y),
+                    )
+                    if measured.has_data
+                    else None
+                )
+            if part is None:
+                continue
+            box = part if box is None else _union(box, list(part))
+
+        self._block_boxes[name] = box
+        return box
+
+    def box(self, entity: Any) -> tuple[float, float, float, float] | None:
+        """World-space ``(x0, y0, x1, y1)`` of one top-level entity."""
         if entity.dxftype() == "INSERT":
-            local = self._block_centre(_nfc(str(entity.dxf.name)))
-            if local is None:
-                return None
-            moved = entity.matrix44().transform((local[0], local[1], 0.0))
-            return (float(moved.x), float(moved.y))
-        box = ezdxf.bbox.extents([entity], fast=True, cache=self._cache)
-        if not box.has_data:
+            local = self._block_box(_nfc(str(entity.dxf.name)))
+            return None if local is None else _transform_box(local, entity.matrix44())
+        measured = ezdxf.bbox.extents([entity], fast=True, cache=self._cache)
+        if not measured.has_data:
             return None
         return (
-            (float(box.extmin.x) + float(box.extmax.x)) / 2.0,
-            (float(box.extmin.y) + float(box.extmax.y)) / 2.0,
+            float(measured.extmin.x),
+            float(measured.extmin.y),
+            float(measured.extmax.x),
+            float(measured.extmax.y),
         )
+
+    def centre(self, entity: Any) -> tuple[float, float] | None:
+        """Centre of :meth:`box`.
+
+        Exact for an INSERT even though the box is a transformed box: an affine
+        map sends a rectangle's four corners to a parallelogram symmetric about
+        the mapped centre, so the midpoint of its axis-aligned hull *is* the
+        mapped centre (``test_insert_centres_match_the_full_bounding_box``).
+        """
+        box = self.box(entity)
+        if box is None:
+            return None
+        return ((box[0] + box[2]) / 2.0, (box[1] + box[3]) / 2.0)
+
+    def model_extents(self) -> tuple[float, float, float, float] | None:
+        """The whole model space, through the same memo.
+
+        This is what an unrecognised file's frame covers, and going through the
+        memo rather than ``ezdxf.bbox.extents(modelspace())`` is the difference
+        between 3 seconds and 20 on the real 통신 drawing.
+        """
+        box: tuple[float, float, float, float] | None = None
+        for entity in self._doc.modelspace():
+            part = self.box(entity)
+            if part is None:
+                continue
+            box = part if box is None else _union(box, list(part))
+        return box
 
 
 def assign_entities(doc: Drawing, frames: list[FrameRecord]) -> None:

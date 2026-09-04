@@ -184,8 +184,11 @@ await whenRenderIdle()          // 스크린샷·측정을 할 때만 필요하�
   `packages/cad-core/test/isolation.test.ts` — mlightcad 임포트 경계.
 - e2e: `tests/e2e/viewer.spec.ts`가 **실제 Electron·실제 WebGL**로 F06.dxf를 열고, 레이어
   다섯 개를 확인하고, `S-COL`을 껐다 켜면서 `layers()`의 `visible`과 **캔버스 스크린샷 두 장의
-  바이트**가 모두 달라지는지 본다. 이어서 핸들 클릭 하이라이트, 숨김 창 DWG 변환, 20회
-  열기/닫기 힙 증가 <10%.
+  바이트**가 모두 달라지는지 본다. 이어서 핸들 클릭 하이라이트(문서를 열기 **전에** 잡아둔
+  `onSelection` 구독에 같은 핸들이 도착하는지까지), 숨김 창 DWG 변환(+ `--xrefs` 메타데이터가
+  실제로 돌아오는지), 20회 열기/닫기 힙 증가 <10%.
+- `hasTestHooks()`·`waitForStatus()`는 첫 `loadURL`과 경합하면 "Execution context was destroyed"로
+  **던진다**(실측 플레이크). 이제 그 오류는 "아직 아님"으로 보고 재시도한다.
 - 실도면 `tests/e2e/zz-real.spec.ts`는 `HALO_E2E_REAL=1`일 때만 돈다. `samples/`는 gitignore라
   worktree에도 CI에도 없다.
 

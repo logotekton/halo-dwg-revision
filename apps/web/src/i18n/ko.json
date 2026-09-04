@@ -254,8 +254,66 @@
     },
     "review": {
       "title": "검토",
-      "placeholder": "검토 화면은 아직 준비되지 않았습니다",
-      "back": "도곽 목록으로"
+      "back": "도곽 목록으로",
+      "noPair": "검토할 도곽을 먼저 고르세요",
+      "loading": "비교 도면을 여는 중...",
+      "renderFailed": "비교 도면을 열지 못했습니다: {{message}}",
+      "prevPair": "이전 도곽",
+      "nextPair": "다음 도곽",
+      "sheetUnknown": "도면번호 없음",
+      "summary": "변경 묶음 {{clusters}} · 승인 {{approved}} · 무시 {{ignored}}",
+      "shortcuts": "A 승인 · X 무시 · J·K 다음·이전 묶음 · [ ] 이전·다음 도곽",
+      "canvasLabel": "비교 도면 캔버스",
+      "viewMode": {
+        "label": "보기 모드",
+        "overlay": "겹쳐 보기",
+        "before": "전",
+        "after": "후"
+      },
+      "list": {
+        "label": "변경 묶음 목록",
+        "empty": "이 도곽에는 클라우드 마크가 없습니다"
+      },
+      "zoomTo": "{{number}}번 위치로 이동",
+      "labelEdit": "{{number}}번 문구 편집",
+      "labelPlaceholder": "문구",
+      "noteEdit": "{{number}}번 메모",
+      "notePlaceholder": "메모 추가",
+      "approve": "승인",
+      "ignore": "무시",
+      "approveAria": "{{number}}번 승인",
+      "ignoreAria": "{{number}}번 무시",
+      "decision": {
+        "pending": "대기",
+        "approved": "승인",
+        "ignored": "무시"
+      },
+      "kind": {
+        "added": "신설",
+        "removed": "삭제",
+        "modified": "수정",
+        "moved": "이동",
+        "text": "문구",
+        "dimension": "치수",
+        "blockdef": "블록 정의",
+        "mixed": "혼합"
+      },
+      "minor": {
+        "toggle": "접힌 항목 {{count}}건",
+        "listLabel": "접힌 항목",
+        "groupCount": "{{count}}건"
+      },
+      "minorReason": {
+        "move_le_0_01": "미세 이동",
+        "layer_only": "레이어만",
+        "color_only": "색만",
+        "linetype_only": "선종류만",
+        "lineweight_only": "선굵기만",
+        "hatch_regen": "해치 재생성",
+        "dim_regen": "치수 재생성",
+        "mtext_format_only": "MTEXT 서식만",
+        "unknown": "기타"
+      }
     },
     "export": {
       "title": "출력",

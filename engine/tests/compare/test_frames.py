@@ -249,6 +249,22 @@ def test_block_name_patterns_restrict_the_candidates_and_waive_min_attribs() -> 
     assert [f.block_name for f in frames] == ["TITLE BLOCK-V"]
 
 
+def test_block_name_patterns_do_not_need_the_most_common_block_fallback() -> None:
+    """Naming the block is the decision; nothing else has to agree with it."""
+    doc = ezdxf.new(setup=False)
+    _define_titleblock(doc, "TITLE BLOCK-V", ("ONLYONE",))
+    msp = doc.modelspace()
+    msp.add_lwpolyline([(0, 0), (SHEET_W, 0), (SHEET_W, SHEET_H), (0, SHEET_H)], close=True)
+    _add_titleblock(msp, "TITLE BLOCK-V", (SHEET_W - TB_W, 0.0), (("ONLYONE", "A-101"),))
+
+    frames = extract_frames(
+        doc,
+        file_id="F1",
+        config=config(block_name_patterns=["TITLE BLOCK*"], fallback_most_common_block=False),
+    )
+    assert [f.kind for f in frames] == [KIND_TITLEBLOCK]
+
+
 # --------------------------------------------------------------------------- nesting
 
 

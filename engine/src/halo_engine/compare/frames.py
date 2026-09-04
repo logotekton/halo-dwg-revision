@@ -563,7 +563,15 @@ def _confirm(candidates: list[_Candidate], config: FramesConfig) -> list[_Candid
     Tag match first; if not one candidate in the whole file matched a tag,
     ``fallback_most_common_block`` takes every instance of whichever block name
     repeats most (ties by name, so the choice does not depend on dict order).
+
+    ``block_name_patterns`` short-circuits the whole question: the candidate
+    list is already only blocks the project named, and naming them *is* the
+    decision. Requiring a tag on top would make a correct configuration find
+    nothing on exactly the files it was written for (a conversion that dropped
+    the ATTRIBs).
     """
+    if config.titleblock.block_name_patterns:
+        return candidates
     tagged = [c for c in candidates if _has_titleblock_tag(c.attributes, config)]
     if tagged:
         return tagged

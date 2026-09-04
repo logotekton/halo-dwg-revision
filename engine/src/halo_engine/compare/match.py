@@ -331,12 +331,13 @@ def _match_by_number(
 ) -> tuple[list[PairRecord], int]:
     """Stage 1. Returns the pairs and how many numbers were duplicated.
 
-    A number that appears twice on one side is *not* matched to anything here:
-    picking one of two identical numbers would silently compare the wrong
-    sheets. Those frames drop through to the title and position stages, and are
-    remembered as ambiguous so that if nothing else claims them they end up
-    ``unpaired`` rather than ``added``/``removed``
-    (brief Defaults for ambiguity).
+    A number that is not unique on both sides is *not* matched here: picking
+    one of two identical numbers would silently compare the wrong sheets. Those
+    frames drop through to the title and position stages, and are remembered as
+    ambiguous so that if nothing else claims them they end up ``unpaired``
+    rather than ``added``/``removed`` (brief Defaults for ambiguity). The count
+    returned is every frame in a duplicated number group, on either side, which
+    is what the summary reports as ``duplicate_sheet_no``.
     """
     pairs: list[PairRecord] = []
     before_by_key: dict[str, list[int]] = {}

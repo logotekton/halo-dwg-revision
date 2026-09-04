@@ -57,6 +57,8 @@ compare.frames  # api/jobs.py::run_job이 감싼다
    태그가 안 맞으면 `fallback_most_common_block`(기본 true)이 **가장 많이 반복된 블록 이름**의
    인스턴스를 전부 표제란으로 삼는다(동수면 이름 오름차순).
    - 태그 비교는 `normalize_key` + 하이픈 제거다. `DWG_NO`·`DWG-NO`·`DWG NO`·`DWGNO`가 한 태그다.
+   - `block_name_patterns`가 설정돼 있으면 확정 단계를 건너뛴다(후보 = 표제란). 이름을 적어 둔
+     설정이 정작 그 설정이 필요한 파일(ATTRIB을 잃은 변환 결과)에서 아무것도 못 찾는 일을 막는다.
 3. **값 읽기** — `sheet_no`·`sheet_title`·`scale_text`·`date_text`는 `frames.yaml`의 태그 목록 순
    (먼저 적힌 것이 우선), `attributes`에는 태그→값을 전부 남긴다. `\M+c….`·`\U+…` 이스케이프는
    `ingest/encoding.py::decode_escapes`가 푼다.

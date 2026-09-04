@@ -12,7 +12,11 @@
  * merged.
  *
  * `compare*` hooks are R1-05's addition (docs/contracts/r1.md §10),
- * registered by `features/compare/CompareApp.tsx`. Return/parameter types
+ * registered by `features/compare/CompareApp.tsx`; screen C's three
+ * (`compareOpenPair`/`compareGetClusters`/`compareDecide`, R1-08) come from
+ * `features/compare/review/testHooks.ts`, which registers at module scope
+ * because the e2e calls `compareOpenPair` before screen C ever mounts.
+ * Return/parameter types
  * stay loose (`unknown`, plain strings) rather than importing
  * `state/compare.ts`'s richer types here -- this file is the hook *registry*
  * only, the same minimal-surface choice `getDocuments`'s inline object type
@@ -30,6 +34,15 @@ export interface HaloTestHooks {
   compareGetPairs(): unknown
   /** Runs `POST .../run` to completion (screen B's "비교 실행" button). */
   compareRunCompare(): Promise<void>
+  /** Screen C: enters 검토 for this pair and resolves once the compare DXF has
+   * been opened and painted (`renderIdle`). R1-08. */
+  compareOpenPair(pairId: string): Promise<void>
+  /** The pair's `clusters.json` as the review store currently holds it. */
+  compareGetClusters(): unknown
+  /** 승인·무시 on one cluster; resolves after the `PATCH` round trip. Passing
+   * the decision a cluster already has returns it to `pending`, exactly like
+   * pressing the button twice. */
+  compareDecide(number: number, decision: string): Promise<void>
 }
 
 declare global {

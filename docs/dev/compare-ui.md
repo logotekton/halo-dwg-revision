@@ -145,6 +145,118 @@ string[] | null }`는 `HALO_E2E_PICK_FOLDERS`를 첫 호출에서 한 번만 파
 것만 확인하고 끝난다. `GET .../pairs`가 실제로 200을 반환할 때만(R1-04가 이미 병합된 상태로
 게이트를 돈다면) 도곽 목록 행·필터 칩·`compareGetScreen() === 'sheets'` 단언을 마저 돈다.
 
+## 화면 C 검토 `ReviewScreen.tsx` (R1-08)
+
+왼쪽은 엔진이 만든 비교 DXF 한 장, 오른쪽은 그 사이드카(`clusters.json`)의 클라우드 마크 목록이다.
+계약은 `docs/contracts/compare-dxf.md` §9와 `docs/contracts/r1.md` §7·§9·§10. 구현은
+`features/compare/ReviewScreen.tsx` + `features/compare/review/**`(ViewModeBar·ClusterList·
+ClusterRow·MinorList·testHooks), `features/compare/reviewApi.ts`, `state/review.ts`.
+
+### 데이터 흐름
+
+```
+state/compare.ts  selectedPairId          # 화면 B의 "도곽 열기", [ ] 버튼, compareOpenPair 훅
+        │  (ReviewScreen의 useEffect 하나)
+        ▼
+review.loadPair(pairId)
+  1. GET  /compare/pairs/{id}/clusters          → sidecar (판정 병합본)
+  2. GET  /compare/pairs/{id}/compare-dxf       → If-None-Match: <캐시된 ETag>
+        304면 캐시한 바이트를 그대로 쓴다(짝당 1회 다운로드, 최근 4장 보관)
+  3. openBytes(`compare:<pairId>`, ...)          # 바뀐 ETag면 이전 문서를 닫고 다시 연다
+  4. whenRenderIdle()
+  5. setLayersVisible(보기 모드 맵) → whenRenderIdle() → layers()를 읽어 visibleLayers 갱신
+```
+
+- 사이드카가 실패하면 목록도 캔버스도 없다(`error`). 뷰어가 실패하면 **목록은 그대로 두고**
+  캔버스에만 오류 문구를 띄운다(`renderError`).
+- `loadPair`는 짝마다 한 번만 돈다: 화면 마운트 효과와 `compareOpenPair` 훅이 같은 짝을 동시에
+  요청하면 진행 중인 약속을 함께 기다린다(같은 도면을 두 번 여는 것은 무해하지 않다).
+- 뷰어 모듈(`features/viewer/host.ts` → `@halo-cad/cad-core` → mlightcad)은 **동적 임포트**다.
+  그리는 화면은 화면 C뿐이라 앱 셸의 모듈 그래프(와 `app/App.test.tsx`의 jsdom)에 CAD 엔진이
+  들어가지 않고, 빌드에서도 mlightcad가 별도 청크로 남는다.
+- 선택 동기화는 양방향이다. 캔버스 클릭 → `onSelection(handles)` → 사이드카 `handle_to_cluster`
+  → 클러스터 번호(`c1`·`1` 두 형식 모두 처리). 목록 번호 클릭·`J`·`K` → `zoomTo(클러스터 상자,
+  1.25)`. 카메라가 맞추는 상자는 `bbox`가 아니라 **클라우드 폴리라인 정점 ∪ 배지 중심**이다
+  (bbox만 맞추면 구름과 번호가 화면 밖으로 잘린다). 좌표는 전부 엔진이 준 값이고 렌더러는
+  최소·최대만 고른다.
+- 판정 왕복은 낙관적이다. 행을 먼저 바꾸고 `PATCH .../clusters/{number}`를 보낸 뒤 서버가 준
+  클러스터로 갈아끼우고, 실패하면 원래 행으로 되돌리고 `error`에 엔진 문구를 담는다.
+  `counts.approved`·`ignored`는 클러스터 배열에서 다시 세므로 요약 줄이 행과 어긋나지 않는다.
+  같은 판정을 다시 누르면 `pending`으로 돌아간다. 문구는 `user_label`에만 쓰고 빈 문자열이면
+  `null`(자동 문구가 다시 보인다). Enter 저장, Esc 취소, 포커스가 떠나면 저장.
+
+### 보기 모드
+
+```ts
+layerVisibility(mode, sidecar.layer)
+// overlay: { __CMP_ADDED: true,  __CMP_REMOVED: true,  __CMP_LABEL: false, REV-…: true }
+// before:  { __CMP_ADDED: false, __CMP_REMOVED: true,  … }
+// after:   { __CMP_ADDED: true,  __CMP_REMOVED: false, … }
+```
+
+레이어 가시성만 바꾸고 도면은 다시 열지 않는다. 적용 뒤 `host.layers()`가 실제로 그리고 있다고
+보고한 `__CMP_*`·`REV-*` 레이어를 캔버스 컨테이너의 `data-cmp-visible` 속성으로 내보낸다 —
+e2e가 스토어의 의도가 아니라 **호스트의 상태**를 읽을 수 있는 통로다(테스트 훅을 늘리지 않으려고
+DOM 속성으로 냈다). 보기 모드는 짝을 바꿔도 유지된다.
+
+**알려진 제한(측정):** 변경이 INSERT면 보기 모드가 그림을 바꾸지 못한다. 뷰어는 가시성을 그려진
+엔티티 단위로 따지는데, 블록 정의 안의 도형은 자기 레이어(예: `A-DOOR`)에 있어서 INSERT가 놓인
+`__CMP_ADDED`를 꺼도 계속 그려진다. 색도 같은 이유로 빨강·시안이 아니라 원래 레이어 색으로 보인다
+(`fixtures/compare/S02_move_door`에서 확인). 선·폴리라인·해치처럼 직접 놓인 엔티티는 정상이다
+(`S05_added`의 벽 폴리라인으로 e2e가 확인한다). 해결은 뷰어(cad-core) 또는 비교 DXF 생성 쪽
+과제다 — 보고서의 Shared-file patch 참고.
+
+### 접힌 항목
+
+사이드카 `changes[]` 중 `minor: true`인 것들을 `minor_reason`별로 묶어 "접힌 항목 n건" 아래에
+펼쳐 보여 준다(사유가 `layer_only+color_only`처럼 여럿이면 각각 번역해 `+`로 잇는다). 캔버스에는
+따로 표시하지 않는다 — 접힌 변경은 원래 레이어의 후 엔티티 하나로만 그려진다.
+
+### 키보드
+
+`A` 승인, `X` 무시, `J`·`K` 다음·이전 묶음(끝에서 멈춘다), `[`·`]` 이전·다음 도곽. 입력란에
+포커스가 있으면 무시한다. 안내 문구는 패널 아래 `compare.review.shortcuts`.
+
+### 스토어 (`state/review.ts`)
+
+```ts
+useReviewStore.getState()
+// pairId, sidecar, viewMode, selectedCluster, showMinor, loading, error, renderError, visibleLayers
+loadPair(pairId) / select(number|null) / selectByHandles(handles) / selectStep(±1)
+decide(number, decision) / setLabel(number, text) / setNote(number, text)
+setViewMode(mode) / toggleMinor() / reset()
+// 순수 함수: layerVisibility, clusterViewBox, clusterOfHandles, visibleCompareLayers
+// 상수: REVIEW_CANVAS_ID('viewer-root'), CLUSTER_ZOOM_MARGIN(1.25)
+```
+
+### 테스트 훅
+
+`features/compare/review/testHooks.ts`가 **모듈 스코프에서** 등록한다(화면 B에 있는 동안
+`compareOpenPair`를 부르므로 마운트 효과로는 늦다).
+
+| 이름 | 동작 |
+|---|---|
+| `compareOpenPair(pairId)` | `openPair` → `#viewer-root`가 붙기를 기다림 → `loadPair` 완료(렌더 끝)까지 |
+| `compareGetClusters()` | 현재 사이드카 |
+| `compareDecide(number, decision)` | `PATCH` 왕복까지. 같은 판정을 다시 주면 `pending` |
+
+### e2e (`tests/e2e/compare-review.spec.ts`)
+
+앱 하나로 여섯 개를 이어서 돈다(모두 임시 폴더 사본, 픽스처는 건드리지 않는다).
+S02_move_door 비교 → 검토 진입(클러스터 1, `REV-20260904`) → 휠로 카메라를 멀리 보낸 뒤 번호
+클릭으로 되돌아오는지(캔버스 픽셀 비교) → 승인 후 엔진에서 다시 읽어 `approved` 확인 → 전·후·
+겹쳐 보기의 `data-cmp-visible` → S05_added로 보기 모드가 실제로 다시 그리는지 → S13_multi_sheet로
+"다음 도곽"이 화면을 떠나지 않고 다음 시트를 여는지.
+
+### 화면을 떠났다 오면 뷰어를 다시 만든다
+
+`CadHost`는 처음 마운트된 `#viewer-root`를 잡고 있는 모듈 싱글턴인데, 화면 C는 목록으로 나갈
+때마다 언마운트된다. 다시 들어오면 React가 **새 빈 컨테이너**를 주고 호스트는 버려진 컨테이너에
+계속 그린다 — 레이어 표는 멀쩡한데 캔버스만 새까맣다(e2e에서 두 번째 시트로 재현). 그래서
+`loadPair`는 컨테이너가 비어 있는데 호스트가 살아 있으면 `disposeCadHost()`로 버리고 새로 만든다.
+바이트는 캐시에 남아 있어 다시 내려받지는 않는다. `cad-core`에 `attach(container)`가 생기면
+이 자리를 대신할 수 있다.
+
 ## Windows 확인이 필요한 부분
 
 없음 — 이 태스크의 기능은 macOS 개발 환경에서도 `tools/verify.sh --e2e`로 전부 검증된다

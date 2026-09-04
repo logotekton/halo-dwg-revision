@@ -160,8 +160,12 @@ test.describe('compare screens A -> B (ingest, frames, sheet list)', () => {
       await expect(rows.first()).toBeVisible()
       expect(await rows.count()).toBeGreaterThanOrEqual(1)
 
-      await expect(page.getByRole('button', { name: /^전체/ })).toBeVisible()
-      await page.getByRole('button', { name: /^변경/ }).click()
+      // Filter chips render as "<label> <count>" (e.g. "전체 2"); anchor the
+      // count so the regex cannot also match the "전체 도곽 출력…" button
+      // (Playwright strict mode rejected the ambiguous /^전체/ once R1-04
+      // made the sheets screen real).
+      await expect(page.getByRole('button', { name: /^전체 \d+$/ })).toBeVisible()
+      await page.getByRole('button', { name: /^변경 \d+$/ }).click()
       await expect(rows.first()).toBeVisible()
 
       await page.screenshot({ path: join(SCREENSHOT_DIR, 'screen-b-sheets.png') })

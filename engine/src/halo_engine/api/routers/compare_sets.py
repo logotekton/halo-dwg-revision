@@ -244,9 +244,10 @@ def _build_summary(
         "zwcad": zwcad_detect(),
         "fonts_missing": stats.get("fonts_missing", []),
         "crosscheck": crosscheck,
-        # R1-04 (frame extraction/matching) has not run yet in this task.
-        "frames": None,
-        "pairs": None,
+        # R1-04's compare.frames job writes these into `stats`; null until it ran
+        # (contract §7: null means "not reached", 0 means "counted zero").
+        "frames": stats.get("frames"),
+        "pairs": stats.get("pairs"),
         "last_job_id": job_id or stats.get("last_job_id"),
     }
 

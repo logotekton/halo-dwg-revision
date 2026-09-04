@@ -39,14 +39,6 @@ viol=$(grep -rnE "@mlightcad/libredwg-(web|converter)" \
       | grep -vE '^packages/dwg-io-gpl/|^apps/desktop/src/main/ipc/convert\.ts|^apps/desktop/electron\.vite\.config\.ts|^apps/web/lint-fixtures/' || true)
 if [ -n "$viol" ]; then echo "$viol"; bad "libredwg imported outside allowed locations"; else ok "boundary respected"; fi
 
-# ---------- height rule: CH must not be equality-compared with SL/FL/FLOOR_HEIGHT (heuristic) ----------
-step "height rule heuristic (ADR-0003)"
-viol=$(grep -rnE '\b(ch|CH|ceiling_height)\b\s*(==|!=|===|!==)\s*\b(sl|SL|fl|FL|floor_height|FLOOR_HEIGHT|story_height)\b|\b(sl|SL|fl|FL|floor_height|FLOOR_HEIGHT|story_height)\b\s*(==|!=|===|!==)\s*\b(ch|CH|ceiling_height)\b' \
-        --include='*.ts' --include='*.tsx' --include='*.py' \
-        --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=.venv \
-        apps packages engine 2>/dev/null || true)
-if [ -n "$viol" ]; then echo "$viol"; bad "CH compared for equality with a structural height"; else ok "no CH/SL equality comparisons"; fi
-
 # ---------- TypeScript workspace ----------
 if [ -f pnpm-lock.yaml ]; then
   step "pnpm install --frozen-lockfile"

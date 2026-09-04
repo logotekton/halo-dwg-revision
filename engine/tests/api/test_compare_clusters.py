@@ -104,6 +104,9 @@ def test_a_run_compares_every_pair_and_leaves_the_set_compared(
 
     summary = client.get(f"/api/v1/compare/sets/{compare_set_id}", headers=AUTH_HEADERS).json()
     assert summary["status"] == "compared"
+    # The frames job left the sheet `pending`; the summary has to say what it is now.
+    assert summary["pairs"]["changed"] == 1
+    assert summary["pairs"]["pending"] == 0
 
     pairs = _pairs(client, compare_set_id)
     assert len(pairs) == 1

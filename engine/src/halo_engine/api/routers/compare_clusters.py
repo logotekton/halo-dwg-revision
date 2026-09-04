@@ -319,9 +319,35 @@ async def _do_run(
                 "compare": {**counts, "skipped": len(skipped)},
                 "compare_skipped": skipped,
                 "compare_failed": failures,
+                # `stats.pairs` is what `GET /compare/sets/{id}` reports and the
+                # frames job left every comparable sheet as `pending`. Recount it
+                # from the rows now that they say `changed`/`same`, or the
+                # summary keeps claiming the set has not been compared.
+                "pairs": _pair_counts(repos.list_pairs(session, compare_set_id)),
             }
         )
         repos.update_compare_set(session, compare_set_id, status="compared", stats=merged)
+
+
+def _pair_counts(pairs: list[SheetPairRow]) -> dict[str, int]:
+    """``CompareSetSummary.pairs`` (contract §7), in the contract's key order."""
+    counts = dict.fromkeys(
+        (
+            "changed",
+            "same",
+            "added",
+            "removed",
+            "unpaired",
+            "unrecognized",
+            "converter_mismatch",
+            "pending",
+        ),
+        0,
+    )
+    for pair in pairs:
+        if pair.status in counts:
+            counts[pair.status] += 1
+    return counts
 
 
 # --------------------------------------------------------------------------- endpoints

@@ -89,7 +89,9 @@ def _bundle_or_404(request: Request, what: str, identifier: str) -> BundleHandle
     return bundle
 
 
-def _compare_set_or_404(request: Request, compare_set_id: str) -> tuple[BundleHandle, CompareSetRow]:
+def _compare_set_or_404(
+    request: Request, compare_set_id: str
+) -> tuple[BundleHandle, CompareSetRow]:
     bundle = _bundle_or_404(request, "compare_set", compare_set_id)
     with bundle.session_factory() as session:
         row = repos.get_compare_set(session, compare_set_id)
@@ -153,7 +155,8 @@ def _plan(
         pairs = repos.list_pairs(session, compare_set.id)
         frames = {row.id: row for row in repos.list_frames(session, compare_set.id)}
         working = {
-            frame.file_id: repos.get_drawing_file(session, frame.file_id) for frame in frames.values()
+            frame.file_id: repos.get_drawing_file(session, frame.file_id)
+            for frame in frames.values()
         }
 
     wanted = set(pair_ids) if pair_ids is not None else None

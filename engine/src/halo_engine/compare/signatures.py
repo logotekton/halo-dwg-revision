@@ -213,7 +213,9 @@ def _lwpolyline(entity: Any) -> tuple[list[tuple[float, float]], tuple[Any, ...]
 
 def _polyline(entity: Any) -> tuple[list[tuple[float, float]], tuple[Any, ...]]:
     points = [_point(vertex.dxf.location) for vertex in entity.vertices]
-    bulges = tuple(_r(float(vertex.dxf.bulge or 0.0), SCALAR_DECIMALS) for vertex in entity.vertices)
+    bulges = tuple(
+        _r(float(vertex.dxf.bulge or 0.0), SCALAR_DECIMALS) for vertex in entity.vertices
+    )
     return points, (bool(entity.is_closed), bulges)
 
 
@@ -250,7 +252,8 @@ def _text_points(entity: Any) -> list[tuple[float, float]]:
 def _insert_attribs(entity: Any) -> tuple[tuple[str, str], ...]:
     """``(tag, value)`` of every ATTRIB, sorted by tag (contract: no set order)."""
     pairs = sorted(
-        (_nfc(str(attrib.dxf.tag)), _attrib_value(attrib)) for attrib in getattr(entity, "attribs", [])
+        (_nfc(str(attrib.dxf.tag)), _attrib_value(attrib))
+        for attrib in getattr(entity, "attribs", [])
     )
     return tuple(pairs)
 
@@ -501,9 +504,7 @@ def signature_of(
     local = tuple((_r(x - ox), _r(y - oy)) for x, y in points)
 
     if etype in _MIN_ANCHOR_TYPES or not local:
-        anchor = (
-            (min(x for x, _ in local), min(y for _, y in local)) if local else (0.0, 0.0)
-        )
+        anchor = (min(x for x, _ in local), min(y for _, y in local)) if local else (0.0, 0.0)
     else:
         anchor = local[0]
 
@@ -574,7 +575,12 @@ def frame_signatures(
 
 
 def block_signature(
-    doc: Drawing, name: str, *, boxes: BoxCache, _seen: frozenset[str] | None = None, _depth: int = 0
+    doc: Drawing,
+    name: str,
+    *,
+    boxes: BoxCache,
+    _seen: frozenset[str] | None = None,
+    _depth: int = 0,
 ) -> tuple[Any, ...]:
     """A hashable summary of one block *definition*, nested blocks expanded.
 

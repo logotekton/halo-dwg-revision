@@ -308,7 +308,9 @@ def _stage_fingerprint(
 def _boxes_overlap(a: EntitySignature, b: EntitySignature) -> bool:
     if a.box is None or b.box is None:
         return False
-    return not (a.box[2] < b.box[0] or b.box[2] < a.box[0] or a.box[3] < b.box[1] or b.box[3] < a.box[1])
+    return not (
+        a.box[2] < b.box[0] or b.box[2] < a.box[0] or a.box[3] < b.box[1] or b.box[3] < a.box[1]
+    )
 
 
 def _stage_handle(
@@ -388,9 +390,9 @@ def _stage_proximity(
     buckets: dict[tuple[Any, ...], list[int]] = defaultdict(list)
     for index in pairing.free_before(len(before)):
         signature = before[index]
-        buckets[
-            (signature.etype, signature.layer, _cell(signature.anchor, tolerance))
-        ].append(index)
+        buckets[(signature.etype, signature.layer, _cell(signature.anchor, tolerance))].append(
+            index
+        )
     if not buckets:
         return
 
@@ -501,12 +503,12 @@ def _dim_value_differs(before: EntitySignature, after: EntitySignature) -> bool:
     """A dimension's measurement or its override text -- what the sheet prints."""
     if before.dim_key is None or after.dim_key is None:
         return False
-    return before.dim_key[1] != after.dim_key[1] or before.dim_key[2] != after.dim_key[2]
+    return bool(before.dim_key[1] != after.dim_key[1] or before.dim_key[2] != after.dim_key[2])
 
 
 def _classify(
     before: EntitySignature, after: EntitySignature, config: CompareConfig
-) -> tuple[str, bool, str | None, dict[str, Any]] | None:
+) -> tuple[str, bool, str | None, dict[str, Any] | None] | None:
     """``(kind, minor, minor_reason, delta)`` for one matched pair, or ``None``.
 
     ``None`` means the two are the same entity in every way the contract cares
@@ -591,9 +593,7 @@ def _classify(
 # --------------------------------------------------------------------------- assembly
 
 
-def _world_box(
-    signature: EntitySignature, origin: tuple[float, float]
-) -> list[float] | None:
+def _world_box(signature: EntitySignature, origin: tuple[float, float]) -> list[float] | None:
     if signature.box is None:
         return None
     return [

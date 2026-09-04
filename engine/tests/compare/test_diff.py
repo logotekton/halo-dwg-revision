@@ -12,7 +12,6 @@ from __future__ import annotations
 import ezdxf
 import pytest
 from ezdxf.document import Drawing
-from .scenario_helpers import packaged_compare_config
 
 from halo_engine.compare.diff import (
     KIND_ADDED,
@@ -28,6 +27,8 @@ from halo_engine.compare.diff import (
 )
 from halo_engine.compare.frames import FrameRecord
 from halo_engine.compare.signatures import BoxCache, frame_signatures
+
+from .scenario_helpers import packaged_compare_config
 
 CONFIG = packaged_compare_config()
 FRAME = [0.0, 0.0, 84100.0, 59400.0]
@@ -144,12 +145,12 @@ def test_a_move_across_a_grid_cell_boundary_is_still_the_same_entity() -> None:
 
 def test_the_handle_stage_recognises_an_entity_that_was_edited_in_place() -> None:
     before, after = new_doc(), new_doc()
-    before.modelspace().add_text("거실", dxfattribs={"layer": "A-TEXT", "height": 350}).set_placement(
-        (1000, 1000)
-    )
-    after.modelspace().add_text("리빙룸", dxfattribs={"layer": "A-TEXT", "height": 350}).set_placement(
-        (1000, 1000)
-    )
+    before.modelspace().add_text(
+        "거실", dxfattribs={"layer": "A-TEXT", "height": 350}
+    ).set_placement((1000, 1000))
+    after.modelspace().add_text(
+        "리빙룸", dxfattribs={"layer": "A-TEXT", "height": 350}
+    ).set_placement((1000, 1000))
     changes = compare(before, after)
     assert [change.kind for change in changes] == [KIND_TEXT]
     assert changes[0].before_handle == changes[0].after_handle

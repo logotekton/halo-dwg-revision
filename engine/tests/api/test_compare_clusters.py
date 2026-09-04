@@ -313,9 +313,7 @@ def test_a_decision_is_stored_and_written_back_into_the_sidecar(
     assert on_disk["clusters"][0]["user_label"] == "문 위치 변경"
     assert on_disk["counts"]["approved"] == 1
 
-    served = client.get(
-        f"/api/v1/compare/pairs/{pair['id']}/clusters", headers=AUTH_HEADERS
-    ).json()
+    served = client.get(f"/api/v1/compare/pairs/{pair['id']}/clusters", headers=AUTH_HEADERS).json()
     assert served["clusters"][0]["decision"] == "approved"
     assert served["counts"]["approved"] == 1
 
@@ -338,9 +336,7 @@ def test_an_absent_field_is_left_alone_and_an_explicit_null_clears_it(
     assert cleared["decision"] == "ignored"
 
 
-def test_deciding_a_cluster_that_is_not_there_is_a_404(
-    client: TestClient, tmp_path: Path
-) -> None:
+def test_deciding_a_cluster_that_is_not_there_is_a_404(client: TestClient, tmp_path: Path) -> None:
     compare_set_id, _truth = _prepare(client, "S02_move_door", tmp_path)
     _run(client, compare_set_id)
     pair = _pairs(client, compare_set_id)[0]
@@ -369,9 +365,7 @@ def test_a_review_survives_a_second_comparison(client: TestClient, tmp_path: Pat
 
     _run(client, compare_set_id)
 
-    served = client.get(
-        f"/api/v1/compare/pairs/{pair['id']}/clusters", headers=AUTH_HEADERS
-    ).json()
+    served = client.get(f"/api/v1/compare/pairs/{pair['id']}/clusters", headers=AUTH_HEADERS).json()
     assert served["clusters"][0]["decision"] == "approved"
     assert served["clusters"][0]["user_label"] == "문 위치 변경"
     assert served["counts"]["approved"] == 1

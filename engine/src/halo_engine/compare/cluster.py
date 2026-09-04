@@ -196,9 +196,7 @@ def cloud_polyline(
     return points
 
 
-def badge_geometry(
-    bbox: list[float], config: CompareConfig, scale_factor: float
-) -> BadgeGeometry:
+def badge_geometry(bbox: list[float], config: CompareConfig, scale_factor: float) -> BadgeGeometry:
     """The number triangle outside the cloud's top-right corner (contract §5).
 
     ``cloud.badge_anchor = top_right`` is the only anchor R1 draws: the
@@ -234,9 +232,7 @@ class _Unit:
     seq: int
 
 
-def _units(
-    changes: list[ChangeRecord], frame: FrameRecord
-) -> list[_Unit]:
+def _units(changes: list[ChangeRecord], frame: FrameRecord) -> list[_Unit]:
     """One unit per change -- or one per instance for a spread-out ``blockdef``.
 
     Brief Defaults for ambiguity: when the references of a changed block span
@@ -249,9 +245,7 @@ def _units(
     units: list[_Unit] = []
     for change in changes:
         if change.kind == KIND_BLOCKDEF and change.instance_boxes:
-            span = max(
-                change.bbox[2] - change.bbox[0], change.bbox[3] - change.bbox[1]
-            )
+            span = max(change.bbox[2] - change.bbox[0], change.bbox[3] - change.bbox[1])
             if long_side > 0 and span > long_side * BLOCKDEF_SPLIT_RATIO:
                 units.extend(_Unit(box=list(box), seq=change.seq) for box in change.instance_boxes)
                 continue

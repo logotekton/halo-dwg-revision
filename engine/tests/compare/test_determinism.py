@@ -5,17 +5,19 @@ site engineer diff this week's markup against last week's and see only what
 actually changed, and it is the only way to tell "the drawing was revised" from
 "the tool felt like laying the file out differently today".
 
-Three things had to be handled to get here, and each has a test below:
+Four things had to be handled to get here:
 
 * ``ezdxf``'s ``Importer`` collects the tables it needs in ``set``s, so the
   LAYER table came out in ``PYTHONHASHSEED`` order. Fixed by importing every
   table whole, in source order, before any entity.
-* ``ezdxf`` regenerates ``$FINGERPRINTGUID`` and ``$VERSIONGUID`` while writing.
+* the CLASSES section is filled from another ``set`` during ``write``.
+* ``ezdxf`` regenerates ``$FINGERPRINTGUID``/``$VERSIONGUID`` and refreshes
+  ``$TDUPDATE`` while writing.
 * ``ezdxf`` stamps the wall clock into two ``DICTIONARYVAR`` objects.
 
-The subprocess test is the one that would have caught the first: inside one
-process the hash seed is fixed, and the bug only showed when the comparison ran
-in a fresh worker of the job runner's process pool.
+The subprocess test is the one that caught the first two: inside one process
+the hash seed is fixed, and the bug only showed when the comparison ran in a
+fresh worker of the job runner's process pool.
 """
 
 from __future__ import annotations
@@ -117,9 +119,7 @@ def test_a_different_run_date_changes_only_the_layer_and_the_stamps(
 
     changed = _differing_lines(monday_dxf, tuesday_dxf)
     assert changed, "a different run date must at least rename the revision layer"
-    assert all(
-        "REV-2026090" in line or _is_header_stamp(line) for line in changed
-    ), changed
+    assert all("REV-2026090" in line or _is_header_stamp(line) for line in changed), changed
 
     monday = json.loads(monday_json)
     tuesday = json.loads(tuesday_json)
@@ -135,9 +135,7 @@ def _differing_lines(left: bytes, right: bytes) -> list[str]:
     left_lines = left.decode("utf-8").split("\n")
     right_lines = right.decode("utf-8").split("\n")
     assert len(left_lines) == len(right_lines), "the two files are not the same shape"
-    return [
-        f"{a} | {b}" for a, b in zip(left_lines, right_lines, strict=True) if a != b
-    ]
+    return [f"{a} | {b}" for a, b in zip(left_lines, right_lines, strict=True) if a != b]
 
 
 def _is_header_stamp(line: str) -> bool:

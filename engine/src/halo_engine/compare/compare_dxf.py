@@ -643,9 +643,7 @@ def _draw_cluster(layout: Any, cluster: ClusterRecord, *, revision_layer: str) -
     _set_xdata(text, [("cluster", cluster.number), ("role", "badge_text")])
 
 
-def _draw_label(
-    layout: Any, cluster: ClusterRecord, config: CompareConfig, factor: float
-) -> str:
+def _draw_label(layout: Any, cluster: ClusterRecord, config: CompareConfig, factor: float) -> str:
     """One invisible closed rectangle per cluster: the viewer's hit region (contract §2)."""
     margin = config.cloud.margin * factor
     x0, y0, x1, y1 = cluster.bbox
@@ -783,7 +781,9 @@ def sidecar_integrity_failures(payload: dict[str, Any]) -> list[str]:
 
     for index, cluster in enumerate(clusters, start=1):
         if cluster.get("number") != index:
-            failures.append(f"clusters[{index - 1}].number is {cluster.get('number')}, want {index}")
+            failures.append(
+                f"clusters[{index - 1}].number is {cluster.get('number')}, want {index}"
+            )
         if cluster.get("id") != f"c{cluster.get('number')}":
             failures.append(f"clusters[{index - 1}].id does not match its number")
         members = cluster.get("change_ids") or []
@@ -854,7 +854,7 @@ def apply_decisions(
     computed: what a re-run must reproduce is the comparison, not the user's
     review of it.
     """
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
     approved = 0
     ignored = 0
     for cluster in payload.get("clusters", []):

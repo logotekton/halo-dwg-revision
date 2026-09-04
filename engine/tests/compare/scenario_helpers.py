@@ -185,9 +185,7 @@ def run_scenario(scenario: str) -> ScenarioRun:
         if found is None:
             continue
         before_own_doc, before_frame = found
-        result = diff_pair(
-            before_own_doc, after_own_doc, before_frame, after_frame, compare_config
-        )
+        result = diff_pair(before_own_doc, after_own_doc, before_frame, after_frame, compare_config)
         factor = scale_factor(after_frame.scale_denominator)
         sheets[after_frame.sheet_no] = SheetComparison(
             sheet_no=after_frame.sheet_no,
@@ -255,9 +253,7 @@ def boxes_agree(detected: list[float], expected: list[float]) -> bool:
 # --------------------------------------------------------------------------- truth
 
 
-def match_expected(
-    changes: list[ChangeRecord], expected: dict[str, Any]
-) -> ChangeRecord | None:
+def match_expected(changes: list[ChangeRecord], expected: dict[str, Any]) -> ChangeRecord | None:
     """The change that answers one ``expected_changes`` entry, or ``None``.
 
     Handles are compared when the truth knows them; a whole-sheet redraw

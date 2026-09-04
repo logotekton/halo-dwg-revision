@@ -57,6 +57,7 @@
 
 - 클라우드 마크·배지·라벨 엔티티는 `cluster=`와 `role=`만 단다.
 - XDATA가 없는 엔티티 = 변경에 관여하지 않은 후 도면 엔티티.
+- 형식 차이(R1-06 구현): XDATA의 `cluster=`는 **번호만**(`cluster=1`)이고 사이드카 `handle_to_cluster`의 값은 `c<number>`(`"c1"`)다. 뷰어(R1-08)는 사이드카를 정본으로 쓰고, XDATA를 읽는 경우 두 형식을 모두 다룬다.
 
 ## 5. 클라우드 마크와 배지 (R1-06이 좌표를 만들고 R1-09가 같은 좌표를 쓴다)
 
@@ -126,7 +127,7 @@
 ```
 
 - `id`는 `c<number>`·`ch<seq>`로 **결정론적**이다. DB의 ULID는 파일에 쓰지 않는다.
-- `handle_to_cluster`의 키는 **비교 DXF 안의 핸들**이다(원 도면 핸들이 아님). 뷰어 히트 테스트 → 이 표 → 클러스터. 값이 실제 클러스터를 가리키는지(그리고 `changes[].cluster_id`, `id`↔`number`/`seq`, `counts` 일치)는 JSON Schema로 표현할 수 없어, 엔진(R1-06)은 쓰기 전에 스스로 검사하고 뷰어 쪽은 `@halo-cad/schema`의 `clustersSidecarIntegrityFailures()`로 검사한다.
+- `handle_to_cluster`의 키는 **비교 DXF 안의 핸들**이다(원 도면 핸들이 아님). 뷰어 히트 테스트 → 이 표 → 클러스터. 클라우드·배지·`__CMP_ADDED`/`__CMP_REMOVED` 엔티티뿐 아니라 `__CMP_LABEL` 히트 사각형의 핸들도 들어 있다(R1-06). 값이 실제 클러스터를 가리키는지(그리고 `changes[].cluster_id`, `id`↔`number`/`seq`, `counts` 일치)는 JSON Schema로 표현할 수 없어, 엔진(R1-06)은 쓰기 전에 스스로 검사하고 뷰어 쪽은 `@halo-cad/schema`의 `clustersSidecarIntegrityFailures()`로 검사한다.
 - `decision`·`user_label`·`note`는 사용자 편집값이다. 엔진은 비교를 다시 돌릴 때 같은 `pair_key`·같은 클러스터 서명(정렬된 `change_ids`의 `(kind, before_handle, after_handle)` 튜플 해시)이면 이전 판정을 이어받는다.
 - 정렬: `clusters`는 `number` 순, `changes`는 `seq` 순, `handle_to_cluster`는 키 정렬. JSON은 `ensure_ascii=False, indent=2, sort_keys=False`, 줄 끝 `\n`, 개행 LF.
 

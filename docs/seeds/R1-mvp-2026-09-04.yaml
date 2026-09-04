@@ -1,0 +1,162 @@
+# Seed — 리비전 도면 관리 앱 1주 MVP (R1)
+# 출처: docs/plans/dms-local/interview-mvp-2026-09-04.md (Ouroboros 인터뷰 장부, Path B)
+# 규칙: 이 Seed는 불변이다. 바꾸려면 새 인터뷰 또는 명시적 개정으로만 한다.
+
+goal: >-
+  변경 전·후 DWG 폴더 두 개를 넣으면 배경 ZWCAD로 변환해 도곽별로 짝짓고 비교한 뒤,
+  사용자가 화면에서 승인·무시한 변경만 REV-<날짜> 클라우드 마크와 리비전 표(번호·내용·일자)를
+  얹은 마크업 DWG로 내보내는 Windows 설치본을 6일(D0 선행 병합·CI 설치본 + D1~D5) 안에
+  기존 Halo CAD 셸·엔진 위에 만들고, verify.sh·E2E 녹색과 사용자 Windows 노트북에서
+  실도면 68장 도곽 수 일치, 사용자 리비전 쌍의 심은 변경 100% 검출·오탐 0으로 합격을 판정한다.
+
+constraints:
+  - "범위는 1주차 MVP(R1-00a, R1-00b, R1-01~R1-11)만이다. 사전 기반 설명, 래스터 보조, 수동 마크·텍스트, 리비전 이력 엑셀, 선택 도곽 출력·대화상자, COM 삽입, 애드인, 그룹 보기, 라이선스 검사 스크립트는 2주차 별도 Seed다"
+  - "원본 DWG는 어느 단계에서도 열어 쓰지 않는다. 쓰기는 <프로젝트>/.halo/, <프로젝트>/출력/<날짜>/에만 하며 bundle/guard가 원본 경로 쓰기를 거부한다"
+  - "셸은 Electron 44 유지. main 프로세스는 사이드카 기동·대화상자·클립보드만 맡는다"
+  - "실행 대상은 Windows 10·11 x64. 확인은 사용자 본인이 Windows 노트북에서 설치본으로만 한다(개발 체크아웃 없음). ZWCAD 2026 Professional"
+  - "Windows 설치본(NSIS + PyInstaller x64 사이드카 + comtypes)은 GitHub Actions windows-latest가 task 브랜치 푸시마다 아티팩트로 만든다. 셀프호스티드 러너와 macOS 설치본은 범위 밖"
+  - "COM 라이브러리는 comtypes(MIT)다. pywin32는 쓰지 않는다. 결정은 docs/adr/0007-zwcad-com-bridge.md에 기록한다"
+  - "DWG→DXF 변환은 배경(숨김) ZWCAD COM이 우선이고 없으면 ADR-0002의 자체 변환기다. 한 도곽 짝의 전·후 DXF는 같은 변환기여야 하며, 불가능하면 '변환기 불일치'로 표시한다"
+  - "사소한 변경으로 접는 이동은 0.01mm 이하뿐이다. 접기 목록(레이어·색·선종류·선굵기만 변경, 해치 재생성, 치수 재생성, MTEXT 서식만 변경)은 τ가 아니라 구조 규칙으로 판정한다. 지문 매칭 허용오차는 1mm(이웃 구간 포함 거리 매칭)"
+  - "클라우드 마크: 레이어 REV-<YYYYMMDD>(실행 날짜, 같은 날 두 번째 실행은 -2), 색 1(빨강), 호 100mm, 여백 50mm, 번호는 한 변 200mm 삼각형 안 숫자, 도곽 축척 배율 적용"
+  - "리비전 표: 열 번호·내용·일자(담당 없음), 표제란 왼쪽. 일자는 실행 날짜. 전체 변경 리스트는 2주차"
+  - "실행 날짜는 Run의 명시 입력(주입 시계)이다. 같은 입력·같은 날짜면 비교 DXF와 clusters.json은 바이트 동일해야 한다. 난수·현재 시각 직접 호출 금지"
+  - "비교 DXF 계약은 docs/contracts/compare-dxf.md가 정본이다: 안 바뀐 엔티티는 원래 레이어, __CMP_ADDED(색 1), __CMP_REMOVED(색 4), REV-<날짜>, __CMP_LABEL, XDATA appid HALO_CMP, 사이드카 clusters.json(handle→cluster_id), 전 도면 블록 이름 접두 __B_"
+  - "도곽 추출은 표제란 블록 ATTRIB 규칙(frames.yaml)으로 하고 _recover 파일은 제외한다. XREF 안 표제란은 XREF 해석 후 적용하며 표제란 없는 파일은 '도곽 미인식'으로 목록에 보인다"
+  - "엔진(halo_engine)이 단일 진실 소스다. 모든 레코드는 provenance {file, handle, path, space}를 가진다. UI 문자열은 apps/web/src/i18n/ko.json 키로만 쓴다. GPL 코드는 packages/dwg-io-gpl 밖으로 나오지 않는다. ODA File Converter 참조 금지"
+  - "작업은 task/<ID> 브랜치와 수동 worktree에서 하고 main에 직접 커밋하지 않는다. 브리프는 docs/briefs/R1-xx.md. 게이트는 tools/verify.sh의 종료 코드로만 판단한다"
+  - "브리프 작성 전에 docs/plans/dms-local/02-개발용-계획서.html의 §1·§4.5·§7 기본값과 소유를 인터뷰 장부 값으로 갱신한다. 장부(docs/plans/dms-local/interview-mvp-2026-09-04.md)가 계획서보다 우선한다"
+  - "착수 시 ClickUp 태스크 '[Halo][halo-dwg-revision]'을 만들어 /team-harness:task-start로 지정한다"
+
+acceptance_criteria:
+  - description: "선행 병합이 끝나 main에 XREF 해석(W3-06)과 뷰어 호스트(W3-02, 레이어 가시성 API 포함)가 있다"
+    verify: "test -f packages/cad-core/src/host/cad-host.ts && grep -rqi visib packages/cad-core/src/host && test -f engine/src/halo_engine/ingest/xref.py && echo OK"
+    artifacts: ["packages/cad-core/src/host/cad-host.ts", "engine/src/halo_engine/ingest/xref.py"]
+    expect: "OK"
+  - description: "Windows x64 설치본이 GitHub Actions windows-latest에서 NSIS + PyInstaller 사이드카(comtypes 포함)로 만들어져 아티팩트로 내려받을 수 있다"
+    verify: "grep -q windows-latest .github/workflows/windows-installer.yml && grep -qi nsis apps/desktop/electron-builder.yml && grep -q comtypes engine/pyproject.toml && echo OK"
+    artifacts: [".github/workflows/windows-installer.yml", "docs/adr/0007-zwcad-com-bridge.md"]
+    expect: "OK"
+  - description: "엔진이 합성 리비전 쌍(truth 동봉)에서 심은 변경을 전부 검출하고 접기 규칙대로 접으며, 비교 DXF와 clusters.json이 계약대로 나오고 같은 입력에서 바이트 동일하다"
+    verify: "cd engine && uv run --frozen pytest tests/compare -q"
+    artifacts: ["docs/contracts/compare-dxf.md", "engine/src/halo_engine/compare", "engine/tests/compare", "fixtures/compare"]
+    expect: "passed"
+  - description: "앱에서 세트 지정 → 도곽 목록 → 검토(승인·무시) → 전체 도곽 출력이 한 번에 지나가고, 저장소의 모든 자동 검사가 녹색이다"
+    verify: "tools/verify.sh --e2e"
+    artifacts: ["tests/e2e/compare.spec.ts", "apps/web/src/features/compare"]
+    expect: "VERIFY: PASS"
+  - description: "사용자 Windows 노트북에서 설치본으로 실도면 68장 도곽 수가 상수(전기 104, 기계 51, 통신 28, 소방기계 45, 소방전기 28, 건축 99)와 일치하고, 사용자 리비전 쌍의 심은 변경이 100% 클러스터로 나오며 심지 않은 곳 클러스터 0, 마크업 DWG가 ZWCAD 2026에서 열린다. 게이트 문서에 'R1-GATE sheet-count: PASS', 'R1-GATE owner-pair: PASS', 'R1-GATE markup-dwg-opens: PASS', 'R1-GATE installer: PASS' 네 줄과 사용자 PC 경로가 적힌다"
+    verify: "test \"$(grep -c '^R1-GATE .*: PASS' docs/gates/R1.md)\" -ge 4 && echo OK"
+    artifacts: ["docs/gates/R1.md"]
+    expect: "OK"
+
+ontology_schema:
+  name: RevisionCompare
+  description: 변경 전·후 DWG 세트를 도곽 단위로 짝짓고 엔티티 변경을 묶어 사용자 판정과 함께 마크업 산출물로 내는 도메인 모델
+  fields:
+    - name: revision_set
+      type: object
+      description: "전 또는 후 세트. id, label, 폴더 경로, 파일 목록(경로, sha1, DWG 버전), 변환 결과(경로, 변환기, 소요), XR 해석 결과"
+    - name: sheet_frame
+      type: object
+      description: "도곽. id, set_id, file, 표제란 블록 handle, frame bbox, 도면번호, 도면명, 축척, 날짜, 정규화 키, 엔티티 handle 목록, provenance"
+    - name: sheet_pair
+      type: object
+      description: "전·후 도곽 짝. before_frame, after_frame, status(변경·동일·신규·삭제·짝 없음·도곽 미인식·변환기 불일치), match_method(번호·제목·위치·수동), score"
+    - name: change
+      type: object
+      description: "엔티티 변경. kind(added·removed·modified·moved·text·dimension·blockdef), before_handle, after_handle, layer, bbox, delta, minor, minor_reason, provenance"
+    - name: cluster
+      type: object
+      description: "변경 묶음. 번호, bbox, change_ids, label(자동 문구), user_label, decision(pending·approved·ignored), cloud 폴리라인 좌표"
+    - name: run
+      type: object
+      description: "출력 실행. id, run_date(명시 입력), set 쌍, 도곽 수, 승인·무시 건수, 출력 범위, 파일 목록"
+    - name: compare_dxf
+      type: object
+      description: "도곽 짝마다 엔진이 만든 비교 DXF와 clusters.json 사이드카. 레이어 계약은 docs/contracts/compare-dxf.md"
+    - name: markup_export
+      type: object
+      description: "승인 클러스터만 담은 마크업 DWG(REV-<날짜> 레이어, 도곽별 리비전 표)와 TSV. 출력 폴더 <프로젝트>/출력/<날짜>/"
+    - name: compare_config
+      type: object
+      description: "compare.yaml. minor 이동 0.01mm, 지문 허용오차 1mm, 클라우드 규격(호 100·여백 50·삼각 200), 리비전 표 열, 출력 폴더"
+
+evaluation_principles:
+  - name: detection_fidelity
+    description: 심은 변경은 전부 클러스터로 나오고 심지 않은 곳에는 클러스터가 없다. 접힌 항목은 버리지 않고 목록에 남는다
+    weight: 1.0
+  - name: originals_immutable
+    description: 원본 DWG 해시가 실행 전후로 같다. 쓰기는 .halo와 출력 폴더에만
+    weight: 1.0
+  - name: determinism
+    description: 같은 입력과 같은 실행 날짜에서 비교 DXF·clusters.json·마크업 DWG가 바이트 동일하다
+    weight: 0.9
+  - name: end_to_end_usability
+    description: 사용자가 설치본만으로 세트 지정부터 마크업 DWG까지 도움 없이 지나간다
+    weight: 0.8
+  - name: repo_conventions
+    description: CLAUDE.md 규약(엔진 단일 진실, provenance, ko.json, GPL 경계, task 브랜치, verify.sh 게이트)을 지킨다
+    weight: 0.7
+
+exit_conditions:
+  - name: all_criteria_met
+    description: 다섯 개 acceptance_criteria가 모두 통과한다
+    criteria: 각 verify 명령이 종료 코드 0과 expect 문자열을 낸다
+  - name: gate_document_signed
+    description: docs/gates/R1.md에 네 개 R1-GATE PASS 줄과 사용자 PC 경로, 남은 문제 목록이 있다
+    criteria: "grep -c '^R1-GATE .*: PASS' docs/gates/R1.md 결과가 4 이상"
+  - name: user_acceptance
+    description: 사용자가 설치본으로 직접 확인하고 R1 게이트를 승인했다
+    criteria: docs/gates/R1.md의 '사용자 승인' 항목에 날짜와 승인 문구가 있다
+
+project_type: brownfield
+context_references:
+  - path: /Users/ythong/Desktop/대명건설/Free CAD for Mac OS
+    role: primary
+    summary: "Halo CAD 모노레포(logotekton/halo-cad). apps/desktop(Electron 셸, 엔진 감독), apps/web(React UI), packages/cad-core·schema·acad-bridge·dwg-io-gpl, engine/src/halo_engine(ingest·bundle·db·api·validate)"
+  - path: docs/plans/dms-local/interview-mvp-2026-09-04.md
+    role: reference
+    summary: 인터뷰 결정 장부. 계획서와 어긋나면 이 문서가 우선
+  - path: docs/plans/dms-local/02-개발용-계획서.html
+    role: reference
+    summary: 개발용 계획서. §2 아키텍처(비교 DXF), §3 데이터 모델, §4 파이프라인 알고리즘, §5 API·IPC, §6 저장 구조, §7 작업 분해, §8 검증
+  - path: CLAUDE.md
+    role: reference
+    summary: 에이전트 공통 규약(원본 불변, ODA 금지, GPL 경계, 엔진 단일 진실, provenance, 결정론, ko.json, 브랜치·완료 조건)
+  - path: docs/adr/0002-working-dxf.md
+    role: reference
+    summary: 작업용 DXF 정본과 자체 변환기 경로(dxfOut 후처리, acad-ts 보조, 교차검증 게이트)
+  - path: docs/spikes/real-dwg-measurement.md
+    role: reference
+    summary: 실도면 68장 실측(도곽 수 상수, XREF 상대경로, 폰트 누락, 뷰어 한계)
+  - path: samples/2026-09-02-실시도서
+    role: reference
+    summary: 실도면 68장(읽기 전용, gitignore). 사용자 Windows 노트북 경로는 R1-11에서 docs/gates/R1.md에 기록
+  - path: samples/revision-pairs
+    role: reference
+    summary: 사용자가 1주 안(D4 전)에 만드는 변경 전·후 리비전 쌍과 심은 변경 목록(gitignore)
+existing_patterns:
+  - 엔진이 단일 진실 소스이고 화면은 엔진 산출물(파일·JSON)을 보여주기만 한다
+  - 긴 작업은 api/jobs 잡으로 돌고 진행률은 api/ws로 보낸다
+  - 원본 경로 쓰기는 bundle/guard가 거부한다
+  - 스키마는 packages/schema에 두고 TS·파이썬 코드젠으로 타입을 만든다
+  - task/<ID> 브랜치, 수동 worktree, 브리프 보고서 형식(Summary/Files changed/Verification/Decisions/Deviations/Shared-file patch/Questions/Follow-ups)
+  - tools/verify.sh 종료 코드 게이트, 엔진 검증은 pushd/popd로 같은 셸에서
+existing_dependencies:
+  - "ezdxf==1.4.4"
+  - "fastapi==0.141.1"
+  - "sqlalchemy==2.0.52 / alembic==1.19.1"
+  - "@mlightcad/cad-simple-viewer@1.6.3 / data-model@1.14.3"
+  - "@node-projects/acad-ts@3.1.0"
+  - "electron 44.1.x / vite 7 / react 19"
+  - "comtypes (신규, MIT, Windows 전용, ADR-0007)"
+
+metadata:
+  version: 1
+  created: "2026-09-04"
+  interview: docs/plans/dms-local/interview-mvp-2026-09-04.md
+  interview_mode: ouroboros-path-b-local
+  ambiguity_score: 0.15
+  ambiguity_note: MCP 점수 없음. 19문답과 3관점 종료 검사 뒤 로컬 추정치
+  schedule: "D0 R1-00a·R1-00b(병렬) → D1 R1-01·R1-02·R1-03 → D2 R1-04·R1-05 → D3 R1-06·R1-07 → D4 R1-08·R1-09 → D5 R1-10·R1-11"

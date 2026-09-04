@@ -19,18 +19,27 @@ different definition on each side (contract §3).
 
 **Determinism** (contract §8) is not a nice-to-have here -- it is what lets a
 re-run be diffed against the previous one, and it is an acceptance criterion.
-Three things were found to break it and all three are handled:
+Four things were found to break it and all four are handled:
 
 1. ``ezdxf``'s ``Importer`` collects the layers, linetypes, styles and dimstyles
    it needs in ``set``s, so the table entries came out in hash order and two
    runs of the same comparison differed. Every table is therefore imported
    whole, in the source document's own order, *before* any entity is imported;
    the importer then finds everything it needs already present and adds nothing.
-2. ``ezdxf`` regenerates ``$FINGERPRINTGUID`` and ``$VERSIONGUID`` while writing,
-   after any value we set. They are rewritten in the serialised text.
-3. ``ezdxf`` stamps its own version and the wall-clock time into two
+2. The CLASSES section is filled during ``write`` from
+   ``entitydb.dxf_types_in_use()``, another ``set``
+   (:func:`pin_classes_for_determinism`).
+3. ``ezdxf`` regenerates ``$FINGERPRINTGUID`` and ``$VERSIONGUID`` and refreshes
+   ``$TDUPDATE`` while writing, after any value we set. All three are rewritten
+   in the serialised text.
+4. ``ezdxf`` stamps its own version and the wall-clock time into two
    ``DICTIONARYVAR`` objects as it writes. The timestamp is replaced with
    ``run_date`` midnight in the same pass.
+
+The first two were only visible across processes: inside one interpreter the
+hash seed is fixed, and the job runner compares in a fresh pool worker
+(``tests/compare/test_determinism.py`` runs the comparison under two explicit
+``PYTHONHASHSEED`` values for exactly that reason).
 
 The output is written as bytes with LF endings, so the file is identical on
 Windows and macOS.
@@ -99,6 +108,12 @@ ZERO_GUID = "{00000000-0000-0000-0000-000000000000}"
 _EZDXF_MARKER_RE = re.compile(
     r"^\S+ @ \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$"
 )
+
+#: Header variables holding the drawing's timestamps. ``$TDCREATE`` survives
+#: whatever :func:`pin_header_for_determinism` set; ``$TDUPDATE`` is refreshed
+#: from the clock during ``write``, so the serialised text copies ``$TDCREATE``'s
+#: value onto the other three.
+_PINNED_TIME_VARS = ("$TDCREATE", "$TDUCREATE", "$TDUPDATE", "$TDUUPDATE")
 
 #: Layout blocks are never renamed or re-imported: the target document has its
 #: own.
@@ -191,7 +206,9 @@ def _normalise(text: str, run_date: str) -> str:
 
     * the value of ``$FINGERPRINTGUID`` and ``$VERSIONGUID``, which ezdxf
       regenerates during ``write`` after anything :func:`pin_header_for_determinism`
-      set;
+      set, and ``$TDUPDATE``/``$TDUCREATE``/``$TDUUPDATE``, which it refreshes from
+      the clock -- they take ``$TDCREATE``'s already-written text, so the value
+      is formatted exactly the way ezdxf formats it;
     * the ``ezdxf`` version-and-timestamp marker, which lives in a
       ``DICTIONARYVAR`` object in the OBJECTS section and carries the wall
       clock down to the microsecond.
@@ -203,25 +220,52 @@ def _normalise(text: str, run_date: str) -> str:
     lines = text.split("\n")
     total = len(lines)
     record = ""
+    stamp: str | None = None
     index = 0
     while index + 1 < total:
         code = lines[index].strip()
         if not code.isdigit():
             break  # not a tag stream any more; leave the rest exactly as written
         value = lines[index + 1]
+        name = value.strip()
         if code == "0":
-            record = value.strip()
-        elif code == "9" and value.strip() in {"$FINGERPRINTGUID", "$VERSIONGUID"}:
+            record = name
+        elif code == "9" and name in {"$FINGERPRINTGUID", "$VERSIONGUID"}:
             if index + 3 < total and lines[index + 2].strip() == "2":
                 lines[index + 3] = ZERO_GUID
-        elif code == "1" and record == "DICTIONARYVAR" and _EZDXF_MARKER_RE.match(value.strip()):
+        elif code == "9" and name in _PINNED_TIME_VARS:
+            if index + 3 < total and lines[index + 2].strip() == "40":
+                if name == "$TDCREATE":
+                    stamp = lines[index + 3]
+                elif stamp is not None:
+                    lines[index + 3] = stamp
+        elif code == "1" and record == "DICTIONARYVAR" and _EZDXF_MARKER_RE.match(name):
             lines[index + 1] = marker
         index += 2
     return "\n".join(lines)
 
 
+def pin_classes_for_determinism(doc: Drawing) -> None:
+    """Put the CLASSES section in a fixed order (contract §8).
+
+    ``ezdxf`` fills the section during ``write`` from
+    ``entitydb.dxf_types_in_use()``, which is a ``set``: the same drawing came
+    out with ``ACDBPLACEHOLDER`` before ``LAYOUT`` in one process and after it
+    in the next, purely because of ``PYTHONHASHSEED``. Registering the classes
+    up front and sorting them makes the order a property of the drawing.
+    Re-registration during ``write`` is a no-op for classes that are already
+    there, so the sorted order survives.
+
+    CLASS records have no handles and DXF readers do not care about their
+    order, so sorting them costs nothing but the determinism it buys.
+    """
+    doc.classes.add_required_classes(doc.dxfversion)
+    doc.classes.classes = dict(sorted(doc.classes.classes.items()))
+
+
 def serialize(doc: Drawing, run_date: str) -> bytes:
     """The compare DXF as bytes: written, normalised, UTF-8, LF."""
+    pin_classes_for_determinism(doc)
     stream = io.StringIO()
     doc.write(stream)
     return _normalise(stream.getvalue(), run_date).encode("utf-8")
@@ -570,7 +614,8 @@ def _draw_cluster(layout: Any, cluster: ClusterRecord, *, revision_layer: str) -
     cloud = layout.add_lwpolyline(
         [(point[0], point[1], 0.0, 0.0, point[2]) for point in cluster.cloud["points"]],
         format="xyseb",
-        dxfattribs={"layer": revision_layer, "closed": True},
+        close=True,
+        dxfattribs={"layer": revision_layer},
     )
     cluster.cloud["handle"] = str(cloud.dxf.handle)
     _set_xdata(cloud, [("cluster", cluster.number), ("role", "cloud")])
@@ -578,7 +623,8 @@ def _draw_cluster(layout: Any, cluster: ClusterRecord, *, revision_layer: str) -
     shape = layout.add_lwpolyline(
         [(x, y) for x, y in cluster.badge_points],
         format="xy",
-        dxfattribs={"layer": revision_layer, "closed": True},
+        close=True,
+        dxfattribs={"layer": revision_layer},
     )
     cluster.badge["shape_handle"] = str(shape.dxf.handle)
     _set_xdata(shape, [("cluster", cluster.number), ("role", "badge_shape")])
@@ -611,7 +657,8 @@ def _draw_label(
             (round(x0 - margin, 3), round(y1 + margin, 3)),
         ],
         format="xy",
-        dxfattribs={"layer": LAYER_LABEL, "closed": True},
+        close=True,
+        dxfattribs={"layer": LAYER_LABEL},
     )
     _set_xdata(label, [("cluster", cluster.number), ("role", "label")])
     return str(label.dxf.handle)
@@ -932,6 +979,7 @@ __all__ = [
     "compare_pair",
     "dumps_sidecar",
     "merge_decisions",
+    "pin_classes_for_determinism",
     "pin_header_for_determinism",
     "prefix_before_blocks",
     "serialize",

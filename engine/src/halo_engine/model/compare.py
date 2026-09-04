@@ -213,6 +213,58 @@ class SheetFrameView(BaseModel):
     attributes: dict[str, Any] | None = None
 
 
+ClusterKind = Literal[
+    "added", "removed", "modified", "moved", "text", "dimension", "blockdef", "mixed"
+]
+"""``cluster.kind``: the members' one kind, or ``mixed`` (contract §3)."""
+
+ClusterDecision = Literal["pending", "approved", "ignored"]
+
+
+class CloudMarkView(BaseModel):
+    """``cluster.cloud`` -- the revision cloud's polyline (``cluster.schema.json``)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    handle: str | None = None
+    points: list[list[float]] = Field(min_length=4)
+
+
+class ClusterBadgeView(BaseModel):
+    """``cluster.badge`` -- the numbered triangle (``cluster.schema.json``)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    shape_handle: str | None = None
+    text_handle: str | None = None
+    center: list[float] = Field(min_length=2, max_length=2)
+
+
+class ClusterView(BaseModel):
+    """One cluster, as ``PATCH /compare/pairs/{id}/clusters/{number}`` returns it.
+
+    Field-for-field ``compare/cluster.schema.json``, the same hand-written
+    mirror R1-04 had to make for ``SheetFrameView`` and for the same reason
+    (contract §4 allows "같은 필드의 자체 모델"); the drift test lives in
+    ``engine/tests/api/test_compare_clusters.py``.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str = Field(pattern=r"^c[1-9][0-9]*$")
+    number: int = Field(ge=1)
+    signature: str | None = Field(default=None, max_length=64)
+    bbox: list[float] = Field(min_length=4, max_length=4)
+    kind: ClusterKind
+    label: str
+    user_label: str | None = Field(default=None, max_length=512)
+    decision: ClusterDecision
+    note: str | None = Field(default=None, max_length=4096)
+    change_ids: list[str] = Field(min_length=1)
+    cloud: CloudMarkView
+    badge: ClusterBadgeView
+
+
 class SheetPairView(BaseModel):
     """One 도곽 짝 with both frame summaries (``compare/sheet-pair.schema.json``)."""
 
@@ -238,7 +290,12 @@ class SheetPairView(BaseModel):
 
 __all__ = [
     "RUN_DATE_PATTERN",
+    "ClusterBadgeView",
+    "ClusterDecision",
     "ClusterDecisionRequest",
+    "ClusterKind",
+    "ClusterView",
+    "CloudMarkView",
     "CompareFileEntry",
     "CompareRunRequest",
     "CompareSetCreateRequest",

@@ -141,11 +141,15 @@ def _action(changes: list[ChangeRecord], kind: str) -> str:
                 return f"문구 {before}→{after}"
         return "문구 변경"
     if kind == KIND_BLOCKDEF:
+        # The 종류 half already says `블록 DOOR_900`, so the action says
+        # `정의 변경 6곳` and the whole label reads `블록 DOOR_900 정의 변경 6곳`.
+        # Without a block name the 종류 is just `블록` and the label comes out
+        # as the brief's `블록 정의 변경 6곳`.
         instances = 0
         for change in changes:
             if change.kind == KIND_BLOCKDEF and change.delta:
                 instances = max(instances, int(change.delta.get("instances") or 0))
-        return f"블록 정의 변경 {instances}곳" if instances else "블록 정의 변경"
+        return f"정의 변경 {instances}곳" if instances else "정의 변경"
     return "수정"
 
 

@@ -90,11 +90,27 @@ done
 # rewriting `/PID`/`/T`/`/F` into Windows paths before taskkill sees them --
 # a well-known Git Bash gotcha, not a typo.
 if [ "$IS_WINDOWS" = 1 ]; then
-  taskkill //PID "$SIDECAR_PID" //T //F >/dev/null 2>&1 || true
+  # `$!` under Git Bash is the MSYS pid, not the Windows pid taskkill wants
+  # (first observed on windows-latest: `taskkill //PID $!` silently missed
+  # the process and the `wait` below then blocked for 43 minutes until the
+  # job was cancelled). Map it through `ps -W` (WINPID column) and, as a
+  # belt-and-braces fallback, kill by image name -- nothing else on a CI
+  # runner is called halo-engine.exe. Never `wait` here: with the process
+  # gone out from under MSYS, `wait` can hang, so poll tasklist with a
+  # bounded loop instead.
+  WINPID="$(ps -W 2>/dev/null | awk -v p="$SIDECAR_PID" '$1 == p { print $4 }' | head -n1 || true)"
+  if [ -n "$WINPID" ]; then
+    taskkill //PID "$WINPID" //T //F >/dev/null 2>&1 || true
+  fi
+  taskkill //IM halo-engine.exe //T //F >/dev/null 2>&1 || true
+  for _ in $(seq 1 50); do # up to 10s
+    if ! tasklist 2>/dev/null | grep -qi "halo-engine.exe"; then break; fi
+    sleep 0.2
+  done
 else
   kill "$SIDECAR_PID" 2>/dev/null || true
+  wait "$SIDECAR_PID" 2>/dev/null || true
 fi
-wait "$SIDECAR_PID" 2>/dev/null || true
 
 if [[ "$READY_LINE" != *'"event"'*'"ready"'* ]]; then
   echo "FAIL: sidecar did not print a READY line within 20s. Got: '$READY_LINE'" >&2

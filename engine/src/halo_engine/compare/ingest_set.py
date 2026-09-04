@@ -109,6 +109,27 @@ class PlannedFile:
     excluded_reason: str | None
 
 
+def _xref_search_paths(set_dir: Path) -> list[str]:
+    """``[set_dir, set_dir/XR, set_dir/../XR]`` -- existing directories only, in that order.
+
+    Matching is case-insensitive on the folder name (``XR`` / ``xr`` / ``Xr``)
+    because the sets come from Windows file systems.
+    """
+    paths: list[str] = [str(set_dir)]
+    for parent in (set_dir, set_dir.parent):
+        try:
+            children = sorted(parent.iterdir(), key=lambda p: p.name.lower())
+        except OSError:
+            continue
+        for child in children:
+            if child.is_dir() and child.name.lower() == "xr":
+                candidate = str(child)
+                if candidate not in paths:
+                    paths.append(candidate)
+                break
+    return paths
+
+
 def plan_set_files(source_dir: Path | str, ignore_patterns: Sequence[str]) -> list[PlannedFile]:
     """List ``source_dir`` non-recursively, ``.dwg``/``.dxf`` only, sorted case-insensitively.
 
@@ -463,7 +484,12 @@ async def _process_file(
             zwcad_conv,
         )
 
-    search_paths = [str(task.source_path.parent)]
+    # XREF search paths for the working-DXF build: the file's own folder plus the
+    # conventional `XR` folders next to / above the set folder (brief R1-03
+    # "Defaults for ambiguity"; the real set references `..\XR\*.dwg`, see
+    # docs/spikes/real-dwg-measurement.md). Only folders that exist are added,
+    # so synthetic sets without XREFs are unaffected.
+    search_paths = _xref_search_paths(task.source_path.parent)
     converter_used: str | None = None
     converter_meta: dict[str, Any] | None = None
 

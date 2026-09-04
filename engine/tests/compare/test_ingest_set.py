@@ -454,3 +454,25 @@ async def test_zwcad_failure_falls_back_to_builtin_and_forces_same_converter(
             assert compare_set.stats["converter"]["mismatch_files"] == 0
     finally:
         get_job_manager(app).shutdown()
+
+
+def test_xref_search_paths_add_existing_xr_folders_only(tmp_path):
+    """Contract r1.md §2 / brief R1-03 defaults: the set folder itself, then
+    `<set>/XR` and `<set>/../XR` when they exist (case-insensitive folder name)."""
+    from halo_engine.compare.ingest_set import _xref_search_paths
+
+    project = tmp_path / "proj"
+    set_dir = project / "REV2"
+    set_dir.mkdir(parents=True)
+    assert _xref_search_paths(set_dir) == [str(set_dir)]
+
+    sibling_xr = project / "xr"
+    sibling_xr.mkdir()
+    assert _xref_search_paths(set_dir) == [str(set_dir), str(sibling_xr)]
+
+    child_xr = set_dir / "XR"
+    child_xr.mkdir()
+    assert _xref_search_paths(set_dir) == [str(set_dir), str(child_xr), str(sibling_xr)]
+
+    (project / "XR.txt").write_text("not a dir", encoding="utf-8")
+    assert str(project / "XR.txt") not in _xref_search_paths(set_dir)

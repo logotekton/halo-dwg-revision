@@ -39,8 +39,21 @@ from fastapi.testclient import TestClient
 
 # engine/tests/api/test_real_set_xref_import.py -> repo root.
 _REPO_ROOT = Path(__file__).resolve().parents[3]
-_MAIN_REPO_ROOT = _REPO_ROOT.parent.parent / "Free CAD for Mac OS"
-_REAL_SET_ROOT = _MAIN_REPO_ROOT / "samples" / "2026-09-02-실시도서" / "##실시도서(시공도면 수정)"
+_REAL_SET_SUBPATH = Path("samples") / "2026-09-02-실시도서" / "##실시도서(시공도면 수정)"
+# samples/ is gitignored, so a task worktree (Desktop/대명건설/.worktrees/<ID>) has no
+# copy of it -- fall back to the main checkout's samples (repo name after the
+# 2026-09-04 carve-out; the original "Free CAD for Mac OS" checkout is retired).
+_REAL_SET_ROOT = next(
+    (
+        candidate
+        for candidate in (
+            _REPO_ROOT / _REAL_SET_SUBPATH,
+            _REPO_ROOT.parent.parent / "halo-dwg-revision" / _REAL_SET_SUBPATH,
+        )
+        if candidate.is_dir()
+    ),
+    _REPO_ROOT / _REAL_SET_SUBPATH,
+)
 _HOST_DWG = _REAL_SET_ROOT / "01_건축" / "A-100 평면도.dwg"
 _XR_DIR = _REAL_SET_ROOT / "XR"
 

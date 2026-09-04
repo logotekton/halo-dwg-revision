@@ -128,5 +128,139 @@
     },
     "coordinates": "좌표: -",
     "units": "단위: mm"
+  },
+  "steps": {
+    "areaLabel": "진행 단계",
+    "set": "A 세트 지정",
+    "sheets": "B 도곽 목록",
+    "review": "C 검토",
+    "export": "D 출력"
+  },
+  "zwcad": {
+    "chip": {
+      "zwcad": "ZWCAD 변환",
+      "builtin": "자체 변환기"
+    },
+    "reason": {
+      "not_windows": "Windows 아님",
+      "comtypes_missing": "comtypes 없음",
+      "not_registered": "ZWCAD 미등록",
+      "com_error": "COM 오류"
+    }
+  },
+  "compare": {
+    "common": {
+      "cancel": "취소",
+      "close": "닫기",
+      "confirm": "확인",
+      "loading": "불러오는 중...",
+      "retry": "다시 시도",
+      "before": "전",
+      "after": "후",
+      "dismiss": "닫기"
+    },
+    "set": {
+      "title": "세트 지정",
+      "beforeFolder": {
+        "label": "변경 전 폴더"
+      },
+      "afterFolder": {
+        "label": "변경 후 폴더"
+      },
+      "folderEmpty": "폴더를 선택하세요",
+      "pickFolder": "폴더 선택…",
+      "runDate": {
+        "label": "실행 날짜"
+      },
+      "start": "인입 시작",
+      "starting": "인입 중...",
+      "job": {
+        "stage": {
+          "convert": "변환 중",
+          "crosscheck": "교차검증 중"
+        }
+      },
+      "summary": {
+        "title": "요약",
+        "files": "파일 {{count}}개",
+        "converted": "변환 성공 {{count}}",
+        "failed": "실패 {{count}}",
+        "excluded": "제외 {{count}}",
+        "fontsMissing": "폰트 누락: {{fonts}}",
+        "crosscheck": "교차검증 표본 {{sampled}}건 · 불일치 {{mismatched}}건",
+        "crosscheckNone": "교차검증 없음",
+        "failedFilesTitle": "실패한 파일",
+        "converterMismatch": "변환기 불일치 {{count}}건"
+      },
+      "toast": {
+        "framesNotReady": "도곽 추출 기능이 아직 준비되지 않았습니다"
+      }
+    },
+    "sheets": {
+      "title": "도곽 목록",
+      "searchLabel": "도면번호·제목 검색",
+      "searchPlaceholder": "도면번호·제목 검색",
+      "sort": {
+        "label": "정렬",
+        "sort_key": "도면번호순",
+        "change_count": "변경 많은 순"
+      },
+      "filter": {
+        "all": "전체",
+        "changed": "변경",
+        "same": "동일",
+        "added": "신규",
+        "removed": "삭제",
+        "unpaired": "짝 없음",
+        "unrecognized": "미인식",
+        "converter_mismatch": "변환기 불일치",
+        "pending": "대기"
+      },
+      "table": {
+        "sheetNo": "도면번호",
+        "sheetTitle": "도면명",
+        "before": "전",
+        "after": "후",
+        "changeCount": "변경",
+        "matchMethod": "매칭",
+        "scale": "축척",
+        "status": "상태",
+        "empty": "표시할 도곽이 없습니다"
+      },
+      "matchMethod": {
+        "number": "도면번호",
+        "title": "제목",
+        "position": "위치",
+        "manual": "수동"
+      },
+      "manualPair": "수동 짝 맞춤",
+      "manualPairDialog": {
+        "title": "수동 짝 맞춤",
+        "description": "전에만 있는 도곽과 후에만 있는 도곽을 하나씩 골라 짝을 맞춥니다.",
+        "beforeLabel": "전에만 있는 도곽",
+        "afterLabel": "후에만 있는 도곽",
+        "empty": "후보 없음",
+        "confirm": "짝 맞춤 확정"
+      },
+      "unpair": "짝 해제",
+      "openPair": "도곽 열기",
+      "runCompare": "비교 실행",
+      "running": "비교 중...",
+      "exportAll": "전체 도곽 출력…",
+      "toast": {
+        "runNotReady": "비교 엔진이 아직 준비되지 않았습니다"
+      },
+      "pairsUnavailable": "도곽 짝 맞춤 기능이 아직 준비되지 않았습니다"
+    },
+    "review": {
+      "title": "검토",
+      "placeholder": "검토 화면은 아직 준비되지 않았습니다",
+      "back": "도곽 목록으로"
+    },
+    "export": {
+      "title": "출력",
+      "placeholder": "출력 화면은 아직 준비되지 않았습니다",
+      "back": "도곽 목록으로"
+    }
   }
 }

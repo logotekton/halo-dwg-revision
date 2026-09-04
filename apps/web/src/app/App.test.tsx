@@ -1,154 +1,87 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import '../i18n/i18n'
-import { useDocumentsStore } from '../state/documents'
+import { useCompareStore } from '../state/compare'
 import { App } from './App'
 
 // The shared apps/web/src/test/setup.ts doesn't set this (see
 // apps/web/src/components/StatusBar.test.tsx for the same note).
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
-function mockHalocad(pickDrawings: () => Promise<string[]>): void {
+/**
+ * The old shell tests (open files, tabs, dock collapse) went away with the
+ * shell they exercised (brief R1-05 Goal 1: "관련 테스트... 새 셸에 맞춘다")
+ * -- `features/files`/`features/xref`/dock component tests are untouched
+ * and still pass on their own, they are just no longer reachable from
+ * `App`. This file now only covers the shell itself: header + step
+ * indicator + status bar + "screen A renders by default".
+ */
+function mockHalocad(): void {
   Object.defineProperty(window, 'halocad', {
     configurable: true,
     value: {
       app: { getVersion: vi.fn(), platform: 'darwin' },
-      engine: { getConnection: vi.fn(), onStatus: vi.fn(() => () => undefined) },
-      files: { pickDrawings },
+      engine: {
+        getConnection: vi.fn().mockResolvedValue({ baseUrl: 'http://127.0.0.1:0', token: 't' }),
+        onStatus: vi.fn(() => () => undefined),
+      },
+      files: { pickDrawings: vi.fn().mockResolvedValue([]) },
+      dialog: { pickFolder: vi.fn().mockResolvedValue(null) },
+      clipboard: { writeText: vi.fn() },
+      shell: { openPath: vi.fn() },
     },
   })
 }
 
 describe('App shell', () => {
   beforeEach(() => {
-    window.localStorage.clear()
-    useDocumentsStore.setState({ tabs: [], activeFileId: null })
+    mockHalocad()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({ available: false, installed: false, version: null, prog_id: null, reason: 'not_windows' }),
+        text: () => Promise.resolve(''),
+      }),
+    )
+    useCompareStore.setState(useCompareStore.getInitialState(), true)
   })
 
   afterEach(() => {
     cleanup()
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
-  it('opens two tabs via the 열기 button and switches between them', async () => {
-    mockHalocad(() => Promise.resolve(['/tmp/a.dwg', '/tmp/b.dxf']))
+  it('renders the title, all four step labels, and the status bar', () => {
     render(<App />)
 
-    fireEvent.click(screen.getByText('열기'))
-
-    await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'a.dwg' })).toBeInTheDocument()
-    })
-    expect(screen.getByRole('tab', { name: 'b.dxf' })).toBeInTheDocument()
-
-    // Opening activates the last picked file.
-    expect(screen.getByRole('tab', { name: 'b.dxf' })).toHaveAttribute('aria-selected', 'true')
-
-    fireEvent.click(screen.getByRole('tab', { name: 'a.dwg' }))
-    expect(screen.getByRole('tab', { name: 'a.dwg' })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByRole('tab', { name: 'b.dxf' })).toHaveAttribute('aria-selected', 'false')
+    expect(screen.getByText('Halo CAD')).toBeInTheDocument()
+    expect(document.querySelector('header')).not.toBeNull()
+    expect(screen.getByRole('list', { name: '진행 단계' })).toBeInTheDocument()
+    expect(document.querySelector('footer')).not.toBeNull()
   })
 
-  it('closes a tab via its close button', async () => {
-    mockHalocad(() => Promise.resolve(['/tmp/a.dwg', '/tmp/b.dxf']))
+  it('renders screen A (세트 지정) by default', () => {
     render(<App />)
 
-    fireEvent.click(screen.getByText('열기'))
-    await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'b.dxf' })).toBeInTheDocument()
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: 'b.dxf 탭 닫기' }))
-
-    expect(screen.queryByRole('tab', { name: 'b.dxf' })).not.toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'a.dwg' })).toBeInTheDocument()
+    expect(screen.getByTestId('set-screen')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '인입 시작' })).toBeInTheDocument()
   })
 
-  it('Ctrl+Tab cycles the active tab', async () => {
-    mockHalocad(() => Promise.resolve(['/tmp/a.dwg', '/tmp/b.dxf']))
-    render(<App />)
-
-    fireEvent.click(screen.getByText('열기'))
-    await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'b.dxf' })).toHaveAttribute('aria-selected', 'true')
-    })
-
-    act(() => {
-      fireEvent.keyDown(window, { key: 'Tab', ctrlKey: true })
-    })
-
-    expect(screen.getByRole('tab', { name: 'a.dwg' })).toHaveAttribute('aria-selected', 'true')
-  })
-
-  it('Ctrl+W closes the active tab', async () => {
-    mockHalocad(() => Promise.resolve(['/tmp/a.dwg']))
-    render(<App />)
-
-    fireEvent.click(screen.getByText('열기'))
-    await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'a.dwg' })).toBeInTheDocument()
-    })
-
-    act(() => {
-      fireEvent.keyDown(window, { key: 'w', ctrlKey: true })
-    })
-
-    expect(screen.queryByRole('tab', { name: 'a.dwg' })).not.toBeInTheDocument()
-  })
-
-  it('Ctrl+O triggers the same open flow as the 열기 button', async () => {
-    mockHalocad(() => Promise.resolve(['/tmp/a.dwg']))
+  it('the header step indicator tracks the compare store screen', async () => {
     render(<App />)
 
     act(() => {
-      fireEvent.keyDown(window, { key: 'o', ctrlKey: true })
+      useCompareStore.getState().goto('sheets')
     })
 
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'a.dwg' })).toBeInTheDocument()
+      expect(screen.getByText('B 도곽 목록').closest('li')).toHaveAttribute('aria-current', 'step')
     })
-  })
-
-  it('collapses and expands the left dock', () => {
-    mockHalocad(() => Promise.resolve([]))
-    render(<App />)
-
-    expect(screen.getByText('레이어')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByLabelText('왼쪽 도크 접기'))
-    expect(screen.queryByText('레이어')).not.toBeInTheDocument()
-
-    fireEvent.click(screen.getByLabelText('왼쪽 도크 펼치기'))
-    expect(screen.getByText('레이어')).toBeInTheDocument()
-  })
-
-  it('collapses and expands the right dock', () => {
-    mockHalocad(() => Promise.resolve([]))
-    render(<App />)
-
-    expect(screen.getByText('속성')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByLabelText('오른쪽 도크 접기'))
-    expect(screen.queryByText('속성')).not.toBeInTheDocument()
-
-    fireEvent.click(screen.getByLabelText('오른쪽 도크 펼치기'))
-    expect(screen.getByText('속성')).toBeInTheDocument()
-  })
-
-  it('keeps #viewer-root empty regardless of open tabs', async () => {
-    mockHalocad(() => Promise.resolve(['/tmp/a.dwg']))
-    const { container } = render(<App />)
-
-    const viewerRoot = container.querySelector('#viewer-root')
-    expect(viewerRoot).not.toBeNull()
-    expect(viewerRoot?.childElementCount).toBe(0)
-
-    fireEvent.click(screen.getByText('열기'))
-    await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'a.dwg' })).toBeInTheDocument()
-    })
-
-    expect(container.querySelector('#viewer-root')?.childElementCount).toBe(0)
+    expect(screen.getByTestId('sheets-screen')).toBeInTheDocument()
   })
 })

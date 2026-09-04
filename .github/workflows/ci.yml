@@ -113,6 +113,11 @@ jobs:
       - name: Install dependencies (acad-bridge runtime for engine tests)
         run: pnpm install --frozen-lockfile
 
+      # acad-bridge depends on @halo-cad/schema (workspace), whose dist/ is not
+      # committed -- same as the ts job, build it before the engine tests run.
+      - name: Build schema package
+        run: pnpm --filter @halo-cad/schema build
+
       - name: Install uv
         uses: astral-sh/setup-uv@v10.0.1
         with:

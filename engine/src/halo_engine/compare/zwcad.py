@@ -135,17 +135,21 @@ def _find_registered_prog_id() -> str | None:
     read, not a COM call) rather than exercising a real registry.
     """
     # typeshed's winreg stub only declares these names under sys.platform ==
-    # "win32", so mypy (running on macOS) sees a platform-less stub here.
+    # "win32", so mypy on macOS sees a platform-less stub here (attr-defined),
+    # while mypy on windows-latest resolves them and would flag the ignore as
+    # unused -- hence the explicit `unused-ignore` code on each line.
     import winreg
 
-    hkey_classes_root = winreg.HKEY_CLASSES_ROOT  # type: ignore[attr-defined]
+    hkey_classes_root = winreg.HKEY_CLASSES_ROOT  # type: ignore[attr-defined, unused-ignore]
     for prog_id in reversed(_PROG_ID_CANDIDATES):
         try:
-            key = winreg.OpenKey(hkey_classes_root, f"{prog_id}\\CLSID")  # type: ignore[attr-defined]
+            key = winreg.OpenKey(  # type: ignore[attr-defined, unused-ignore]
+                hkey_classes_root, f"{prog_id}\\CLSID"
+            )
         except OSError:
             continue
         else:
-            winreg.CloseKey(key)  # type: ignore[attr-defined]
+            winreg.CloseKey(key)  # type: ignore[attr-defined, unused-ignore]
             return prog_id
     return None
 

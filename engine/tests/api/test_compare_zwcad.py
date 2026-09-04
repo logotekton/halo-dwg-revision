@@ -13,7 +13,22 @@ from fastapi.testclient import TestClient
 def test_zwcad_status_returns_200_with_expected_schema(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(sys, "platform", "darwin")
+    # Do NOT monkeypatch sys.platform here: the app's JobManager builds a
+    # ProcessPoolExecutor, and multiprocessing consults sys.platform when it
+    # creates its locks -- on windows-latest a faked "darwin" sent it down the
+    # POSIX resource-tracker path (ModuleNotFoundError: _posixsubprocess).
+    # Patch the router's `detect` instead; the platform branch itself is
+    # covered by tests/compare/test_zwcad.py.
+    from halo_engine.api.routers import compare_zwcad
+    from halo_engine.compare.zwcad import ZwcadStatus
+
+    monkeypatch.setattr(
+        compare_zwcad,
+        "detect",
+        lambda: ZwcadStatus(
+            available=False, installed=False, version=None, prog_id=None, reason="not_windows"
+        ),
+    )
     app = make_app(tmp_path)
     try:
         with TestClient(app) as client:

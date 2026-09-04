@@ -1483,8 +1483,7 @@ class MlightcadViewSurface implements ViewSurface {
   /** The active document's layer service, or null when nothing is open. */
   private layerService(): AcApLayerService | null {
     const document: AcApDocument | undefined = this.manager.curDocument;
-    // `curDocument` is typed as always present but is undefined before the
-    // first open in 1.6.3.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: `curDocument` is typed as always present but is undefined before the first open in 1.6.3
     return document ? document.layerService : null;
   }
 

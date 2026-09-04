@@ -39,6 +39,12 @@ export interface HeapGrowth {
   gcAvailable: boolean
 }
 
+export interface ViewerLayerState {
+  name: string
+  visible: boolean
+  frozen: boolean
+}
+
 interface ViewerHooks {
   getStatus(): string
   getDocuments(): ViewerDocumentInfo[]
@@ -50,6 +56,10 @@ interface ViewerHooks {
   highlight(handles: string[]): void
   zoomToFit(): void
   layers(): string[]
+  layerStates(): ViewerLayerState[]
+  setLayerVisible(name: string, visible: boolean): boolean
+  setLayersVisible(entries: Record<string, boolean>): void
+  whenRenderIdle(): Promise<void>
   populatedLayers(): string[]
   close(fileId: string): Promise<void>
   dispose(): Promise<void>
@@ -183,6 +193,38 @@ export function viewerLayers(page: Page): Promise<string[]> {
     if (!hooks) throw new Error(message)
     return hooks.layers()
   }, NO_HOOK)
+}
+
+/** The layer table with the on/off and frozen flags (R1-00a). */
+export function viewerLayerStates(page: Page): Promise<ViewerLayerState[]> {
+  return page.evaluate((message) => {
+    const hooks = window.__haloViewer
+    if (!hooks) throw new Error(message)
+    return hooks.layerStates()
+  }, NO_HOOK)
+}
+
+/**
+ * Applies a view mode and waits for the repaint.
+ *
+ * The wait is part of the helper on purpose: turning a layer back on can need
+ * entities the viewer never converted while it was hidden
+ * (`AcTrView2d.convertMissingEntitiesOnLayer`), so a screenshot taken straight
+ * after the toggle can catch a half-drawn frame.
+ */
+export function viewerSetLayersVisible(
+  page: Page,
+  entries: Record<string, boolean>,
+): Promise<void> {
+  return page.evaluate(
+    async (args) => {
+      const hooks = window.__haloViewer
+      if (!hooks) throw new Error(args.message)
+      hooks.setLayersVisible(args.entries)
+      await hooks.whenRenderIdle()
+    },
+    { entries, message: NO_HOOK },
+  )
 }
 
 /** Layers that actually carry a top-level entity, sorted. */

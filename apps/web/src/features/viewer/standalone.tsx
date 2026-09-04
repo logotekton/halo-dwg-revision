@@ -17,7 +17,15 @@ import { createRoot } from 'react-dom/client';
 import '../../i18n/i18n';
 import '../../styles/index.css';
 import { ViewerPanel } from './ViewerPanel';
-import { closeDrawing, currentHost, disposeCadHost, openDrawing } from './host';
+import {
+  closeDrawing,
+  currentHost,
+  disposeCadHost,
+  layers,
+  openDrawing,
+  setLayersVisible,
+  whenRenderIdle,
+} from './host';
 import { selection, viewer } from './viewer-store';
 
 interface ConvertResult {
@@ -48,6 +56,14 @@ interface ViewerTestHooks {
   zoomToFit(): void;
   /** Every layer in the layer table. */
   layers(): string[];
+  /** The same table with the flags screen C reads (R1-00a). */
+  layerStates(): { name: string; visible: boolean; frozen: boolean }[];
+  /** Turns one layer on or off; false when the drawing has no such layer. */
+  setLayerVisible(name: string, visible: boolean): boolean;
+  /** Applies a whole view mode at once (compare-dxf §9). */
+  setLayersVisible(entries: Record<string, boolean>): void;
+  /** Resolves once the scene settled and a frame was painted. */
+  whenRenderIdle(): Promise<void>;
   /** Layers that actually carry a top-level entity, sorted. */
   populatedLayers(): string[];
   close(fileId: string): Promise<void>;
@@ -84,6 +100,14 @@ function baseName(path: string): string {
 
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   return bytes.slice().buffer;
+}
+
+/** Length of a lazy iterable; `entities()` is a generator, so it must be walked. */
+function count(items: Iterable<unknown>): number {
+  let total = 0;
+  const iterator = items[Symbol.iterator]();
+  while (!iterator.next().done) total += 1;
+  return total;
 }
 
 async function openPath(path: string): Promise<{
@@ -135,7 +159,16 @@ function installTestHooks(): void {
     zoomToFit: () => {
       currentHost()?.zoomToFit();
     },
-    layers: () => (currentHost()?.layers() ?? []).map((layer) => layer.name),
+    layers: () => layers().map((layer) => layer.name),
+    layerStates: () =>
+      layers().map((layer) => ({
+        name: layer.name,
+        visible: layer.visible,
+        frozen: layer.frozen,
+      })),
+    setLayerVisible: (name, visible) => currentHost()?.setLayerVisible(name, visible) ?? false,
+    setLayersVisible,
+    whenRenderIdle,
     populatedLayers: () => {
       const host = currentHost();
       if (!host) return [];
@@ -155,9 +188,7 @@ function installTestHooks(): void {
       const document = host?.document();
       if (!document) return { topLevel: 0, inBlocks: 0, total: 0 };
       let topLevel = 0;
-      for (const space of document.spaces()) {
-        for (const _entity of space.entities()) topLevel += 1;
-      }
+      for (const space of document.spaces()) topLevel += count(space.entities());
       let inBlocks = 0;
       for (const block of document.blocks()) {
         if (block.isModelSpace || block.isPaperSpace) continue;

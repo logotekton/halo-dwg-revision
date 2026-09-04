@@ -94,7 +94,6 @@ for (const [label, relative] of FILES) {
         const hooks = window.__haloViewer
         return hooks ? { heap: hooks.heapUsedBytes() ?? 0, load: hooks.renderLoad() } : null
       })
-      // eslint-disable-next-line no-console -- the numbers are the deliverable
       console.log(
         `FACILITY ${JSON.stringify({
           label,
@@ -112,7 +111,6 @@ for (const [label, relative] of FILES) {
         path: join(REPO_ROOT, `test-results/viewer/facility-${label}.png`),
       })
     } catch (error) {
-      // eslint-disable-next-line no-console -- a failure is also a measurement
       console.log(
         `FACILITY ${JSON.stringify({
           label,

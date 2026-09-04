@@ -9,16 +9,18 @@ import {
   openFixture,
   pickFiles,
   viewerDocuments,
+  viewerLayerStates,
   viewerLayers,
   viewerPick,
   viewerPopulatedLayers,
   viewerSelectAndHighlight,
+  viewerSetLayersVisible,
   viewerStatus,
 } from '../../packages/testing/src/viewer'
 
 /**
- * W3-02 viewer e2e: the real Electron app, the real `halocad://` scheme, the
- * real mlightcad viewer and the real hidden DWG converter window.
+ * Viewer e2e: the real Electron app, the real `halocad://` scheme, the real
+ * mlightcad viewer and the real hidden DWG converter window.
  *
  * Fixtures reach the app through `HALO_E2E_PICK_FILES`
  * (`docs/contracts/wave-3.md` "테스트 훅"); the standalone viewer page
@@ -28,9 +30,8 @@ import {
  * The app is launched once for the whole file (rather than through the
  * `haloApp` fixture) because the tests share one viewer session on purpose:
  * that is what makes the heap measurement at the end meaningful. Every typed
- * helper lives in `packages/testing/src/viewer.ts` so this file stays plain
- * JavaScript syntax, like `smoke.spec.ts` — `tests/**` is outside the
- * workspace ESLint config's TypeScript glob.
+ * helper lives in `packages/testing/src/viewer.ts`, so the assertions here read
+ * as the checklist of `docs/briefs/R1-00a.md` "Definition of done".
  */
 
 const GENERATED = join(REPO_ROOT, 'fixtures/generated')
@@ -42,6 +43,13 @@ const SCREENSHOT_DIR = join(REPO_ROOT, 'test-results/viewer')
 const F06_TABLE_LAYERS = 8
 /** The five layers that carry entities (`fixtures/truth/F06.json` buckets). */
 const F06_POPULATED_LAYERS = ['A-TEXT', 'S-BEAM', 'S-COL', 'X-GRID', 'X-TITLE']
+/**
+ * The layer hidden in the visibility test: 12 solid HATCHes and 12 LWPOLYLINEs
+ * over 4.32 m² of the sheet, which is the largest painted area of any single
+ * F06 layer — so "the two screenshots differ" is a real signal, not a
+ * one-antialiased-pixel accident.
+ */
+const TOGGLED_LAYER = 'S-COL'
 /** `fixtures/truth/F06.json` totals.entity_count. */
 const F06_ENTITIES = 86
 /** 20 open/close cycles must not grow the heap by more than 10% (brief W3-02). */
@@ -87,6 +95,44 @@ test('opens the DXF fixture, renders it and reports its layers', async () => {
   await session.page.screenshot({ path: join(SCREENSHOT_DIR, 'f06-dxf.png') })
 })
 
+test('hides a layer and both layers() and the canvas say so', async () => {
+  const canvas = session.page.locator('#viewer-root canvas').first()
+  await canvas.waitFor({ state: 'visible' })
+
+  // Every populated layer starts on and thawed.
+  const before = await viewerLayerStates(session.page)
+  const beforeByName = new Map(before.map((layer) => [layer.name, layer]))
+  expect(before.map((layer) => layer.name)).toEqual(
+    expect.arrayContaining(F06_POPULATED_LAYERS),
+  )
+  for (const name of F06_POPULATED_LAYERS) {
+    expect(beforeByName.get(name)).toMatchObject({ visible: true, frozen: false })
+  }
+
+  const shown = await canvas.screenshot({ path: join(SCREENSHOT_DIR, 'f06-layer-on.png') })
+
+  await viewerSetLayersVisible(session.page, { [TOGGLED_LAYER]: false })
+
+  const afterByName = new Map(
+    (await viewerLayerStates(session.page)).map((layer) => [layer.name, layer]),
+  )
+  expect(afterByName.get(TOGGLED_LAYER)).toMatchObject({ visible: false })
+  // Only the named layer moved.
+  for (const name of F06_POPULATED_LAYERS) {
+    if (name === TOGGLED_LAYER) continue
+    expect(afterByName.get(name)?.visible).toBe(true)
+  }
+
+  const hidden = await canvas.screenshot({ path: join(SCREENSHOT_DIR, 'f06-layer-off.png') })
+  expect(hidden.equals(shown)).toBe(false)
+
+  // Turning it back on restores both the flag and the picture: the round trip
+  // is what screen C does every time the user switches 전 / 후 / 겹쳐 보기.
+  await viewerSetLayersVisible(session.page, { [TOGGLED_LAYER]: true })
+  const restored = await viewerLayerStates(session.page)
+  expect(restored.find((layer) => layer.name === TOGGLED_LAYER)?.visible).toBe(true)
+})
+
 test('picks an entity by world coordinate and highlights it', async () => {
   // (8000, 23400) is the first GRID-BUBBLE insert of F06. The radius is in
   // *pixels*, not drawing units (spike C.3), so a small one keeps the hit to
@@ -119,8 +165,9 @@ test('opening and closing twenty documents keeps the heap within 10%', async () 
 
   // The measured numbers belong in the run log.
   console.log(
-    `heap before=${growth.before} after=${growth.after} ratio=${growth.ratio.toFixed(4)} ` +
-      `perCycle=${growth.perCycleBytes}B gc=${growth.gcAvailable}`,
+    `heap before=${String(growth.before)} after=${String(growth.after)} ` +
+      `ratio=${growth.ratio.toFixed(4)} perCycle=${String(growth.perCycleBytes)}B ` +
+      `gc=${String(growth.gcAvailable)}`,
   )
 
   // `performance.memory` is quantised and reads 0 without

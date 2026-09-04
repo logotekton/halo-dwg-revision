@@ -317,8 +317,48 @@
     },
     "export": {
       "title": "출력",
-      "placeholder": "출력 화면은 아직 준비되지 않았습니다",
-      "back": "도곽 목록으로"
+      "back": "도곽 목록으로",
+      "summary": {
+        "title": "요약",
+        "counts": "승인 {{approved}}건 · 무시 {{ignored}}건 · 대상 도곽 {{sheets}}장"
+      },
+      "scope": {
+        "label": "범위",
+        "all": "전체 도곽"
+      },
+      "method": {
+        "label": "넣는 방법",
+        "zwcad": "DWG(ZWCAD)",
+        "dxf": "DXF(ZWCAD 없음)"
+      },
+      "runDate": {
+        "label": "실행 날짜"
+      },
+      "run": "출력 실행",
+      "running": "출력 중...",
+      "result": {
+        "title": "출력 결과",
+        "sheetNo": "도면번호",
+        "file": "파일",
+        "format": "형식",
+        "writer": "라이터",
+        "warning": "경고",
+        "empty": "출력된 도면이 없습니다(승인한 클러스터가 없습니다)"
+      },
+      "writer": {
+        "zwcadCom": "ZWCAD",
+        "acadTs": "acad-ts",
+        "dxfOnly": "DXF 전용"
+      },
+      "warning": {
+        "dxfOnly": "ZWCAD 없음: DXF로 출력됨"
+      },
+      "openFolder": "폴더 열기",
+      "copyTsv": "변경 리스트 TSV 복사",
+      "backToList": "목록으로",
+      "toast": {
+        "tsvCopied": "TSV를 클립보드에 복사했습니다"
+      }
     }
   }
 }

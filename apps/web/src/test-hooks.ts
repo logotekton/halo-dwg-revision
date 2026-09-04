@@ -16,7 +16,11 @@
  * (`compareOpenPair`/`compareGetClusters`/`compareDecide`, R1-08) come from
  * `features/compare/review/testHooks.ts`, which registers at module scope
  * because the e2e calls `compareOpenPair` before screen C ever mounts.
- * Return/parameter types
+ * Screen D's two (`compareRunExport`/`compareGetLastRun`, R1-10) register the
+ * same way, at the module scope of `features/compare/ExportScreen.tsx` --
+ * both read/write `state/export.ts` directly and do not need screen D to be
+ * mounted (the compare set only has to exist, i.e. `compareStartSet` has
+ * already resolved). Return/parameter types
  * stay loose (`unknown`, plain strings) rather than importing
  * `state/compare.ts`'s richer types here -- this file is the hook *registry*
  * only, the same minimal-surface choice `getDocuments`'s inline object type
@@ -43,6 +47,14 @@ export interface HaloTestHooks {
    * the decision a cluster already has returns it to `pending`, exactly like
    * pressing the button twice. */
   compareDecide(number: number, decision: string): Promise<void>
+  /** Screen D: runs `POST .../export` to completion (`state/export.ts`'s
+   * `runExport`) and resolves with the finished `Run` (contract §7's API
+   * shape). Rejects with the engine's own message on a failed job, or if the
+   * job finished with no `run` at all. R1-10. */
+  compareRunExport(params: { runDate: string }): Promise<unknown>
+  /** The `Run` from the most recent `compareRunExport`, or `null` before one
+   * has finished (`state/export.ts`'s own `run` field). R1-10. */
+  compareGetLastRun(): unknown
 }
 
 declare global {

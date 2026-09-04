@@ -1,0 +1,64 @@
+{
+  "schema_version": "0.1",
+  "scenario": "S12_whole_redraw",
+  "description": "후 도면을 생성 순서를 뒤집어 통째로 다시 그리고(핸들 전부 변경), 그 위에 문 이동과 텍스트 변경을 심는다.",
+  "before_dir": "before",
+  "after_dir": "after",
+  "expected_pairs": [
+    {
+      "sheet_no": "A-101",
+      "status": "changed",
+      "match_method": "number",
+      "expected_changes": [
+        {
+          "kind": "moved",
+          "etype": "INSERT",
+          "minor": false,
+          "before_handle": null,
+          "after_handle": null,
+          "minor_reason": null,
+          "layer": "A-DOOR",
+          "bbox": [
+            14050.0,
+            17000.0,
+            16200.0,
+            18110.0
+          ],
+          "note": "whole redraw: door D1 still moves 1250mm east (handles renumbered, matched by fingerprint)"
+        },
+        {
+          "kind": "text",
+          "etype": "TEXT",
+          "minor": false,
+          "before_handle": null,
+          "after_handle": null,
+          "minor_reason": null,
+          "layer": "A-TEXT",
+          "bbox": [
+            14500.0,
+            11666.508,
+            15757.299,
+            12050.0
+          ],
+          "note": "whole redraw: room text still changes (handles renumbered, matched by fingerprint)"
+        }
+      ],
+      "expected_cluster_count": 2,
+      "clean_regions": [
+        [
+          0.0,
+          32000.0,
+          84100.0,
+          59400.0
+        ],
+        [
+          0.0,
+          0.0,
+          8000.0,
+          59400.0
+        ]
+      ]
+    }
+  ],
+  "notes": "handle 은 일부러 null 이다 -- 통째 재생성으로 모든 핸들이 바뀌어 truth.schema.json 의 'copies a whole file' 규칙을 따른다. bbox 로만 대조한다. 심지 않은 나머지는 오탐 0 이어야 한다."
+}

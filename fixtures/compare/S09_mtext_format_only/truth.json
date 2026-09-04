@@ -1,0 +1,47 @@
+{
+  "schema_version": "0.1",
+  "scenario": "S09_mtext_format_only",
+  "description": "범례 MTEXT의 서식 코드만 바꾼다(굵게 추가). 평문 텍스트는 그대로다.",
+  "before_dir": "before",
+  "after_dir": "after",
+  "expected_pairs": [
+    {
+      "sheet_no": "A-101",
+      "status": "same",
+      "match_method": "number",
+      "expected_changes": [
+        {
+          "kind": "modified",
+          "etype": "MTEXT",
+          "minor": true,
+          "before_handle": "118",
+          "after_handle": "118",
+          "minor_reason": "mtext_format_only",
+          "layer": "A-TEXT",
+          "bbox": [
+            46000.0,
+            18113.508,
+            64000.0,
+            20000.0
+          ],
+          "note": "legend MTEXT formatting only (bold added); plain text unchanged"
+        }
+      ],
+      "expected_cluster_count": 0,
+      "clean_regions": [
+        [
+          0.0,
+          32000.0,
+          84100.0,
+          59400.0
+        ],
+        [
+          0.0,
+          0.0,
+          8000.0,
+          59400.0
+        ]
+      ]
+    }
+  ]
+}

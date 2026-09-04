@@ -1,0 +1,31 @@
+{
+  "schema_version": "0.1",
+  "scenario": "S15_frame_shift",
+  "description": "후 파일 전체를 (+50000, +20000) 평행이동한다. 도곽 로컬 좌표 기준으로는 변경이 없어야 한다.",
+  "before_dir": "before",
+  "after_dir": "after",
+  "expected_pairs": [
+    {
+      "sheet_no": "A-101",
+      "status": "same",
+      "match_method": "number",
+      "expected_changes": [],
+      "expected_cluster_count": 0,
+      "clean_regions": [
+        [
+          50000.0,
+          52000.0,
+          134100.0,
+          79400.0
+        ],
+        [
+          50000.0,
+          20000.0,
+          58000.0,
+          79400.0
+        ]
+      ]
+    }
+  ],
+  "notes": "build_base_plan(origin=SHIFT)로 전체 콘텐츠를 다시 그려 실제 평행이동한 도면을 만들었다. 엔진은 frame_offset = after.bbox.min - before.bbox.min 만큼 되돌려 후 좌표계로 맞춘 뒤 비교해야 한다(docs/contracts/compare-dxf.md SS1)."
+}

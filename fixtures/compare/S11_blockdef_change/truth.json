@@ -1,0 +1,48 @@
+{
+  "schema_version": "0.1",
+  "scenario": "S11_blockdef_change",
+  "description": "DOOR_900 블록 정의 내부 문짝 LINE 길이를 900mm에서 850mm로 줄인다(인스턴스 6개 전체에 영향).",
+  "before_dir": "before",
+  "after_dir": "after",
+  "expected_pairs": [
+    {
+      "sheet_no": "A-101",
+      "status": "changed",
+      "match_method": "number",
+      "expected_changes": [
+        {
+          "kind": "blockdef",
+          "etype": "INSERT",
+          "minor": false,
+          "before_handle": "F8",
+          "after_handle": "F8",
+          "minor_reason": null,
+          "layer": "A-DOOR",
+          "bbox": [
+            14050.0,
+            17000.0,
+            14950.0,
+            18110.0
+          ],
+          "note": "DOOR_900 panel LINE shortened 900->850mm; affects all 6 instances (D1..D6)"
+        }
+      ],
+      "expected_cluster_count": null,
+      "clean_regions": [
+        [
+          0.0,
+          32000.0,
+          84100.0,
+          59400.0
+        ],
+        [
+          0.0,
+          0.0,
+          8000.0,
+          59400.0
+        ]
+      ]
+    }
+  ],
+  "notes": "대표로 D1 인스턴스 하나만 expected_change로 적었다(schema에 인스턴스 수 필드가 없다). note에 영향받는 인스턴스 수를 적었다."
+}

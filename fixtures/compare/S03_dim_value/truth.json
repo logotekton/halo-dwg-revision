@@ -1,0 +1,48 @@
+{
+  "schema_version": "0.1",
+  "scenario": "S03_dim_value",
+  "description": "치수 1개(room_a_width)의 두 번째 측정점을 옮겨 측정값을 바꾼다.",
+  "before_dir": "before",
+  "after_dir": "after",
+  "expected_pairs": [
+    {
+      "sheet_no": "A-101",
+      "status": "changed",
+      "match_method": "number",
+      "expected_changes": [
+        {
+          "kind": "dimension",
+          "etype": "DIMENSION",
+          "minor": false,
+          "before_handle": "137",
+          "after_handle": "137",
+          "minor_reason": null,
+          "layer": "A-DIM",
+          "bbox": [
+            8499.903,
+            27500.0,
+            21000.097,
+            29000.385
+          ],
+          "note": "room_a_width measurement 12000 -> 12500mm"
+        }
+      ],
+      "expected_cluster_count": 1,
+      "clean_regions": [
+        [
+          0.0,
+          32000.0,
+          84100.0,
+          59400.0
+        ],
+        [
+          0.0,
+          0.0,
+          8000.0,
+          59400.0
+        ]
+      ]
+    }
+  ],
+  "notes": "정의점(defpoint3)만 옮기고 render()로 다시 그렸다. text override는 쓰지 않았다(브리프 Defaults)."
+}

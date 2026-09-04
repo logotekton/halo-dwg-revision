@@ -25,6 +25,32 @@ export function getMimeType(filePath: string): string {
 }
 
 /**
+ * Root of the viewer assets under the custom scheme
+ * (`docs/contracts/wave-3.md` "뷰어 자산 배치"). `workers/` and `fonts/` hang
+ * off it, and `packages/dwg-io-gpl/scripts/copy-worker-assets.mjs` fills
+ * `apps/web/public/viewer/workers` so Vite copies them into `dist/`.
+ */
+export const VIEWER_ASSETS_BASE = 'halocad://app/viewer'
+
+/**
+ * Headers every response from the app scheme carries.
+ *
+ * `.wasm` must arrive as `application/wasm` or `WebAssembly.instantiateStreaming`
+ * refuses it and the libredwg worker falls back to reading the 9.9 MB module a
+ * second time (`docs/spikes/mlightcad-api.md` §A, Electron requirement 2).
+ */
+export function assetHeaders(filePath: string, byteLength: number): Record<string, string> {
+  return {
+    'Content-Type': getMimeType(filePath),
+    'Content-Length': String(byteLength),
+    // The worker files are fetched by URL from a worker context; nothing here
+    // is cross-origin, but the header keeps `checkWebworkerReadiness`'s HEAD
+    // probe from being treated as an opaque response.
+    'Cache-Control': 'no-cache',
+  }
+}
+
+/**
  * Where the `halocad://app` protocol handler should serve `apps/web/dist`
  * from, per the packaging contract (`docs/contracts/wave-2.md` "패키징"):
  *

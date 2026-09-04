@@ -1,3 +1,4 @@
+import { resolve } from 'node:path'
 import { defineConfig } from 'electron-vite'
 
 // Renderer is intentionally NOT configured here (ADR-0001 / brief W1-01):
@@ -16,5 +17,20 @@ import { defineConfig } from 'electron-vite'
 // (sandbox: true) BrowserWindow across Electron versions.
 export default defineConfig({
   main: {},
-  preload: {},
+  preload: {
+    build: {
+      rollupOptions: {
+        // Two preload entries: the main window's (W1-01) and the hidden DWG
+        // converter window's (W3-02, ADR-0002 개정 §2). The converter page gets
+        // its own preload so its IPC surface is exactly two channels.
+        input: {
+          index: resolve(__dirname, 'src/preload/index.ts'),
+          convert: resolve(__dirname, 'src/preload/convert.ts'),
+        },
+        output: {
+          entryFileNames: '[name].js',
+        },
+      },
+    },
+  },
 })

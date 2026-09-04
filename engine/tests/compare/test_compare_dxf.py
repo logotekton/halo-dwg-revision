@@ -24,6 +24,7 @@ from referencing.jsonschema import DRAFT202012
 from halo_engine.bundle.guard import OriginalWriteGuardError
 from halo_engine.compare.cluster import build_clusters
 from halo_engine.compare.compare_dxf import (
+    ADDED_BLOCK_PREFIX,
     APPID,
     BEFORE_BLOCK_PREFIX,
     COLOR_ADDED,
@@ -32,11 +33,15 @@ from halo_engine.compare.compare_dxf import (
     LAYER_ADDED,
     LAYER_LABEL,
     LAYER_REMOVED,
+    MAX_BLOCK_NAME,
+    REMOVED_BLOCK_PREFIX,
     ZERO_GUID,
+    _mark_layer,
     build_sidecar,
     dumps_sidecar,
     pin_header_for_determinism,
     prefix_before_blocks,
+    relayer_block_references,
     serialize,
     sidecar_integrity_failures,
     write_clusters_json,
@@ -247,6 +252,250 @@ def test_the_written_file_audits_clean() -> None:
     doc = _open("S03_dim_value")
     auditor = doc.audit()
     assert not auditor.errors, [error.message for error in auditor.errors]
+
+
+# ------------------------------------------------------------------ clone blocks
+
+
+def _references(doc: Drawing, layer: str) -> list[Any]:
+    """The INSERTs and DIMENSIONs of ``doc``'s modelspace that sit on ``layer``."""
+    return [
+        entity
+        for entity in doc.modelspace()
+        if entity.dxf.layer == layer and entity.dxftype() in {"INSERT", "DIMENSION"}
+    ]
+
+
+def _block_of(entity: Any) -> str:
+    """The block an entity draws from: an INSERT's, a DIMENSION's, or none."""
+    etype = entity.dxftype()
+    if etype == "INSERT":
+        return str(entity.dxf.name)
+    if etype == "DIMENSION":
+        return str(entity.dxf.get("geometry", "") or "")
+    return ""
+
+
+def assert_wholly_on(doc: Drawing, block_name: str, layer: str) -> None:
+    """Every entity of ``block_name``, and of every block it reaches, is on ``layer``.
+
+    The point of the clone: what the viewer draws for this reference is these
+    entities, so hiding ``layer`` has to hide all of them and the layer's colour
+    has to be the only colour any of them asks for (contract §2, §3).
+    """
+    seen: set[str] = set()
+    pending = [block_name]
+    while pending:
+        name = pending.pop()
+        if name in seen:
+            continue
+        seen.add(name)
+        block = doc.blocks.get(name)
+        assert block is not None, name
+        assert list(block), f"{name} is empty"
+        for entity in block:
+            assert entity.dxf.layer == layer, f"{name}/{entity.dxftype()}"
+            assert entity.dxf.color == 256, f"{name}/{entity.dxftype()}"
+            assert entity.dxf.linetype == "BYLAYER", f"{name}/{entity.dxftype()}"
+            assert not entity.dxf.hasattr("true_color"), f"{name}/{entity.dxftype()}"
+            assert not entity.has_xdata(APPID), f"{name}/{entity.dxftype()}"
+            nested = _block_of(entity)
+            if nested:
+                pending.append(nested)
+
+
+def test_an_added_block_reference_is_drawn_from_a_relayered_clone() -> None:
+    """R1-08's defect: the door is drawn by ``DOOR_900``'s entities, not by the INSERT.
+
+    Left on ``A-DOOR``, they stay visible in "전" view and keep their own
+    colour, so neither promise of contract §2 holds for a moved door -- the
+    commonest revision there is.
+    """
+    doc = _open("S02_move_door")
+    added = _references(doc, LAYER_ADDED)
+    assert [_block_of(entity) for entity in added] == [f"{ADDED_BLOCK_PREFIX}DOOR_900"]
+    assert_wholly_on(doc, f"{ADDED_BLOCK_PREFIX}DOOR_900", LAYER_ADDED)
+
+
+def test_a_removed_clone_is_named_after_the_before_block_it_copies() -> None:
+    """The name is built from the block *in the compare document*, so ``__B_`` survives."""
+    doc = _open("S02_move_door")
+    removed = _references(doc, LAYER_REMOVED)
+    expected = f"{REMOVED_BLOCK_PREFIX}{BEFORE_BLOCK_PREFIX}DOOR_900"
+    assert [_block_of(entity) for entity in removed] == [expected]
+    assert_wholly_on(doc, expected, LAYER_REMOVED)
+
+
+def test_an_unchanged_block_reference_still_draws_from_its_own_block() -> None:
+    """Only what moved is relayered: the other five doors are the 후 sheet as it is."""
+    doc = _open("S02_move_door")
+    unchanged = [
+        entity
+        for entity in doc.modelspace()
+        if entity.dxftype() == "INSERT" and entity.dxf.layer == "A-DOOR"
+    ]
+    assert len(unchanged) == 5
+    assert {entity.dxf.name for entity in unchanged} == {"DOOR_900"}
+    assert {entity.dxf.layer for entity in doc.blocks.get("DOOR_900")} == {"A-DOOR"}
+
+
+def test_one_clone_per_block_and_side_however_many_references_share_it() -> None:
+    """``S11`` redefines ``DOOR_900``: six instances are drawn twice, from two clones.
+
+    File growth is meant to follow the number of changed block *kinds*, not the
+    number of changed instances (brief constraint).
+    """
+    doc = _open("S11_blockdef_change")
+    added = f"{ADDED_BLOCK_PREFIX}DOOR_900"
+    removed = f"{REMOVED_BLOCK_PREFIX}{BEFORE_BLOCK_PREFIX}DOOR_900"
+
+    assert [_block_of(entity) for entity in _references(doc, LAYER_ADDED)] == [added] * 6
+    assert [_block_of(entity) for entity in _references(doc, LAYER_REMOVED)] == [removed] * 6
+
+    names = [block.name for block in doc.blocks]
+    assert names.count(added) == 1
+    assert names.count(removed) == 1
+    assert [name for name in names if name.startswith(ADDED_BLOCK_PREFIX)] == [added]
+    assert [name for name in names if name.startswith(REMOVED_BLOCK_PREFIX)] == [removed]
+
+
+def test_a_dimension_draws_from_a_cloned_geometry_block() -> None:
+    """A DIMENSION draws nothing itself: its anonymous ``*D`` block does (contract §3).
+
+    The clone has to keep the R1-06 reattachment honest too -- ``audit()``
+    deletes a dimension whose ``geometry`` names no block.
+    """
+    doc = _open("S03_dim_value")
+    for layer, prefix in ((LAYER_ADDED, ADDED_BLOCK_PREFIX), (LAYER_REMOVED, REMOVED_BLOCK_PREFIX)):
+        references = _references(doc, layer)
+        assert [entity.dxftype() for entity in references] == ["DIMENSION"]
+        geometry = _block_of(references[0])
+        assert geometry.startswith(prefix)
+        assert geometry in doc.blocks
+        # The arrow blocks the dimension inserts are cloned with it.
+        assert_wholly_on(doc, geometry, layer)
+    assert not doc.audit().errors
+
+
+def test_the_geometry_clone_of_an_anonymous_block_drops_the_asterisk() -> None:
+    """DXF forbids ``*`` anywhere but the first character of a block name."""
+    doc = _open("S03_dim_value")
+    clones = [
+        block.name
+        for block in doc.blocks
+        if block.name.startswith((ADDED_BLOCK_PREFIX, REMOVED_BLOCK_PREFIX))
+    ]
+    assert clones
+    assert all("*" not in name for name in clones)
+
+
+# ---------------------------------------------------------- clone blocks, by hand
+
+
+def _comparison_doc() -> Drawing:
+    doc = ezdxf.new("R2018", setup=False)
+    doc.layers.add(LAYER_ADDED, color=COLOR_ADDED)
+    doc.layers.add(LAYER_REMOVED, color=COLOR_REMOVED)
+    return doc
+
+
+def test_a_nested_block_is_cloned_recursively() -> None:
+    """A pair of columns is one INSERT of a block of INSERTs; all three levels move."""
+    doc = _comparison_doc()
+    column = doc.blocks.new("COL_600")
+    column.add_lwpolyline(
+        [(0, 0), (600, 0), (600, 600), (0, 600)],
+        close=True,
+        dxfattribs={"layer": "S-COL", "color": 3},
+    )
+    pair = doc.blocks.new("COL_PAIR")
+    for x in (0, 3000):
+        pair.add_blockref("COL_600", (x, 0), dxfattribs={"layer": "S-COL", "color": 5})
+    reference = doc.modelspace().add_blockref(
+        "COL_PAIR", (0, 0), dxfattribs={"layer": LAYER_ADDED, "color": 256}
+    )
+
+    relayer_block_references(doc)
+
+    assert reference.dxf.name == f"{ADDED_BLOCK_PREFIX}COL_PAIR"
+    inner = doc.blocks.get(f"{ADDED_BLOCK_PREFIX}COL_PAIR")
+    assert [entity.dxf.name for entity in inner] == [f"{ADDED_BLOCK_PREFIX}COL_600"] * 2
+    assert_wholly_on(doc, f"{ADDED_BLOCK_PREFIX}COL_PAIR", LAYER_ADDED)
+
+    # The originals are untouched: the unchanged columns still draw as themselves.
+    assert [entity.dxf.color for entity in doc.blocks.get("COL_600")] == [3]
+    assert [entity.dxf.layer for entity in doc.blocks.get("COL_PAIR")] == ["S-COL"] * 2
+
+
+def test_the_two_sides_get_their_own_clone_of_the_same_block() -> None:
+    doc = _comparison_doc()
+    doc.blocks.new("MARK").add_circle((0, 0), 50, dxfattribs={"layer": "A-ANNO"})
+    for layer in (LAYER_ADDED, LAYER_REMOVED):
+        doc.modelspace().add_blockref("MARK", (0, 0), dxfattribs={"layer": layer})
+
+    relayer_block_references(doc)
+
+    names = [entity.dxf.name for entity in doc.modelspace()]
+    assert names == [f"{ADDED_BLOCK_PREFIX}MARK", f"{REMOVED_BLOCK_PREFIX}MARK"]
+    assert_wholly_on(doc, f"{ADDED_BLOCK_PREFIX}MARK", LAYER_ADDED)
+    assert_wholly_on(doc, f"{REMOVED_BLOCK_PREFIX}MARK", LAYER_REMOVED)
+
+
+def test_a_block_that_reaches_itself_is_cloned_once_and_terminates() -> None:
+    """A cycle is invalid DXF, but a real file can carry one and must not hang us."""
+    doc = _comparison_doc()
+    loop = doc.blocks.new("LOOP")
+    loop.add_line((0, 0), (100, 0), dxfattribs={"layer": "0"})
+    loop.add_blockref("LOOP", (100, 0), dxfattribs={"layer": "0"})
+    doc.modelspace().add_blockref("LOOP", (0, 0), dxfattribs={"layer": LAYER_ADDED})
+
+    relayer_block_references(doc)
+
+    clone = f"{ADDED_BLOCK_PREFIX}LOOP"
+    assert [block.name for block in doc.blocks].count(clone) == 1
+    nested = [entity for entity in doc.blocks.get(clone) if entity.dxftype() == "INSERT"]
+    assert [entity.dxf.name for entity in nested] == [clone]
+
+
+def test_an_attrib_on_the_reference_moves_with_it() -> None:
+    doc = _comparison_doc()
+    block = doc.blocks.new("TAGGED")
+    block.add_line((0, 0), (100, 0), dxfattribs={"layer": "A-ANNO"})
+    block.add_attdef("ROOM", (0, 0), dxfattribs={"layer": "A-ANNO"})
+    reference = doc.modelspace().add_blockref("TAGGED", (0, 0), dxfattribs={"layer": LAYER_ADDED})
+    reference.add_auto_attribs({"ROOM": "거실"})
+    for attrib in reference.attribs:
+        attrib.dxf.layer = "A-ANNO"
+        attrib.dxf.color = 2
+
+    _mark_layer(reference, LAYER_ADDED)
+    relayer_block_references(doc)
+
+    assert [attrib.dxf.layer for attrib in reference.attribs] == [LAYER_ADDED]
+    assert [attrib.dxf.color for attrib in reference.attribs] == [256]
+    assert_wholly_on(doc, f"{ADDED_BLOCK_PREFIX}TAGGED", LAYER_ADDED)
+
+
+def test_a_name_too_long_for_the_table_folds_to_a_hash() -> None:
+    doc = _comparison_doc()
+    long_name = "A" * 250
+    doc.blocks.new(long_name).add_line((0, 0), (1, 1))
+    reference = doc.modelspace().add_blockref(long_name, (0, 0), dxfattribs={"layer": LAYER_ADDED})
+
+    relayer_block_references(doc)
+
+    clone = str(reference.dxf.name)
+    assert clone in doc.blocks
+    assert len(clone) <= MAX_BLOCK_NAME
+    assert clone.startswith(f"{ADDED_BLOCK_PREFIX}{'A' * 200}_")
+    assert len(clone.rsplit("_", 1)[1]) == 8
+
+
+def test_a_reference_to_a_missing_block_is_left_alone() -> None:
+    doc = _comparison_doc()
+    reference = doc.modelspace().add_blockref("GHOST", (0, 0), dxfattribs={"layer": LAYER_ADDED})
+    relayer_block_references(doc)
+    assert reference.dxf.name == "GHOST"
 
 
 # --------------------------------------------------------------------------- xdata

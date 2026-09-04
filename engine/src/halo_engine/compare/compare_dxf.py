@@ -17,6 +17,14 @@ contain one sheet and nothing else (contract §1), and the 전 file's blocks hav
 to arrive under a ``__B_`` prefix because a block of the same name may have a
 different definition on each side (contract §3).
 
+**Why blocks get cloned.** Layer visibility is the only thing the review screen
+does, and a viewer decides visibility and colour per *drawn* entity. A moved
+door is an INSERT, and what an INSERT draws are the entities of its block
+definition -- which sit on ``A-DOOR`` whatever the reference sits on. So an
+INSERT or DIMENSION that lands on a comparison layer is pointed at a relayered
+clone of its block (:class:`_RelayeredBlocks`); otherwise "전" view would not
+hide the added door and the door would not be red.
+
 **Determinism** (contract §8) is not a nice-to-have here -- it is what lets a
 re-run be diffed against the previous one, and it is an acceptance criterion.
 Four things were found to break it and all four are handled:
@@ -61,6 +69,7 @@ from typing import Any
 import ezdxf
 from ezdxf.addons.importer import Importer
 from ezdxf.document import Drawing
+from ezdxf.lldxf.const import DXFError
 from ezdxf.render.arrows import ARROWS
 from ezdxf.tools.juliandate import juliandate
 
@@ -95,6 +104,23 @@ COLOR_LABEL = 8
 #: belongs to. ``*`` is folded to ``_`` because a name that starts with ``*`` is
 #: reserved for anonymous blocks.
 BEFORE_BLOCK_PREFIX = "__B_"
+
+#: Prefixes of the relayered clone blocks (contract §3). The name is built from
+#: the block's name *in the compare document*, so a 전 block keeps its ``__B_``
+#: too: ``__CMPR___B_DOOR_900``. See :class:`_RelayeredBlocks`.
+ADDED_BLOCK_PREFIX = "__CMPA_"
+REMOVED_BLOCK_PREFIX = "__CMPR_"
+
+#: Longest name a DXF block table entry may carry.
+MAX_BLOCK_NAME = 255
+
+#: How much of the original name a clone keeps when the full name would
+#: overflow :data:`MAX_BLOCK_NAME`; the rest is a sha1 prefix.
+CLONE_NAME_KEEP = 200
+
+#: BLOCK flags meaning "the content is in another file": ``BLK_XREF``,
+#: ``BLK_XREF_OVERLAY``, ``BLK_EXTERNAL``. A clone never carries them.
+_XREF_FLAGS = 4 | 8 | 16
 
 #: XDATA application id every marker and every changed entity carries.
 APPID = "HALO_CMP"
@@ -377,21 +403,183 @@ def _ensure_layers(target: Drawing, config: CompareConfig, revision_layer: str) 
             layer.dxf.plot = 0
 
 
+def _mark_one(entity: Any, layer: str) -> None:
+    """Put one entity on ``layer`` and hand every appearance back to the layer."""
+    entity.dxf.layer = layer
+    entity.dxf.color = 256  # BYLAYER
+    entity.dxf.linetype = "BYLAYER"
+    if entity.dxf.is_supported("lineweight"):
+        entity.dxf.lineweight = -1  # BYLAYER
+    # A 24-bit true colour outranks ``color`` in every reader, so BYLAYER only
+    # takes effect once it is gone (R1-06b).
+    entity.dxf.discard("true_color")
+
+
 def _mark_layer(entity: Any, layer: str) -> None:
     """Move an entity onto a comparison layer and let the layer own its colour.
 
     Contract §2: an entity that keeps its own red stays red on the cyan
     ``__CMP_REMOVED`` layer, which defeats the whole point of the two colours.
     The original layer survives in XDATA.
+
+    An INSERT's ATTRIBs are separate entities that are drawn with the
+    reference, so they are moved with it.
     """
-    entity.dxf.layer = layer
-    entity.dxf.color = 256  # BYLAYER
-    entity.dxf.linetype = "BYLAYER"
-    if entity.dxf.is_supported("lineweight"):
-        entity.dxf.lineweight = -1  # BYLAYER
+    _mark_one(entity, layer)
     for attrib in getattr(entity, "attribs", []):
-        attrib.dxf.layer = layer
-        attrib.dxf.color = 256
+        _mark_one(attrib, layer)
+
+
+# ------------------------------------------------------------------- clone blocks
+
+
+class _RelayeredBlocks:
+    """Clone blocks whose every entity sits on one comparison layer (contract §3).
+
+    The viewer decides visibility and colour **per drawn entity**, and what an
+    INSERT draws are the entities of its block *definition*, which keep their
+    own layers (``A-DOOR``, ``0``) and their own colours. Moving the reference
+    to ``__CMP_ADDED`` therefore does neither of the two things contract §2
+    promises: turning ``__CMP_ADDED`` off in "전" view does not hide the added
+    door, and the door is not red. A door or window moving is the most common
+    revision there is, so the fix has to be in the drawing rather than in the
+    viewer (CLAUDE.md rule 4, R1-08 found it).
+
+    So every INSERT and DIMENSION that lands on a comparison layer is pointed
+    at a *clone* of its block whose entities are all on that layer with BYLAYER
+    colour, linetype and lineweight. Nested INSERTs inside a clone reference
+    clones of their own blocks, recursively.
+
+    Two clones at most exist per block -- one per side -- and every reference
+    of that block on that side shares it, so the file grows with the number of
+    changed block *kinds*, not with the number of changed instances. The
+    memo that enforces that (``_names``) is also the cycle guard: the clone's
+    name is recorded before its entities are walked, so a block that reaches
+    itself finds the name already there instead of recursing forever.
+
+    Blocks that keep their original layer are untouched: an unchanged door is
+    still drawn from ``DOOR_900``.
+    """
+
+    def __init__(self, doc: Drawing) -> None:
+        self._doc = doc
+        self._names: dict[tuple[str, str], str] = {}
+        self._taken = {block.name for block in doc.blocks}
+        self.warnings: list[str] = []
+
+    def clone(self, name: str, layer: str) -> str:
+        """The name of ``name``'s clone for ``layer``, creating it on first use."""
+        key = (layer, name)
+        known = self._names.get(key)
+        if known is not None:
+            return known
+        source = self._doc.blocks.get(name)
+        if source is None:
+            return name
+        clone_name = self._reserve(name, layer)
+        # Recorded *before* the walk: a block that references itself, directly
+        # or through another block, must find a name rather than recurse.
+        self._names[key] = clone_name
+        target = self._new_block(clone_name, source)
+        for entity in source:
+            try:
+                copy = entity.copy()
+            except DXFError:  # a DXF type ezdxf keeps as raw tags
+                self.warnings.append(f"uncopyable_block_entity:{entity.dxftype()}")
+                continue
+            _mark_layer(copy, layer)
+            etype = copy.dxftype()
+            if etype == "INSERT":
+                copy.dxf.name = self.clone(str(copy.dxf.name), layer)
+            elif etype == "DIMENSION":
+                geometry = copy.dxf.get("geometry", None)
+                if geometry:
+                    copy.dxf.geometry = self.clone(str(geometry), layer)
+            # The clone's contents are drawing, not hit-test targets: the
+            # cluster is found through the reference's handle (contract §7).
+            copy.discard_xdata(APPID)
+            target.add_entity(copy)
+        return clone_name
+
+    def _new_block(self, clone_name: str, source: Any) -> Any:
+        """An empty block with ``source``'s base point, flags and units.
+
+        The three flags that say "this block's content lives in another file"
+        are dropped: the clone carries copies, and an empty block claiming to
+        be an unresolved XREF is a drawing a reader cannot open.
+        """
+        origin = (0.0, 0.0, 0.0)
+        head = getattr(source.block, "dxf", None)
+        attribs = {"flags": head.get("flags", 0) & ~_XREF_FLAGS} if head is not None else {}
+        base_point = head.get("base_point", origin) if head is not None else origin
+        block = self._doc.blocks.new(clone_name, base_point=base_point, dxfattribs=attribs)
+        for attribute in ("units", "scale", "explode"):
+            value = source.block_record.dxf.get(attribute, None)
+            if value is not None:
+                block.block_record.dxf.set(attribute, value)
+        return block
+
+    def _reserve(self, name: str, layer: str) -> str:
+        """A free, deterministic clone name for ``name`` on ``layer``.
+
+        ``*`` is folded to ``_`` the way :func:`prefix_before_blocks` folds it:
+        a leading ``*`` is reserved for anonymous blocks and DXF forbids it
+        anywhere else in a table name, so ``*D3`` becomes ``__CMPA__D3``.
+        """
+        prefix = ADDED_BLOCK_PREFIX if layer == LAYER_ADDED else REMOVED_BLOCK_PREFIX
+        stem = name.replace("*", "_")
+        candidate = f"{prefix}{stem}"
+        if len(candidate) > MAX_BLOCK_NAME:
+            digest = hashlib.sha1(name.encode("utf-8"), usedforsecurity=False).hexdigest()[:8]
+            candidate = f"{prefix}{stem[:CLONE_NAME_KEEP]}_{digest}"
+        # A drawing that already holds a block of that name (a previous run's
+        # output fed back in, say) gets a numbered one instead -- trimmed, so
+        # the way out of a collision cannot itself overflow the table.
+        unique = candidate
+        attempt = 0
+        while unique in self._taken:
+            attempt += 1
+            tail = f"_{attempt}"
+            unique = candidate[: MAX_BLOCK_NAME - len(tail)] + tail
+        self._taken.add(unique)
+        return unique
+
+
+def relayer_block_references(doc: Drawing) -> _RelayeredBlocks:
+    """Point every comparison-layer INSERT and DIMENSION at a relayered clone.
+
+    Runs over the modelspace of the finished compare document, after the
+    comparison layers have been assigned and before ``audit()``: what it needs
+    to know is exactly "which references ended up on ``__CMP_ADDED`` or
+    ``__CMP_REMOVED``", and that is a property of the drawing at that moment.
+
+    The requests are sorted before any clone is made, so the block table order
+    is a property of the comparison and not of the order the references happen
+    to sit in the modelspace (contract §8).
+    """
+    relayer = _RelayeredBlocks(doc)
+    requests: list[tuple[str, str, Any]] = []
+    for entity in doc.modelspace():
+        layer = str(entity.dxf.get("layer", "0"))
+        if layer not in (LAYER_ADDED, LAYER_REMOVED):
+            continue
+        etype = entity.dxftype()
+        if etype == "INSERT":
+            name = str(entity.dxf.get("name", "") or "")
+        elif etype == "DIMENSION":
+            name = str(entity.dxf.get("geometry", "") or "")
+        else:
+            continue
+        if name and name in doc.blocks:
+            requests.append((layer, name, entity))
+
+    for layer, name, entity in sorted(requests, key=lambda item: (item[0], item[1])):
+        clone_name = relayer.clone(name, layer)
+        if entity.dxftype() == "INSERT":
+            entity.dxf.name = clone_name
+        else:
+            entity.dxf.geometry = clone_name
+    return relayer
 
 
 def _change_sides(changes: list[ChangeRecord]) -> tuple[dict[str, list[int]], dict[str, list[int]]]:
@@ -560,6 +748,12 @@ def write_compare_dxf(
         handle_to_cluster[str(cluster.badge["text_handle"])] = cluster.id
         label_handle = _draw_label(msp, cluster, config, factor)
         handle_to_cluster[label_handle] = cluster.id
+
+    # 4. block references on a comparison layer are redrawn from a clone of
+    #    their block whose contents are on that layer too (contract §3). Last,
+    #    so that every modelspace handle -- and therefore ``handle_to_cluster``
+    #    -- is exactly what it was before the clones existed.
+    warnings.extend(relayer_block_references(target).warnings)
 
     pin_header_for_determinism(target, run_date)
     audit = target.audit()
@@ -958,8 +1152,10 @@ def compare_pair(task: ComparePairInput, config: CompareConfig) -> ComparePairOu
 
 
 __all__ = [
+    "ADDED_BLOCK_PREFIX",
     "APPID",
     "BEFORE_BLOCK_PREFIX",
+    "CLONE_NAME_KEEP",
     "CLUSTERS_JSON_NAME",
     "COMPARE_DXF_NAME",
     "COLOR_ADDED",
@@ -969,6 +1165,8 @@ __all__ = [
     "LAYER_ADDED",
     "LAYER_LABEL",
     "LAYER_REMOVED",
+    "MAX_BLOCK_NAME",
+    "REMOVED_BLOCK_PREFIX",
     "SCHEMA_VERSION",
     "ZERO_GUID",
     "ComparePairInput",
@@ -982,6 +1180,7 @@ __all__ = [
     "pin_classes_for_determinism",
     "pin_header_for_determinism",
     "prefix_before_blocks",
+    "relayer_block_references",
     "serialize",
     "sidecar_integrity_failures",
     "write_clusters_json",

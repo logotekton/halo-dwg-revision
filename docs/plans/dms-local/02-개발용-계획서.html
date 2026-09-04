@@ -1,0 +1,604 @@
+<title>리비전 도면 관리 앱 개발 계획</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #F5F6F4;
+    --surface: #FFFFFF;
+    --ink: #1F262B;
+    --muted: #5C6870;
+    --line: #D7DCDF;
+    --rule: #4F5A62;
+    --accent: #B6304F;
+    --accent-soft: #F6E3E8;
+    --after: #1F7A8C;
+    --after-soft: #DFEFF2;
+    --before: #8A949B;
+    --code-bg: #ECEFF0;
+    --nav-bg: #1F262B;
+    --nav-ink: #E6EAED;
+    --nav-muted: #98A3AA;
+    --nav-active: #2C353C;
+    --nav-accent: #E06C86;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #14191D;
+      --surface: #1C2328;
+      --ink: #E6EAED;
+      --muted: #98A3AA;
+      --line: #2E383F;
+      --rule: #7E8A92;
+      --accent: #E06C86;
+      --accent-soft: #3A2129;
+      --after: #4FB3C4;
+      --after-soft: #17333A;
+      --before: #74808A;
+      --code-bg: #242C32;
+      --nav-bg: #0F1417;
+      --nav-ink: #E6EAED;
+      --nav-muted: #93A0A9;
+      --nav-active: #1F272E;
+      --nav-accent: #E06C86;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #14191D;
+    --surface: #1C2328;
+    --ink: #E6EAED;
+    --muted: #98A3AA;
+    --line: #2E383F;
+    --rule: #7E8A92;
+    --accent: #E06C86;
+    --accent-soft: #3A2129;
+    --after: #4FB3C4;
+    --after-soft: #17333A;
+    --before: #74808A;
+    --code-bg: #242C32;
+    --nav-bg: #0F1417;
+    --nav-ink: #E6EAED;
+    --nav-muted: #93A0A9;
+    --nav-active: #1F272E;
+    --nav-accent: #E06C86;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    word-break: keep-all;
+  }
+  .page { max-width: 900px; margin: 0 auto; padding: 48px 24px 96px; }
+  .sidenav { position: fixed; top: 0; left: 0; bottom: 0; width: 264px; background: var(--nav-bg); color: var(--nav-ink); padding: 40px 20px 28px; display: flex; flex-direction: column; overflow-y: auto; }
+  .sidenav .kicker { font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--nav-accent); margin: 0 0 14px 12px; }
+  .sidenav .navtitle { font-family: "IBM Plex Sans KR", "Noto Sans KR", sans-serif; font-weight: 700; font-size: 20px; line-height: 1.35; margin: 0 12px 28px; color: var(--nav-ink); text-wrap: balance; }
+  .sidenav ol { list-style: none; margin: 0; padding: 0; }
+  .sidenav li { margin: 0; }
+  .sidenav a { display: flex; align-items: baseline; gap: 12px; padding: 9px 12px; border-radius: 6px; color: var(--nav-ink); text-decoration: none; font-size: 14px; line-height: 1.4; }
+  .sidenav a .n { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--nav-muted); min-width: 18px; }
+  .sidenav a:hover { background: var(--nav-active); }
+  .sidenav a.active { background: var(--nav-active); font-weight: 600; }
+  .sidenav a.active .n { color: var(--nav-accent); }
+  .sidenav a:focus-visible { outline: 2px solid var(--nav-accent); outline-offset: 2px; }
+  .sidenav .zoomctl { margin-top: auto; display: flex; align-items: center; gap: 6px; padding: 16px 12px 0; font-size: 12px; color: var(--nav-muted); }
+  .sidenav .zoomctl button { min-width: 26px; height: 24px; padding: 0 6px; border: 1px solid var(--nav-active); border-radius: 4px; background: transparent; color: var(--nav-ink); font: inherit; cursor: pointer; }
+  .sidenav .zoomctl button:hover { background: var(--nav-active); }
+  .sidenav .zoomctl button:focus-visible { outline: 2px solid var(--nav-accent); outline-offset: 2px; }
+  .sidenav .zoomctl .zv { min-width: 46px; font-family: "IBM Plex Mono", monospace; }
+  .sidenav .navmeta { margin-top: 12px; padding: 12px 12px 0; font-size: 12px; line-height: 1.6; color: var(--nav-muted); }
+  .content { margin-left: 264px; }
+  .page > h2 { scroll-margin-top: 24px; }
+  @media (max-width: 1100px) {
+    .sidenav { position: static; width: auto; padding: 24px 20px; }
+    .sidenav ol { display: flex; flex-wrap: wrap; gap: 4px; }
+    .sidenav .navmeta, .sidenav .zoomctl { display: none; }
+    .content { margin-left: 0; }
+  }
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 36px; }
+  .eyebrow { font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; display: flex; gap: 16px; flex-wrap: wrap; }
+  h1 { font-family: "IBM Plex Sans KR", "Noto Sans KR", sans-serif; font-weight: 700; font-size: 30px; line-height: 1.25; margin: 12px 0 14px; text-wrap: balance; }
+  .thesis { font-size: 17px; font-weight: 500; margin: 0; padding: 14px 18px; border-left: 4px solid var(--accent); background: var(--surface); }
+  h2 { font-family: "IBM Plex Sans KR", "Noto Sans KR", sans-serif; font-weight: 600; font-size: 20px; margin: 44px 0 12px; display: flex; align-items: baseline; gap: 12px; text-wrap: balance; }
+  .page > h2 { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--rule); }
+  .page > h2:first-of-type { margin-top: 44px; padding-top: 0; border-top: 0; }
+  h2 .num { font-family: "IBM Plex Mono", monospace; font-size: 13px; color: var(--muted); font-weight: 500; }
+  h3 { font-family: "IBM Plex Sans KR", "Noto Sans KR", sans-serif; font-weight: 600; font-size: 16px; margin: 24px 0 8px; }
+  p { margin: 0 0 12px; }
+  ul, ol { margin: 0 0 12px; padding-left: 22px; }
+  li { margin-bottom: 4px; }
+  code, .mono { font-family: "IBM Plex Mono", monospace; font-size: 13px; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+  .note { color: var(--muted); font-size: 14px; }
+  .tag { display: inline-block; font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); vertical-align: middle; }
+  .tag.primary { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .tag.after { border-color: var(--after); color: var(--after); background: var(--after-soft); }
+  .tablewrap { overflow-x: auto; margin: 12px 0 18px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; background: var(--surface); }
+  th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+  th { font-weight: 600; font-size: 13px; color: var(--muted); border-bottom: 2px solid var(--line); white-space: nowrap; }
+  td.num { font-variant-numeric: tabular-nums; }
+  td[rowspan] { vertical-align: middle; }
+  figure { margin: 18px 0 22px; background: var(--surface); border: 1px solid var(--line); padding: 16px; }
+  figure svg { max-width: 100%; height: auto; display: block; color: var(--ink); }
+  figcaption { font-size: 13px; color: var(--muted); margin-top: 10px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 720px) { .grid3 { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--line); padding: 14px 16px; }
+  .card h3 { margin-top: 0; }
+  .decision { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--after); padding: 14px 18px; }
+  .decision ol { margin-bottom: 0; }
+  a { color: var(--after); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--after); outline-offset: 2px; }
+</style>
+
+<nav class="sidenav" aria-label="목차">
+  <p class="kicker">대명건설 / 리비전 도면 관리 앱</p>
+  <p class="navtitle">리비전 도면 관리 앱 개발용 계획서</p>
+  <ol>
+    <!-- NAV:START -->
+    <li><a href="#sec-1"><span class="n">01</span>범위와 전제</a></li>
+    <li><a href="#sec-2"><span class="n">02</span>아키텍처</a></li>
+    <li><a href="#sec-3"><span class="n">03</span>데이터 모델</a></li>
+    <li><a href="#sec-4"><span class="n">04</span>파이프라인 알고리즘</a></li>
+    <li><a href="#sec-5"><span class="n">05</span>화면, API, IPC</a></li>
+    <li><a href="#sec-6"><span class="n">06</span>저장 구조</a></li>
+    <li><a href="#sec-7"><span class="n">07</span>2주 작업 분해</a></li>
+    <li><a href="#sec-8"><span class="n">08</span>검증 계획</a></li>
+    <li><a href="#sec-9"><span class="n">09</span>리스크와 대응</a></li>
+    <li><a href="#sec-10"><span class="n">10</span>결정 요청</a></li>
+    <!-- NAV:END -->
+  </ol>
+  <div class="zoomctl" role="group" aria-label="본문 크기"><span>본문 크기</span><button type="button" data-zoom="-" aria-label="축소">−</button><button type="button" class="zv" data-zoom="0" aria-label="원래 크기">100%</button><button type="button" data-zoom="+" aria-label="확대">+</button></div>
+  <p class="navmeta">개발용 계획서 v1 · 2026-09-04<br>독자: 개발 에이전트 · MVP 착수 전<br>보고용 계획서 확정본 기준</p>
+</nav>
+
+<div class="content">
+<div class="page">
+  <header>
+    <div class="eyebrow"><span>대명건설 · 리비전 도면 관리 앱</span><span>개발용 계획서 v1 · 2026-09-04</span></div>
+    <h1>리비전 도면 관리 앱 개발용 계획서</h1>
+    <p class="thesis">변경 전·후 DWG 세트를 넣으면 마크업 DWG, 변경 리스트, 리비전 이력 엑셀이 나오는 로컬 앱을 기존 Halo CAD 엔진과 셸 위에 2주 안에 만든다. 첫 주는 끝까지 이어지는 얇은 한 줄(MVP), 둘째 주는 리비전 쌍으로 재면서 채운다.</p>
+  </header>
+
+  <!-- CONTENT:START -->
+  <h2 id="sec-1"><span class="num">1</span>범위와 전제</h2>
+  <p>만드는 것은 로컬 앱 하나다. 변경 전·후 DWG 폴더 두 개를 넣으면 도곽 단위로 짝을 맞춰 비교하고, 사용자가 검토·승인한 결과를 마크업 DWG, 변경 리스트, 리비전 이력 엑셀로 낸다. 보고용 계획서(<code>01-보고용-계획서.html</code>)에서 확정한 내용을 그대로 전제로 삼고, 여기서는 어떻게 만드는지만 적는다.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>확정 전제</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td>입력</td><td>설계사 DWG 세트 두 벌(전·후)과 XR 폴더. 원본은 읽기 전용이며 어느 단계에서도 쓰지 않는다</td></tr>
+      <tr><td>변환</td><td>DWG → 작업용 DXF. 백그라운드 ZWCAD(COM)가 있으면 그것으로, 없으면 자체 변환기로. 두 경로 결과를 교차검증한다</td></tr>
+      <tr><td>비교 단위</td><td>파일이 아니라 도곽. 표제란 블록 속성(도면번호·도면명)으로 전·후를 짝짓는다</td></tr>
+      <tr><td>변경 범위</td><td>기하·치수 1순위, 텍스트 2순위. 레이어·색·선종류만 바뀐 것은 표기하지 않고 접는다. 레이어·블록 이름은 설명의 힌트</td></tr>
+      <tr><td>검토</td><td>화면 C에서 항목마다 승인·무시, 설명 수정, 클라우드 마크 직접 그리기(폴리라인)와 텍스트 추가</td></tr>
+      <tr><td>출력</td><td>전체 도곽이 기본, 선택 도곽은 대화상자. 마크업 DWG(REV-CLOUD 레이어) + 도곽별 리비전 표 + 전체 변경 리스트. ZWCAD가 실행 중이면 COM으로 바로 삽입, 아니면 DXF 조각·표 텍스트</td></tr>
+      <tr><td>이력</td><td>화면 C → D로 넘어갈 때 프로젝트 폴더의 리비전 이력 엑셀에 실행 날짜 시트를 자동 추가</td></tr>
+      <tr><td>화면</td><td>A 세트 지정, B 도곽 목록, C 비교 작업, D 출력. 앱 전체 다크. 캔버스는 안 바뀜 원색·후에만 빨강·전에만 시안</td></tr>
+      <tr><td>기간</td><td>2주. 1주 MVP, 2주 테스트·상세 개발. 개발 작업일 기준이고 담당자 검증은 병행</td></tr>
+    </tbody>
+  </table></div>
+  <h3>범위 밖</h3>
+  <p>서버·계정·알림, 폴더 관리 체계, 도곽 일괄 편집(설계사 업무), 배포용 PDF, 물량 비교, 자체 CAD 편집 기능. 2차 애드인은 2주 마지막 날 하루만 배정한다.</p>
+  <h3>미결 결정의 MVP 기본값</h3>
+  <p>8절의 결정이 늦어져도 MVP가 멈추지 않도록 기본값을 정해 두고, 결정이 오면 설정값만 바꾼다.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>결정 항목</th><th>MVP 기본값</th><th>설정 위치</th></tr></thead>
+    <tbody>
+      <tr><td>사소한 변경 기준</td><td>이동 허용오차 1mm, 레이어·색·선종류·선굵기만 바뀐 것, 해치 재생성(경계 동일), MTEXT 서식만 바뀐 것, 치수 재생성(값·문구 동일)은 접는다</td><td><code>compare.yaml</code> · <code>minor</code></td></tr>
+      <tr><td>클라우드 마크 규격</td><td>레이어 <code>REV-CLOUD</code>, 색 1(빨강), 호 현 길이 300mm, 여백 150mm, 번호는 원 안 숫자(반지름 200mm)</td><td><code>compare.yaml</code> · <code>cloud</code></td></tr>
+      <tr><td>리비전 표 양식</td><td>열: 번호·내용·일자·담당. 위치: 표제란 블록의 왼쪽 위 모서리에서 왼쪽으로 붙임. 전체 변경 리스트는 첫 도곽(정렬 첫 번째)에 삽입</td><td><code>compare.yaml</code> · <code>revtable</code></td></tr>
+      <tr><td>도곽 목록 그룹 기준</td><td>구현하지 않는다. 필터 칩과 검색만</td><td>2주 안 결정 후 추가</td></tr>
+      <tr><td>출력 폴더</td><td><code>&lt;프로젝트&gt;/출력/&lt;실행 날짜&gt;/</code></td><td><code>compare.yaml</code> · <code>output_dir</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="sec-2"><span class="num">2</span>아키텍처</h2>
+  <p>새로 세우지 않는다. Halo CAD의 Electron 셸, React UI, 파이썬 엔진, 스키마 패키지를 그대로 쓰고 비교 파이프라인과 화면 네 장을 얹는다. 엔진이 단일 진실 소스이고, 화면은 엔진이 만든 파일과 JSON을 보여주기만 한다.</p>
+  <figure>
+    <svg viewBox="0 0 900 300" role="img" aria-label="DWG 세트가 변환, 도곽 추출·매칭, 비교, 묶음·설명 단계를 거쳐 비교 DXF, 마크업 DWG, 변경 리스트, 이력 엑셀 네 산출물로 나오고, 뷰어는 비교 DXF를 그대로 그린다">
+      <defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+      <g font-family="Noto Sans KR, sans-serif" font-size="12" fill="currentColor">
+        <rect x="12" y="30" width="118" height="46" rx="3" fill="none" stroke="#8A949B" stroke-width="1.5"/><text x="71" y="49" text-anchor="middle">전 DWG 세트</text><text x="71" y="66" text-anchor="middle" font-size="11" fill="#8A949B">읽기 전용</text>
+        <rect x="12" y="120" width="118" height="46" rx="3" fill="none" stroke="#1F7A8C" stroke-width="1.5"/><text x="71" y="139" text-anchor="middle">후 DWG 세트</text><text x="71" y="156" text-anchor="middle" font-size="11" fill="#1F7A8C">읽기 전용</text>
+        <line x1="130" y1="53" x2="176" y2="90" stroke="currentColor" stroke-width="1.2" marker-end="url(#a2)"/>
+        <line x1="130" y1="143" x2="176" y2="106" stroke="currentColor" stroke-width="1.2" marker-end="url(#a2)"/>
+        <rect x="180" y="74" width="126" height="50" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/><text x="243" y="94" text-anchor="middle">변환</text><text x="243" y="111" text-anchor="middle" font-size="11">ZWCAD COM · 자체</text>
+        <line x1="306" y1="99" x2="342" y2="99" stroke="currentColor" stroke-width="1.2" marker-end="url(#a2)"/>
+        <rect x="346" y="74" width="126" height="50" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/><text x="409" y="94" text-anchor="middle">도곽 추출·매칭</text><text x="409" y="111" text-anchor="middle" font-size="11">표제란 ATTRIB</text>
+        <line x1="472" y1="99" x2="508" y2="99" stroke="currentColor" stroke-width="1.2" marker-end="url(#a2)"/>
+        <rect x="512" y="74" width="126" height="50" rx="3" fill="none" stroke="#B6304F" stroke-width="1.8"/><text x="575" y="94" text-anchor="middle">비교</text><text x="575" y="111" text-anchor="middle" font-size="11">핸들 · 지문 · 이동</text>
+        <line x1="638" y1="99" x2="674" y2="99" stroke="currentColor" stroke-width="1.2" marker-end="url(#a2)"/>
+        <rect x="678" y="74" width="126" height="50" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/><text x="741" y="94" text-anchor="middle">묶음 · 설명</text><text x="741" y="111" text-anchor="middle" font-size="11">클러스터 · 사전</text>
+        <line x1="741" y1="124" x2="741" y2="176" stroke="currentColor" stroke-width="1.2" marker-end="url(#a2)"/>
+        <text x="760" y="154" font-size="11">사용자 검토(화면 C)</text>
+        <rect x="180" y="200" width="150" height="44" rx="3" fill="#DFEFF2" stroke="#1F7A8C"/><text x="255" y="218" text-anchor="middle" fill="#1F262B">비교 DXF</text><text x="255" y="234" text-anchor="middle" font-size="10" fill="#1F262B">뷰어가 그대로 그림</text>
+        <rect x="346" y="200" width="150" height="44" rx="3" fill="#F6E3E8" stroke="#B6304F"/><text x="421" y="218" text-anchor="middle" fill="#1F262B">마크업 DWG</text><text x="421" y="234" text-anchor="middle" font-size="10" fill="#1F262B">REV-CLOUD · 리비전 표</text>
+        <rect x="512" y="200" width="150" height="44" rx="3" fill="none" stroke="currentColor"/><text x="587" y="218" text-anchor="middle">변경 리스트 JSON</text><text x="587" y="234" text-anchor="middle" font-size="10">화면 · TSV · DXF 조각</text>
+        <rect x="678" y="200" width="150" height="44" rx="3" fill="none" stroke="currentColor"/><text x="753" y="218" text-anchor="middle">리비전 이력 xlsx</text><text x="753" y="234" text-anchor="middle" font-size="10">실행 날짜 시트</text>
+        <path d="M741 180 L741 190 L255 190 L255 196" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#a2)"/>
+        <path d="M741 190 L421 190 L421 196" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#a2)"/>
+        <path d="M741 190 L587 190 L587 196" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#a2)"/>
+        <line x1="753" y1="190" x2="753" y2="196" stroke="currentColor" stroke-width="1.2" marker-end="url(#a2)"/>
+        <text x="450" y="282" text-anchor="middle" font-size="11" fill="#5C6870">원본은 어느 단계에서도 열어 쓰지 않는다. 모든 산출물은 프로젝트 폴더의 .halo와 출력 폴더에만 쓴다.</text>
+      </g>
+    </svg>
+    <figcaption>엔진이 모든 것을 만든다. 뷰어는 엔진이 낸 비교 DXF를 보통 도면처럼 그리기만 하므로 겹쳐 보기에 별도 렌더링 코드가 필요 없다.</figcaption>
+  </figure>
+  <h3>비교 DXF라는 한 가지 결정</h3>
+  <p>겹쳐 보기를 뷰어에 새로 그리지 않는다. 엔진이 도곽 짝마다 <strong>비교 DXF</strong> 한 장을 만든다. 전·후 엔티티를 한 파일에 넣되 비교 상태별 레이어에 배치한다.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>레이어</th><th>담기는 것</th><th>색</th><th>보기 모드에서</th></tr></thead>
+    <tbody>
+      <tr><td>원래 레이어 그대로</td><td>전·후 모두 있는 엔티티(후 기준). 비교 전용 레이어를 만들지 않는다</td><td>원래 레이어 색</td><td>항상 표시</td></tr>
+      <tr><td><code>__CMP_ADDED</code></td><td>후에만 있는 엔티티, 이동 후 위치</td><td>빨강(1)</td><td>겹쳐 보기·후에서 표시</td></tr>
+      <tr><td><code>__CMP_REMOVED</code></td><td>전에만 있는 엔티티, 이동 전 위치</td><td>시안(4)</td><td>겹쳐 보기·전에서 표시</td></tr>
+      <tr><td><code>REV-CLOUD</code></td><td>클라우드 마크 폴리라인과 번호 배지</td><td>빨강(1)</td><td>항상 표시</td></tr>
+      <tr><td><code>__CMP_LABEL</code></td><td>번호 배지의 히트 영역과 클러스터 id를 담는 XDATA</td><td>보이지 않음</td><td>클릭 판정용</td></tr>
+    </tbody>
+  </table></div>
+  <p>겹쳐 보기·전·후 세 모드는 레이어 켜고 끄기로 끝난다. 나란히 보기는 뷰어 두 개에 전용 DXF와 후용 DXF를 넣고 카메라를 묶는다. 마크업 DWG는 같은 생성기에서 <code>__CMP_*</code> 레이어를 뺀 결과다. 사용자 선택 색은 레이어 색을 바꿔 적용한다.</p>
+  <h3>구성 요소와 재사용 자산</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>구성 요소</th><th>기존 자산</th><th>새로 만드는 것</th></tr></thead>
+    <tbody>
+      <tr><td>Electron main</td><td><code>apps/desktop/src/main/engine/*</code>(사이드카 기동·감독), <code>ipc.ts</code>, <code>protocol.ts</code></td><td>폴더 선택 대화상자, 클립보드 쓰기, ZWCAD 감지 상태 전달 IPC</td></tr>
+      <tr><td>React UI</td><td><code>apps/web/src/state/{workspace,documents,viewer,selection}</code>, <code>api/engine.ts</code>, <code>features/files</code>, i18n <code>ko.json</code></td><td>화면 A~D(<code>features/compare/*</code>), 다크 테마 토큰, 비교 상태 조각</td></tr>
+      <tr><td>뷰어</td><td><code>packages/cad-core</code>(CadHost, mlightcad 표면), W3-02 브랜치의 뷰어 통합 WIP</td><td>레이어 토글로 보기 모드, 배지 클릭 → 클러스터 선택, 나란히 카메라 동기화</td></tr>
+      <tr><td>파이썬 엔진</td><td><code>ingest/{pipeline,dxf_loader,working_dxf,xref,entity_index,stats}</code>, <code>bundle/*</code>(원본 가드), <code>db/*</code>, <code>api/{main,jobs,ws}</code>, <code>validate/crosscheck</code></td><td><code>compare/*</code> 패키지: 변환 브리지, 도곽, 매칭, 비교, 클러스터, 설명, 래스터, 마크업, 이력, 출력. 라우터 <code>/compare/*</code></td></tr>
+      <tr><td>ZWCAD 브리지</td><td>없음</td><td><code>compare/zwcad.py</code>: pywin32 COM. 변환·삽입·저장. Windows에서만 살고 macOS에서는 스텁</td></tr>
+      <tr><td>스키마</td><td><code>packages/schema</code>(JSON Schema → TS·파이썬 코드젠, provenance 규칙)</td><td><code>sheet-frame</code>, <code>sheet-pair</code>, <code>change</code>, <code>cluster</code>, <code>run</code> 스키마와 예제</td></tr>
+      <tr><td>저장소</td><td>프로젝트 번들 규약(<code>bundle/layout.py</code>), SQLite</td><td><code>&lt;프로젝트&gt;/.halo/</code> 아래 파생물·DB·사전, 출력 폴더, 이력 엑셀</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">macOS에서 개발하고 Windows PC에서 확인한다. COM 경로는 macOS에서 스텁으로 두고 계약 테스트만 돌리며, 실제 ZWCAD 호출은 Windows 셀프호스티드 러너 또는 수동 확인으로 검증한다.</p>
+
+  <h2 id="sec-3"><span class="num">3</span>데이터 모델</h2>
+  <p>엔진이 만드는 모든 레코드는 <code>provenance {file, handle, path, space}</code>를 지닌다. 스키마는 <code>packages/schema</code>에 두고 TS·파이썬 타입을 생성한다. 아래는 필드 요지이고, 전체는 스키마 파일이 정본이다.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>레코드</th><th>핵심 필드</th><th>만드는 곳</th></tr></thead>
+    <tbody>
+      <tr><td><code>RevisionSet</code></td><td>id, label(REV2), 폴더 경로, 파일 목록(경로, sha1, 크기, DWG 버전), 변환 결과(경로, 변환기, 소요), XR 해석 결과</td><td>인입</td></tr>
+      <tr><td><code>SheetFrame</code></td><td>id, set_id, file, 표제란 블록 handle, frame bbox, 도면번호, 도면명, 축척, 날짜, 정규화 키, 엔티티 handle 목록</td><td>도곽 추출</td></tr>
+      <tr><td><code>SheetPair</code></td><td>id, before_frame, after_frame, status(변경·동일·신규·삭제·짝 없음), match_method(번호·제목·위치·수동), score</td><td>매칭</td></tr>
+      <tr><td><code>Change</code></td><td>id, pair_id, kind(added·removed·modified·moved·text·dimension·blockdef), before_handle, after_handle, layer, bbox, delta(벡터·전후 값), minor(bool), minor_reason</td><td>비교</td></tr>
+      <tr><td><code>Cluster</code></td><td>id, pair_id, 번호, bbox, change_ids, kind(사전 결과), label(자동 문구), user_label, hint, decision(pending·approved·ignored), manual(bool), note, cloud 폴리라인 좌표</td><td>묶음·설명, 사용자 편집</td></tr>
+      <tr><td><code>Run</code></td><td>id, 실행 시각, set 쌍, 도곽 수, 승인·무시·수동 건수, 출력 범위와 파일 목록, 이력 엑셀 시트 이름</td><td>출력 단계</td></tr>
+      <tr><td><code>DictionaryEntry</code></td><td>pattern(레이어·블록 이름 정규식), target(layer·block), kind, priority, source(내장·프로젝트·개인), added_by</td><td>사전 파일</td></tr>
+    </tbody>
+  </table></div>
+  <p>엔티티 지문(<code>fingerprint</code>)은 별도 레코드가 아니라 <code>entity_index</code>의 파생 열이다. (타입, 레이어, 허용오차로 반올림한 기하 서명, 문자열)의 해시이며 좌표는 도곽 로컬 좌표(프레임 bbox 원점 기준)로 바꾼 뒤 만든다. 그래야 도곽이 파일 안에서 통째로 옮겨져도 같은 지문이 나온다.</p>
+
+  <h2 id="sec-4"><span class="num">4</span>파이프라인 알고리즘</h2>
+  <p>단계마다 입력·출력·규칙·기본값을 적는다. 기본값은 <code>compare.yaml</code>에 두고 코드에 박지 않는다. 같은 입력이면 같은 출력이 나와야 하므로 난수와 시각은 쓰지 않고, 정렬 기준을 모두 명시한다.</p>
+
+  <h3>4.1 인입과 변환</h3>
+  <p>파일 sha1을 키로 파생물 폴더를 캐시한다. 같은 해시면 다시 변환하지 않는다.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>경로</th><th>동작</th><th>규칙</th></tr></thead>
+    <tbody>
+      <tr><td>ZWCAD COM <span class="tag primary">우선</span></td><td><code>Dispatch("ZWCAD.Application")</code>로 숨은 인스턴스 하나를 띄우고 파일마다 열기(읽기 전용) → <code>SaveAs</code> DXF 2013 → 닫기</td><td>인스턴스 시작 시 <code>FILEDIA=0</code>, <code>CMDDIA=0</code>, <code>PROXYNOTICE=0</code>, <code>FONTALT=malgun.ttf</code>를 건다. 파일당 시간 제한 120초, 초과 시 프로세스 트리를 죽이고 재기동해 다음 파일로 간다. 실패 파일은 자체 변환기로 넘긴다</td></tr>
+      <tr><td>자체 변환기 <span class="tag">대체</span></td><td>ADR-0002의 기본 경로: mlightcad <code>dxfOut()</code>(숨은 BrowserWindow) + 후처리(INSERT 66, HATCH 92, LEADER 치수 스타일, STYLE 빅폰트, 핸들 유일성) + acad-ts <code>info</code>로 XREF 경로·TTF 정보 주입</td><td>기존 <code>ingest/pipeline</code>을 그대로 호출한다. 새 코드 없음</td></tr>
+      <tr><td>교차검증</td><td>두 경로가 모두 가능한 PC에서는 세트당 표본 5개 파일을 양쪽으로 변환해 <code>validate/crosscheck</code> 통계(엔티티 수·레이어·블록·텍스트 수)를 비교</td><td>불일치가 나면 화면 A에 경고를 띄우고 ZWCAD 결과를 쓴다. 불일치 목록은 <code>.halo/log/</code>에 남긴다</td></tr>
+      <tr><td>XREF</td><td>기존 <code>ingest/xref</code>: <code>..\XR\</code> 상대경로 해석, macOS NFD 정규화, 세트 폴더 옆 XR 폴더 자동 탐색</td><td>해석 실패는 도곽 목록에 "참조 누락" 태그로 보이고 비교는 계속한다</td></tr>
+      <tr><td>폰트</td><td>DXF의 STYLE 테이블에서 SHX·TTF 이름을 모아 시스템 폰트와 대조</td><td>누락이 있으면 화면 A에서 고지하고 "설치 안내" 또는 "맑은 고딕 대체" 중 하나를 고르게 한다. 선택은 프로젝트 설정에 저장</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>4.2 도곽 추출</h3>
+  <p>도곽은 표제란 블록으로 찾는다. 실도면 68장에서 표제란 블록 수가 PDF 페이지 수와 일치했으므로 이 규칙이 기준이다.</p>
+  <ol>
+    <li>모델공간의 INSERT 중 ATTRIB를 3개 이상 가진 블록을 후보로 모은다. 태그 이름이 <code>DWG_NO|DWGNO|SHEET|도면번호|NO</code> 중 하나와 <code>TITLE|DWG_NAME|도면명|제목</code> 중 하나에 맞으면 표제란으로 확정한다. 맞는 태그가 없으면 같은 블록 이름이 가장 많이 반복되는 후보를 표제란으로 본다.</li>
+    <li>도곽 경계는 표제란 블록을 포함하는 가장 작은 닫힌 사각형 폴리라인이다. 없으면 표제란 블록 bbox를 기준으로 표제란이 오른쪽 아래에 오도록 세트 안에서 관측된 도곽 크기(최빈값)를 적용한다.</li>
+    <li>엔티티는 bbox 중심점이 들어가는 도곽에 배정한다. 어느 도곽에도 안 들어가면 "도곽 밖" 묶음으로 두고 비교에서 뺀다. XREF 참조 엔티티는 삽입점이 속한 도곽에 배정한다.</li>
+    <li>도면번호·도면명·축척·날짜는 ATTRIB 문자열이다. 정규화 키는 공백 제거, 전각 → 반각, 대문자, 하이픈 통일로 만든다.</li>
+  </ol>
+  <p class="note">태그 이름 규칙은 <code>frames.yaml</code>에 두고 설계사마다 늘린다. 표제란 블록이 XREF 안에 있는 세트(표지·XR 참조 17장)는 참조를 풀어 같은 규칙을 적용한다.</p>
+
+  <h3>4.3 도곽 매칭</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>순서</th><th>규칙</th><th>결과</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>정규화한 도면번호가 같다</td><td>짝(번호), 점수 1.0</td></tr>
+      <tr><td>2</td><td>번호가 없거나 겹치면 도면명 토큰 자카드 유사도 0.6 이상이고 유일하다</td><td>짝(제목), 점수 = 유사도</td></tr>
+      <tr><td>3</td><td>같은 파일 이름 안에서 도곽 순서(왼쪽 위부터)가 같고 크기가 같다</td><td>짝(위치), 점수 0.5</td></tr>
+      <tr><td>4</td><td>남은 것</td><td>전에만 있으면 삭제, 후에만 있으면 신규, 둘 다 후보가 여럿이면 짝 없음</td></tr>
+    </tbody>
+  </table></div>
+  <p>짝 없음은 화면 B에서 수동으로 맞추고 <code>SheetPair.match_method=manual</code>로 저장한다. 수동 짝은 같은 프로젝트에서 다음 세트에도 힌트로 쓴다.</p>
+
+  <h3>4.4 엔티티 비교</h3>
+  <p>도곽 짝마다 전·후 엔티티를 도곽 로컬 좌표로 옮긴 뒤 세 단계로 짝짓는다. 허용오차 τ는 기본 1mm(도면 단위 기준으로 환산)다.</p>
+  <ol>
+    <li><strong>핸들 매칭.</strong> 같은 핸들·같은 타입이면 짝으로 보고 속성을 비교한다. 설계사가 도면을 통째로 다시 그려 핸들이 바뀐 세트에서는 이 단계가 비고 다음 단계로 간다.</li>
+    <li><strong>지문 매칭.</strong> 남은 엔티티끼리 지문(타입, 레이어, τ로 반올림한 기하 서명, 문자열)이 같으면 짝이다. 같은 지문이 여럿이면 거리 순으로 짝짓는다.</li>
+    <li><strong>이동 판정.</strong> 위치를 뺀 지문(형상·크기·회전)이 같고 거리가 τ보다 크면 이동이다. 이동 벡터와 거리를 기록하고 전 위치는 removed, 후 위치는 added로 그린다.</li>
+    <li><strong>나머지.</strong> 전에만 있으면 삭제, 후에만 있으면 추가.</li>
+  </ol>
+  <div class="tablewrap"><table>
+    <thead><tr><th>엔티티</th><th>비교하는 값</th><th>사소한 변경으로 접는 것(기본값)</th></tr></thead>
+    <tbody>
+      <tr><td>LINE·LWPOLYLINE·ARC·CIRCLE·SPLINE</td><td>정점·반지름·각도(τ 반올림), 닫힘 여부</td><td>정점 이동이 전부 τ 이하, 레이어·색·선종류·선굵기만 변경</td></tr>
+      <tr><td>TEXT·MTEXT</td><td>서식 코드를 벗긴 문자열, 삽입점, 높이, 회전</td><td>서식 코드만 변경, 삽입점 이동 τ 이하</td></tr>
+      <tr><td>DIMENSION</td><td>측정값, 재정의 문구, 치수선 위치</td><td>값·문구 같고 재생성만 된 것</td></tr>
+      <tr><td>INSERT</td><td>블록 이름, 삽입점, 축척, 회전, ATTRIB 문자열</td><td>삽입점 이동 τ 이하</td></tr>
+      <tr><td>HATCH</td><td>패턴 이름, 축척, 경계 bbox</td><td>경계 bbox 같고 재생성만 된 것</td></tr>
+      <tr><td>블록 정의</td><td>블록 테이블 항목별로 내부 엔티티 지문 집합</td><td>없음. 정의가 바뀌면 인스턴스 수와 함께 한 건으로 낸다</td></tr>
+    </tbody>
+  </table></div>
+  <p>접힌 항목은 버리지 않는다. <code>Change.minor=true</code>로 남겨 화면 C의 접힌 목록에 보이고, 사용자가 펼쳐 승인하면 일반 항목이 된다.</p>
+
+  <h3>4.5 묶음과 번호</h3>
+  <p>변경(사소한 것 제외)의 bbox를 도곽 긴 변의 2% 또는 300mm 중 큰 값만큼 키운 뒤 겹치는 것끼리 합친다(union-find). 묶음은 왼쪽 위에서 오른쪽, 그다음 아래 순(읽는 순서)으로 번호를 붙인다. 이동은 전·후 위치가 한 묶음에 들어가도록 두 bbox의 합집합으로 계산한다.</p>
+  <p>클라우드 마크는 묶음 bbox에 여백 150mm를 더한 사각형을 현 길이 300mm의 호로 두른 LWPOLYLINE(bulge 사용)이다. 번호 배지는 오른쪽 위 모서리의 CIRCLE(반지름 200mm)과 가운데 정렬 TEXT다. 크기 값은 도곽 축척에 따라 실제 인쇄 크기가 같아지도록 축척 배율을 곱한다.</p>
+
+  <h3>4.6 설명 생성</h3>
+  <p>문구는 <code>{종류} {행위}[ {수치}][ · {힌트}]</code> 틀로 만든다. 종류는 사전, 행위와 수치는 변경 종류, 힌트는 위치 규칙에서 온다. 자연어 생성기나 LLM은 실행 중에 쓰지 않는다.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>단계</th><th>규칙</th><th>없을 때</th></tr></thead>
+    <tbody>
+      <tr><td>종류(사전)</td><td>블록 이름 → 레이어 이름 순으로 사전 정규식을 맞춘다. 프로젝트 → 내장 → 개인 순으로 먼저 맞는 항목을 쓴다</td><td>2주차: 크기·채움·축선 위치·반복 점수로 추정하고 "(추정)"을 붙인다. 그것도 안 되면 엔티티 타입 이름("폴리라인 5개")</td></tr>
+      <tr><td>행위</td><td>added → 신설, removed → 삭제, moved → 이동 {거리}mm {방향}, dimension → 치수 {전} → {후}, text → 문구 {전} → {후}, blockdef → 블록 정의 변경 {n}곳</td><td>해당 없음</td></tr>
+      <tr><td>수치</td><td>이동 거리·방향(동서남북 8방위), 치수·문자 전후 값, 크기(사각형이면 가로×세로)</td><td>생략</td></tr>
+      <tr><td>힌트(2주차)</td><td>묶음 중심에서 3,000mm 안의 가장 가까운 실명 TEXT, 그리드 기호(원 + 한두 글자) 두 개로 만든 "C3 부근"</td><td>생략</td></tr>
+    </tbody>
+  </table></div>
+  <p>사용자가 화면 C에서 종류를 고치면 그 항목의 레이어·블록 이름 패턴이 프로젝트 사전 끝에 추가된다. 사전은 덧붙이기만 하고 지우지 않는다. 내장 사전 초안은 실도면 세트의 레이어·블록 이름 목록에서 개발 중에 만든다.</p>
+
+  <h3>4.7 래스터 보조 비교 <span class="tag">2주차</span></h3>
+  <p>객체 비교가 놓친 것을 잡는 안전망이다. ezdxf의 drawing 애드온으로 전·후 도곽을 같은 범위·같은 해상도(긴 변 4,000px)로 그린 뒤 1px 팽창하고 XOR한다. 남은 연결 성분 중 어느 묶음 bbox에도 안 들어가는 것을 "래스터 잔여" 항목으로 만들어 목록 끝에 붙인다. 픽셀 그림은 저장하지 않고 bbox만 남긴다.</p>
+
+  <h3>4.8 마크업 DWG와 리비전 표</h3>
+  <ol>
+    <li>후 작업용 DXF를 복사한다. 원본 DWG는 건드리지 않는다.</li>
+    <li>승인된 묶음의 클라우드 마크와 번호를 <code>REV-CLOUD</code> 레이어에 넣는다. 수동 마크도 같은 레이어다.</li>
+    <li>도곽별 리비전 표를 표제란 왼쪽에 LINE과 TEXT로 그린다. TABLE 엔티티는 프록시가 될 수 있어 쓰지 않는다. 열은 번호·내용·일자·담당, 행 높이와 글자 크기는 축척 배율을 곱한다.</li>
+    <li>전체 변경 리스트는 첫 도곽에 같은 방식으로 그린다(위치는 8절 결정 뒤 변경).</li>
+    <li>DWG 저장은 백그라운드 ZWCAD의 <code>SaveAs</code>(2013 형식)가 우선이고, 없으면 acad-ts <code>dxf2dwg</code>다. acad-ts 경로는 ATTRIB 복제 결함(W3-06)이 남아 있어 표제란 블록을 건드리지 않는 조건에서만 쓴다.</li>
+  </ol>
+
+  <h3>4.9 리비전 이력 엑셀</h3>
+  <p>openpyxl로 <code>&lt;프로젝트&gt;/리비전 이력.xlsx</code>를 열거나 만든다. 화면 C에서 D로 넘어가는 순간 실행 id로 한 번만 만든다(같은 실행에서 다시 넘어가면 시트를 덮어쓴다). 시트 이름은 <code>YYYY-MM-DD</code>이고 같은 날 두 번째부터 <code>(2)</code>를 붙인다. 시트 안에는 두 표를 위아래로 둔다.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>표</th><th>열</th></tr></thead>
+    <tbody>
+      <tr><td>전체 도면 목록</td><td>도면번호 · 도면명 · 전 리비전(세트 라벨·날짜) · 후 리비전 · 상태(변경·동일·신규·삭제·짝 없음) · 승인 · 무시 · 수동 · 접힘</td></tr>
+      <tr><td>도면별 변경 리스트</td><td>도면번호 · 번호 · 종류 · 내용(최종 문구) · 전 → 후 · 판정(승인·무시) · 수동 여부 · 담당 · 비고</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>4.10 출력</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>방법</th><th>조건</th><th>동작</th></tr></thead>
+    <tbody>
+      <tr><td>ZWCAD에 바로 삽입</td><td>실행 중인 ZWCAD가 <code>GetActiveObject</code>로 잡힘</td><td>대상 도면이 열려 있으면 그 문서에, 아니면 마크업 DWG를 열어 <code>REV-CLOUD</code> 엔티티와 리비전 표를 <code>ModelSpace.Add*</code>로 그린 뒤 저장</td></tr>
+      <tr><td>DXF 조각</td><td>ZWCAD 없음</td><td>마크와 표만 담은 작은 DXF를 출력 폴더에 저장. ZWCAD에서 INSERT로 붙인다</td></tr>
+      <tr><td>표 텍스트</td><td>항상</td><td>변경 리스트를 TSV로 클립보드에 복사. 엑셀·ZWCAD 표에 붙는다</td></tr>
+    </tbody>
+  </table></div>
+  <p>범위가 전체 도곽이면 변경 상태의 도곽 전부, 선택 도곽이면 대화상자에서 체크한 도곽만 처리한다. 출력 폴더는 <code>&lt;프로젝트&gt;/출력/&lt;실행 날짜&gt;/</code>이고 파일 이름은 <code>&lt;도면번호&gt;_&lt;후 라벨&gt;_markup.dwg</code>다.</p>
+
+  <h2 id="sec-5"><span class="num">5</span>화면, API, IPC</h2>
+  <p>화면은 보고용 계획서의 A~D 목업을 그대로 따른다. 여기서는 화면이 부르는 엔진 API와 IPC만 적는다. 모든 긴 작업은 기존 잡 체계(<code>api/jobs</code>, 진행률은 <code>api/ws</code>)를 탄다.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>화면</th><th>엔진 API(<code>/compare</code> 라우터)</th><th>IPC(main ↔ renderer)</th></tr></thead>
+    <tbody>
+      <tr><td>A 세트 지정</td><td><code>POST /compare/sets</code> {before_dir, after_dir, options} → job. 진행: 변환 n/N, 도곽 추출, 매칭. <code>GET /compare/sets/{id}</code> 요약(파일·도곽·XR·폰트 누락)</td><td><code>dialog:pickFolder</code>, <code>zwcad:status</code>(설치·실행 여부), <code>fonts:install-guide</code></td></tr>
+      <tr><td>B 도곽 목록</td><td><code>GET /compare/sets/{id}/pairs</code>(상태·변경 수·정렬), <code>POST /compare/pairs/{id}/manual</code> {before_frame, after_frame}, <code>POST /compare/sets/{id}/run</code> 비교 실행 → job</td><td>없음</td></tr>
+      <tr><td>C 비교 작업</td><td><code>GET /compare/pairs/{id}/clusters</code>, <code>PATCH /compare/clusters/{id}</code> {decision, user_label, kind, note}, <code>POST /compare/pairs/{id}/clusters</code> 수동 마크 {polyline, text}, <code>DELETE /compare/clusters/{id}</code>(수동만), <code>GET /compare/pairs/{id}/compare-dxf</code>(뷰어 로드)</td><td>없음</td></tr>
+      <tr><td>D 출력</td><td><code>POST /compare/sets/{id}/history</code> 이력 엑셀 시트 생성(화면 진입 시 자동), <code>POST /compare/sets/{id}/export</code> {scope, pair_ids, method, options} → job, <code>GET /compare/runs</code></td><td><code>clipboard:writeText</code>(TSV), <code>shell:openPath</code>(출력 폴더)</td></tr>
+    </tbody>
+  </table></div>
+  <h3>뷰어 연결</h3>
+  <ul>
+    <li>CadHost에 비교 DXF를 열고 레이어 가시성으로 겹쳐 보기·전·후를 바꾼다. 나란히는 CadHost 두 개와 카메라 동기화(뷰 행렬 이벤트 중계)다.</li>
+    <li>번호 배지 클릭은 뷰어 히트 테스트로 엔티티 핸들을 얻고, 비교 DXF 옆 사이드카 JSON(<code>handle → cluster_id</code>)으로 묶음을 찾는다. 리스트에서 번호를 누르면 묶음 bbox로 카메라를 맞춘다.</li>
+    <li>수동 마크 그리기는 뷰어 위 폴리라인 입력 모드다. 클릭 점을 도면 좌표로 바꿔 엔진에 보내고, 엔진이 클라우드 폴리라인을 만들어 비교 DXF를 갱신하면 뷰어가 다시 연다.</li>
+    <li>설정(색·보기 모드·사소한 변경 기준)은 <code>state/viewer</code>와 프로젝트 <code>compare.yaml</code>에 저장한다.</li>
+  </ul>
+  <p class="note">UI 문자열은 <code>apps/web/src/i18n/ko.json</code> 키로만 쓴다(ESLint <code>no-literal-string</code>). 다크 테마 토큰은 보고용 계획서 목업 팔레트를 그대로 옮긴다.</p>
+
+  <h2 id="sec-6"><span class="num">6</span>저장 구조</h2>
+  <p>프로젝트는 폴더 하나다. 원본 세트 폴더는 읽기 전용이고, 앱이 쓰는 것은 <code>.halo</code>, 출력 폴더, 이력 엑셀뿐이다. 원본 경로 쓰기는 기존 <code>bundle/guard</code>가 거부한다.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>경로</th><th>내용</th><th>쓰는 주체</th></tr></thead>
+    <tbody>
+      <tr><td><code>&lt;프로젝트&gt;/REV2/*.dwg</code>, <code>REV3/*.dwg</code>, <code>XR/</code></td><td>설계사 원본. 폴더 이름은 사용자가 정한다</td><td>아무도 쓰지 않는다</td></tr>
+      <tr><td><code>.halo/derivatives/&lt;sha1&gt;/working.dxf</code></td><td>작업용 DXF와 변환 메타(변환기·소요·경고)</td><td>인입</td></tr>
+      <tr><td><code>.halo/compare/&lt;pair_id&gt;/compare.dxf</code>, <code>before.dxf</code>, <code>after.dxf</code>, <code>clusters.json</code></td><td>비교 DXF, 나란히용 두 DXF, 묶음과 핸들 매핑</td><td>비교</td></tr>
+      <tr><td><code>.halo/db.sqlite</code></td><td>RevisionSet·SheetFrame·SheetPair·Change·Cluster·Run(기존 <code>db</code> 모듈, Alembic 마이그레이션)</td><td>엔진</td></tr>
+      <tr><td><code>.halo/compare.yaml</code>, <code>frames.yaml</code>, <code>dictionary.yaml</code></td><td>프로젝트 설정, 표제란 태그 규칙, 프로젝트 사전(덧붙이기만)</td><td>엔진, 사람이 열어 고칠 수 있음</td></tr>
+      <tr><td><code>.halo/log/</code></td><td>변환 로그, 교차검증 불일치, COM 실패 기록</td><td>엔진</td></tr>
+      <tr><td><code>출력/&lt;실행 날짜&gt;/</code></td><td>마크업 DWG, DXF 조각, 실행 요약 JSON</td><td>출력</td></tr>
+      <tr><td><code>리비전 이력.xlsx</code></td><td>실행 날짜 시트가 쌓이는 워크북</td><td>출력 단계 진입 시</td></tr>
+      <tr><td><code>%APPDATA%/halo/dictionary.yaml</code>, <code>compare.yaml</code></td><td>개인 사전과 개인 설정(선택)</td><td>사용자</td></tr>
+    </tbody>
+  </table></div>
+  <p>사전 적용 순서는 프로젝트 → 내장(앱 동봉) → 개인이며 먼저 맞는 항목이 이긴다. 공유 폴더에서 여럿이 같은 프로젝트를 열면 마지막 저장이 이기므로, 사전과 설정은 덧붙이기만 하고 현장별 관리자 한 명이 정리한다.</p>
+
+  <h2 id="sec-7"><span class="num">7</span>2주 작업 분해</h2>
+  <p>오케스트레이션은 Fable이 하고 작업은 Sonnet·Opus 서브에이전트가 <code>task/&lt;ID&gt;</code> 브랜치의 수동 worktree에서 한다. 브리프는 <code>docs/briefs/R1-xx.md</code>, <code>R2-xx.md</code>에 두고 CLAUDE.md의 완료 조건(테스트 존재·통과, <code>tools/verify.sh</code> 녹색, 문서, 보고서)을 그대로 적용한다. 같은 날의 작업은 파일 소유가 겹치지 않게 나눴다.</p>
+  <h3>1주 MVP</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>일</th><th>ID</th><th>작업</th><th>소유 파일</th><th>완료 조건</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="3" class="num">D1</td><td>R1-01</td><td>스키마 5종(sheet-frame, sheet-pair, change, cluster, run)과 예제, TS·파이썬 코드젠</td><td><code>packages/schema/**</code></td><td>예제가 스키마 검증을 통과하고 codegen 산출물이 갱신됨</td></tr>
+      <tr><td>R1-02</td><td>ZWCAD COM 브리지: 감지, 숨은 인스턴스, 열기 → SaveAs DXF → 닫기, 시간 제한·재기동, macOS 스텁</td><td><code>engine/src/halo_engine/compare/zwcad.py</code>, 테스트</td><td>스텁으로 계약 테스트 통과. Windows PC에서 실도면 5장 변환 성공(수동 확인 기록)</td></tr>
+      <tr><td>R1-03</td><td>인입 확장: 세트 단위 인입, sha1 캐시, ZWCAD 우선·자체 대체, 표본 교차검증, 폰트 누락 목록</td><td><code>compare/ingest_set.py</code>, <code>api/compare_sets.py</code></td><td>실도면 68장 세트가 잡으로 인입되고 진행률이 WS로 온다. 교차검증 불일치가 로그에 남는다</td></tr>
+      <tr><td rowspan="2" class="num">D2</td><td>R1-04</td><td>도곽 추출과 매칭: 표제란 규칙(<code>frames.yaml</code>), 경계, 엔티티 배정, 정규화 키, 4단계 매칭, 수동 짝</td><td><code>compare/frames.py</code>, <code>compare/match.py</code></td><td>실도면 68장 도곽 수 = PDF 페이지 수. 합성 리비전 쌍 짝 맞춤 100%</td></tr>
+      <tr><td>R1-05</td><td>화면 A·B: 폴더 선택, 진행 표시, 도곽 목록(필터 칩·검색·정렬), 짝 없음 수동 짝 맞춤, 다크 테마 토큰</td><td><code>apps/web/src/features/compare/{SetScreen,SheetList}*</code>, <code>state/compare.ts</code>, <code>ko.json</code>, IPC 채널</td><td>세트를 넣으면 목록이 뜨고 짝 없음을 수동으로 맞출 수 있다(Playwright)</td></tr>
+      <tr><td rowspan="2" class="num">D3</td><td>R1-06</td><td>비교 엔진 1차: 로컬 좌표, 핸들·지문 매칭, 속성 비교표, 사소한 변경 필터, 묶음·번호, 클라우드 폴리라인, 비교 DXF 생성</td><td><code>compare/diff.py</code>, <code>compare/cluster.py</code>, <code>compare/compare_dxf.py</code></td><td>합성 쌍에 심은 변경을 전부 검출하고 접힘 규칙이 맞는다. 같은 입력에서 비교 DXF·JSON이 바이트 동일</td></tr>
+      <tr><td>R1-07</td><td>합성 리비전 쌍 생성기와 truth: 기준 DXF에 이동·치수·문구·신설·삭제·해치 재생성을 심고 정답 JSON을 낸다</td><td><code>fixtures/compare/**</code>, <code>packages/testing</code></td><td>시나리오 8종 이상, 생성이 결정론적</td></tr>
+      <tr><td rowspan="2" class="num">D4</td><td>R1-08</td><td>화면 C 1차: CadHost에 비교 DXF, 레이어 토글로 겹쳐 보기·전·후, 번호 이동, 리스트 승인·무시·설명 편집, 접힌 목록</td><td><code>features/compare/CompareScreen*</code>, <code>state/viewer.ts</code></td><td>번호를 누르면 카메라가 가고, 승인·무시가 서버에 저장된다</td></tr>
+      <tr><td>R1-09</td><td>마크업 DWG 생성기와 도곽별 리비전 표, 전체 도곽 출력 잡, TSV 복사, DWG 저장(ZWCAD 우선·acad-ts 대체)</td><td><code>compare/markup.py</code>, <code>compare/export.py</code>, <code>api/compare_export.py</code></td><td>합성 쌍에서 승인 항목만 마크업 DWG와 표에 들어간다. DWG가 ZWCAD에서 열린다(Windows 확인)</td></tr>
+      <tr><td rowspan="2" class="num">D5</td><td>R1-10</td><td>화면 D 1차: 범위(전체), 넣는 방법, 출력 실행과 결과 폴더 열기. 끝까지 잇는 수직 슬라이스 E2E</td><td><code>features/compare/ExportScreen*</code>, <code>tests/e2e/compare.spec.ts</code></td><td>Playwright로 세트 지정 → 목록 → 검토 → 출력이 한 번에 지나간다</td></tr>
+      <tr><td>R1-11</td><td>Windows 확인과 실도면 통과: 실도면 68장 인입, 리비전 쌍 1벌 끝까지, 문제 목록 작성</td><td><code>docs/gates/R1.md</code></td><td>MVP 게이트 문서에 결과와 미해결 목록이 적힌다</td></tr>
+    </tbody>
+  </table></div>
+  <h3>2주 테스트·상세 개발</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>일</th><th>ID</th><th>작업</th><th>소유 파일</th><th>완료 조건</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="2" class="num">D6</td><td>R2-01</td><td>측정: 담당자 리비전 쌍으로 검출 누락·오탐, 설명 무수정 비율, 교차검증. 측정 스크립트와 보고</td><td><code>tools/compare-metrics/**</code>, <code>docs/gates/R2-metrics.md</code></td><td>지표 표가 나오고 기준값 초안이 적힌다</td></tr>
+      <tr><td>R2-02</td><td>내장 사전 초안: 실도면 레이어·블록 이름 전수 목록에서 종류 매핑, <code>dictionary.yaml</code> 스키마와 적용 순서</td><td><code>engine/src/halo_engine/compare/dictionary/**</code></td><td>실도면 레이어의 사전 적중률이 측정되어 보고된다</td></tr>
+      <tr><td rowspan="2" class="num">D7</td><td>R2-03</td><td>엔진 2차: 이동 판정 정교화(회전·미러), 블록 정의 변경 묶기, 설명 생성기(종류·행위·수치), 위치 힌트(실명·그리드)</td><td><code>compare/diff.py</code>, <code>compare/describe.py</code></td><td>합성 쌍 시나리오 확장(이동·회전·블록 정의) 전부 통과. 설명이 틀에 맞게 나온다</td></tr>
+      <tr><td>R2-04</td><td>래스터 보조 비교: ezdxf 렌더, XOR, 잔여 성분, 목록 연결</td><td><code>compare/raster.py</code></td><td>합성 쌍에서 잔여 차이 0. 객체 비교를 일부러 끈 경우 잔여가 잡힌다</td></tr>
+      <tr><td rowspan="2" class="num">D8</td><td>R2-05</td><td>화면 C 2차: 보기 모드 3종과 색 설정, 레이어 패널, 나란히(카메라 동기화), 수동 클라우드 마크 그리기·텍스트·지우기, 종류 수정 → 사전 반영</td><td><code>features/compare/CompareScreen*</code>, <code>features/compare/tools/*</code></td><td>자동 검출이 놓친 3곳을 수동 마크로 넣고 다음 실행에서 사전 반영이 확인된다</td></tr>
+      <tr><td>R2-06</td><td>리비전 이력 엑셀 생성기와 화면 D 진입 시 자동 실행, 전체 변경 리스트 삽입</td><td><code>compare/history.py</code>, <code>compare/markup.py</code></td><td>날짜 시트와 두 표가 생기고 같은 실행에서 중복되지 않는다</td></tr>
+      <tr><td rowspan="2" class="num">D9</td><td>R2-07</td><td>화면 D 2차: 선택 도곽과 도곽 선택 대화상자, ZWCAD COM 삽입(실행 중 감지), DXF 조각, 폰트 누락 고지·선택(화면 A)</td><td><code>features/compare/ExportScreen*</code>, <code>compare/zwcad.py</code>, <code>compare/export.py</code></td><td>ZWCAD 실행·미실행 두 경우 모두 출력이 확인된다(Windows). 폰트 누락 시 선택지가 뜬다</td></tr>
+      <tr><td>R2-08</td><td>대용량과 안정성: 설비 도서급 도곽(엔티티 35만) 비교 시간 측정과 공간 인덱스 최적화, COM 감시·재기동 시험, 원본 가드 테스트</td><td><code>compare/*</code>, <code>tests/**</code></td><td>35만 엔티티 도곽 비교가 완료되고 소요 시간이 기록된다. 원본 경로 쓰기 시도가 거부된다</td></tr>
+      <tr><td rowspan="2" class="num">D10</td><td>R2-09</td><td>2차 애드인(ZRX.NET): 열린 도면의 이전 리비전 찾기, 엔진 결과 불러와 표시하는 명령 하나</td><td><code>apps/zwcad-addin/**</code>(신규, 사내 전용)</td><td>Windows에서 명령 한 번으로 엔진 결과가 도면 위에 뜬다</td></tr>
+      <tr><td>R2-10</td><td>인수 확인과 문서: 담당자 시연, 미결 결정 반영, 매뉴얼 갱신, 게이트 보고</td><td><code>docs/gates/R2.md</code>, 매뉴얼</td><td>보고용 계획서 6절의 확인 방법이 전부 통과 또는 사유가 적힌다</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">브랜치·커밋 규칙은 CLAUDE.md를 따른다(<code>task/&lt;ID&gt;</code>, <code>&lt;ID&gt;: what</code>, main 직접 커밋 금지). 검증 게이트는 <code>tools/verify.sh</code>의 종료 코드로만 판단한다. Windows 확인이 필요한 작업(R1-02, R1-09, R1-11, R2-07, R2-09)은 담당자 PC 또는 셀프호스티드 러너에서 하고 결과를 브리프 보고서에 남긴다.</p>
+
+  <h2 id="sec-8"><span class="num">8</span>검증 계획</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>층</th><th>무엇으로</th><th>통과 기준</th></tr></thead>
+    <tbody>
+      <tr><td>단위·결정론</td><td>엔진 pytest, 합성 쌍 truth 대조, 같은 입력 두 번 실행의 바이트 비교</td><td>truth와 변경 집합 일치. 비교 DXF·clusters.json 바이트 동일</td></tr>
+      <tr><td>합성 리비전 쌍</td><td>R1-07 생성기: 이동(직선·회전·미러), 치수 값, 문구, 신설, 삭제, 해치 재생성, 블록 정의 변경, 레이어만 변경, 통째로 다시 그린 사본(핸들 전부 변경)</td><td>시나리오별 검출 100%, 접힘 규칙 정확, 통째 사본에서 지문 매칭으로 오탐 0</td></tr>
+      <tr><td>실도면 세트</td><td>실시도서 68장 인입·도곽 추출·매칭</td><td>도곽 수 = PDF 페이지 수(6/6 공종). 변환 실패 0, 교차검증 불일치는 사유 기록</td></tr>
+      <tr><td>담당자 리비전 쌍</td><td>담당자가 만든 전·후 쌍(1주 안에 제공)</td><td>담당자가 심은 변경 전부 검출, 오탐은 접힘. 설명 무수정 비율 측정(기준값은 측정 뒤 결정)</td></tr>
+      <tr><td>래스터 안전망</td><td>합성 쌍과 담당자 쌍</td><td>잔여 차이 0. 객체 비교 일부를 끄면 잔여가 잡힌다</td></tr>
+      <tr><td>출력</td><td>마크업 DWG를 ZWCAD에서 열기, COM 삽입, TSV 붙여넣기, 이력 엑셀 열기</td><td>승인 항목만 들어감. 원본 DWG 해시 불변</td></tr>
+      <tr><td>UI E2E</td><td>Playwright(<code>tools/verify.sh --e2e</code>)</td><td>세트 지정 → 목록 → 검토 → 출력 수직 슬라이스 통과</td></tr>
+      <tr><td>성능</td><td>설비 도서급 도곽(엔티티 35만), 세트 68장 인입</td><td>수치 목표는 두지 않고 측정해 기록한다. 화면이 멈추지 않도록 모든 긴 작업은 잡으로 돈다</td></tr>
+      <tr><td>Windows</td><td>담당자 PC 또는 셀프호스티드 러너</td><td>COM 변환·삽입·저장이 실제 ZWCAD에서 확인되고 기록된다</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="sec-9"><span class="num">9</span>리스크와 대응</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>리스크</th><th>대응</th></tr></thead>
+    <tbody>
+      <tr><td>숨은 ZWCAD 인스턴스가 대화상자에서 멈춤</td><td>시스템 변수로 대화상자 억제, 파일별 시간 제한, 프로세스 트리 종료 후 재기동, 실패 파일은 자체 변환기로. 실패율을 로그에 남긴다</td></tr>
+      <tr><td>ZWCAD 버전에 따라 DXF 출력이 달라 결정론이 깨짐</td><td>변환 메타에 ZWCAD 버전을 기록하고, 비교는 변환 결과가 아니라 파생 DXF를 입력으로 하므로 같은 DXF면 결과가 같다. 버전 변경 시 재변환을 권한다</td></tr>
+      <tr><td>설계사가 통째로 다시 그려 핸들이 전부 바뀜</td><td>지문 매칭과 이동 판정이 기본 경로다. 합성 쌍에 통째 사본 시나리오를 넣어 오탐 0을 확인한다</td></tr>
+      <tr><td>해치·치수 재생성 잡음</td><td>사소한 변경 규칙으로 접는다. 접힌 항목도 목록에 남아 사용자가 펼칠 수 있다</td></tr>
+      <tr><td>표제란 블록이 XREF 안에 있거나 태그 이름이 다름</td><td><code>frames.yaml</code>로 태그 규칙을 늘리고 XREF를 풀어 적용한다. 그래도 못 찾으면 화면 B에 "도곽 미인식" 파일로 보이고 수동 지정 경로를 남긴다</td></tr>
+      <tr><td>뷰어가 큰 도곽에서 멈춤(헤드리스 8/68)</td><td>비교 DXF는 도곽 하나 분량이라 부하가 작다. W3-02 뷰어 통합 WIP를 먼저 마무리한다</td></tr>
+      <tr><td>acad-ts 라이터의 ATTRIB 복제 결함</td><td>DWG 저장은 ZWCAD 우선. acad-ts는 표제란을 건드리지 않는 조건에서만 대체로 쓴다</td></tr>
+      <tr><td>macOS 개발과 Windows 실행의 괴리</td><td>COM 코드는 얇은 브리지로 격리하고 계약 테스트를 스텁으로 돌린다. Windows 확인 작업을 일정에 명시했다</td></tr>
+      <tr><td>2주 안에 담당자 리비전 쌍이 없음</td><td>합성 쌍으로 개발을 진행하고 실도면 세트로 인입·도곽을 검증한다. 담당자 쌍은 2주차 측정에만 필요하다</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="sec-10"><span class="num">10</span>결정 요청</h2>
+  <p>보고용 계획서의 다섯 가지에 개발 착수에 필요한 세 가지를 더했다. 결정 전까지는 1절의 기본값으로 진행한다.</p>
+  <div class="decision">
+    <ol>
+      <li><strong>착수 시점.</strong> 1주차 D1을 어느 날로 잡을지.</li>
+      <li><strong>클라우드 마크 규격.</strong> 레이어 이름·색·호 크기·번호 표기가 회사 표준과 다르면 그 값.</li>
+      <li><strong>리비전 표 양식.</strong> 열 구성과 표제란 옆 위치, 전체 변경 리스트를 넣을 도곽(표지 또는 첫 도곽).</li>
+      <li><strong>사소한 변경 기준.</strong> 이동 허용오차와 접을 항목 종류. 기본값은 1mm와 1절 표.</li>
+      <li><strong>도곽 목록 그룹 기준.</strong> 공종까지만 묶을지 도면 종류까지 나눌지. 실제 수령 도면을 본 뒤 2주 안에.</li>
+      <li><strong>ZWCAD 설치 정보.</strong> 담당자 PC의 ZWCAD 버전과 에디션, COM 자동화가 되는 라이선스인지. D1 전에 필요하다.</li>
+      <li><strong>리비전 쌍 제공 시점.</strong> 담당자가 만드는 전·후 쌍을 언제 줄지. 2주차 D6 측정에 쓴다.</li>
+      <li><strong>Windows 확인 방식.</strong> 담당자 PC에서 수동 확인할지, 셀프호스티드 러너를 둘지.</li>
+    </ol>
+  </div>
+
+  <!-- CONTENT:END -->
+</div>
+</div>
+
+<script>
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.sidenav a[href^="#sec-"]'));
+  var heads = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); }).filter(Boolean);
+  var pinned = null, arrivedY = null; // the section the reader clicked; kept until they scroll on their own
+  function docTop(el) { return el.getBoundingClientRect().top + window.scrollY; }
+  function setActive(el) {
+    links.forEach(function (a) { a.classList.toggle('active', !!el && a.getAttribute('href') === '#' + el.id); });
+  }
+  // the section that occupies the most of the viewport (a section runs from its heading to the next one)
+  function pick() {
+    var top = window.scrollY, bottom = top + window.innerHeight, best = heads[0], bestArea = -1;
+    for (var i = 0; i < heads.length; i++) {
+      var start = docTop(heads[i]) - 24;
+      var end = i + 1 < heads.length ? docTop(heads[i + 1]) - 24 : document.documentElement.scrollHeight;
+      var area = Math.min(end, bottom) - Math.max(start, top);
+      if (area > bestArea) { bestArea = area; best = heads[i]; }
+    }
+    return best;
+  }
+  function update() { setActive(pinned || pick()); }
+  function unpin() { if (pinned) { pinned = null; arrivedY = null; update(); } }
+  // scrollbar drags fire no wheel/key events: once the click's scroll has settled (250ms idle),
+  // any further movement of more than 40px unpins
+  var idleTimer = null;
+  function armArrival() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () { if (pinned && arrivedY === null) arrivedY = window.scrollY; }, 250);
+  }
+  function onScroll() {
+    if (pinned) {
+      if (arrivedY === null) armArrival();
+      else if (Math.abs(window.scrollY - arrivedY) > 40) { pinned = null; arrivedY = null; }
+    }
+    update();
+  }
+  links.forEach(function (a, i) {
+    a.addEventListener('click', function (e) {
+      var target = document.getElementById(a.getAttribute('href').slice(1));
+      if (!target) return;
+      e.preventDefault();
+      pinned = target; arrivedY = null;
+      setActive(pinned);
+      armArrival();
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+      if (history.replaceState) history.replaceState(null, '', '#' + target.id);
+    });
+  });
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', update);
+  window.addEventListener('wheel', function (e) { if (e.deltaY) unpin(); }, { passive: true });
+  window.addEventListener('touchstart', unpin, { passive: true });
+  window.addEventListener('keydown', function (e) {
+    if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].indexOf(e.key) >= 0) unpin();
+  });
+  // Zoom only the main column: Ctrl/Cmd + wheel, Ctrl/Cmd + = / - / 0, or the sidebar buttons. The sidebar keeps its size.
+  var page = document.querySelector('.page'), zv = document.querySelector('.zoomctl .zv');
+  var steps = [0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75], zoomLevel = 1, lastWheel = 0;
+  var zoomable = page && ('zoom' in page.style);
+  function applyZoom(z) {
+    if (!zoomable) return;
+    zoomLevel = Math.min(1.75, Math.max(0.8, z));
+    page.style.zoom = zoomLevel;
+    if (zv) zv.textContent = Math.round(zoomLevel * 100) + '%';
+    try { localStorage.setItem('page-zoom', String(zoomLevel)); } catch (e) {}
+    update();
+  }
+  function stepZoom(dir) {
+    var i = steps.indexOf(zoomLevel); if (i < 0) i = 2;
+    applyZoom(steps[Math.min(steps.length - 1, Math.max(0, i + dir))]);
+  }
+  if (zoomable) {
+    try { var saved = parseFloat(localStorage.getItem('page-zoom')); if (saved && saved !== 1) applyZoom(saved); } catch (e) {}
+    Array.prototype.forEach.call(document.querySelectorAll('.zoomctl button'), function (b) {
+      b.addEventListener('click', function () { var k = b.getAttribute('data-zoom'); k === '+' ? stepZoom(1) : k === '-' ? stepZoom(-1) : applyZoom(1); });
+    });
+    window.addEventListener('keydown', function (e) {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      if (e.key === '=' || e.key === '+') { e.preventDefault(); stepZoom(1); }
+      else if (e.key === '-') { e.preventDefault(); stepZoom(-1); }
+      else if (e.key === '0') { e.preventDefault(); applyZoom(1); }
+    });
+    window.addEventListener('wheel', function (e) {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      var now = Date.now(); if (now - lastWheel < 120) return; lastWheel = now;
+      stepZoom(e.deltaY < 0 ? 1 : -1);
+    }, { passive: false });
+  } else if (zv) { zv.parentElement.style.display = 'none'; }
+  update();
+})();
+</script>

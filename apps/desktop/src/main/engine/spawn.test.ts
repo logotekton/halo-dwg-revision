@@ -1,5 +1,10 @@
-import { join } from 'node:path'
+// posix join on purpose: these cases pass platform 'darwin', so findUvBinary
+// joins with '/', and the expectation must not follow the host OS (CI runs
+// this file on windows-latest too).
+import { posix } from 'node:path'
 import { describe, expect, it } from 'vitest'
+
+const join = (...parts: string[]): string => posix.join(...parts)
 import { engineSpawnOptions, findUvBinary, resolveEngineCommand } from './spawn'
 
 describe('findUvBinary', () => {

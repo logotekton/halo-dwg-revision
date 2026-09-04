@@ -66,6 +66,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@halo-cad/cad-core':
+        specifier: workspace:*
+        version: link:../../packages/cad-core
+      '@halo-cad/dwg-io-gpl':
+        specifier: workspace:*
+        version: link:../../packages/dwg-io-gpl
       i18next:
         specifier: 26.4.1
         version: 26.4.1(typescript@5.9.3)

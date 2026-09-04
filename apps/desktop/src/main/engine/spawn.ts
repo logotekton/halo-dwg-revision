@@ -103,3 +103,26 @@ export function resolveEngineCommand(options: ResolveEngineCommandOptions): Engi
     cwd: options.engineDir,
   }
 }
+
+/**
+ * Platform-dependent `child_process.spawn()` options for the sidecar
+ * (constraint: Windows spawns with `windowsHide: true` so the sidecar's
+ * `console=True` PyInstaller executable — kept console-mode so
+ * `engine/scripts/build-sidecar.sh`'s smoke check and manual debugging can
+ * both read its stdout — never flashes a visible console window; POSIX
+ * keeps its own process group so the whole tree can be signalled together,
+ * `docs/dev/engine-sidecar.md` "스폰 pid != 서버 pid"). Pure so the platform
+ * branch is testable without actually spawning a process; the caller
+ * (`supervisor.ts`) spreads the result into its real `spawn()` call.
+ */
+export interface EngineSpawnOptions {
+  windowsHide: boolean
+  detached: boolean
+}
+
+export function engineSpawnOptions(platform: NodeJS.Platform): EngineSpawnOptions {
+  return {
+    windowsHide: platform === 'win32',
+    detached: platform !== 'win32',
+  }
+}

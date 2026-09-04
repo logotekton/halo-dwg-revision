@@ -7,7 +7,7 @@ import { backoffDelayMs, MAX_RESTART_ATTEMPTS } from './backoff'
 import { pollHealthUntilReady } from './health'
 import type { EngineLogger } from './logger'
 import { waitForReady } from './ready'
-import { resolveEngineCommand } from './spawn'
+import { engineSpawnOptions, resolveEngineCommand } from './spawn'
 import { INITIAL_ENGINE_STATUS, reduceEngineStatus, type EngineStatus } from './state-machine'
 
 /** Our spawn() call below fixes stdio to ['ignore', 'pipe', 'pipe']. */
@@ -209,9 +209,12 @@ export function startEngineSupervisor(options: EngineSupervisorOptions): EngineS
         HALO_ENGINE_PARENT_PID: String(process.pid),
         PYTHONUTF8: '1',
       },
-      // Own process group on POSIX so shutdown can signal the whole tree
-      // (uv's own child, the actual halo_engine process) via killTree().
-      detached: process.platform !== 'win32',
+      // windowsHide: true on win32 (the PyInstaller sidecar is console=True,
+      // keep its console window hidden); detached: true on POSIX so shutdown
+      // can signal the whole process group (uv's own child, the actual
+      // halo_engine process) via killTree(). See spawn.ts engineSpawnOptions
+      // (R1-00b shared-file patch, applied by Fable).
+      ...engineSpawnOptions(process.platform),
       stdio: ['ignore', 'pipe', 'pipe'],
     })
   }

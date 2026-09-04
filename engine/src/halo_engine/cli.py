@@ -20,6 +20,7 @@ from uvicorn.supervisors import ChangeReload
 
 from halo_engine import __version__
 from halo_engine.api.main import create_app
+from halo_engine.compare.zwcad import ZwcadConverter, ZwcadError
 from halo_engine.config import Settings
 from halo_engine.ingest.dxf_loader import load_dxf
 from halo_engine.ingest.stats import compute_layer_stats
@@ -254,6 +255,63 @@ def ingest(
         result.handle_map_path,
     ):
         typer.echo(str(output_path))
+
+
+@app.command("zwcad-convert")
+def zwcad_convert(
+    input_path: Annotated[Path, typer.Argument(help="Input .dwg or .dxf file.")],
+    output_path: Annotated[
+        Path, typer.Argument(help="Output file; its extension picks the conversion direction.")
+    ],
+    timeout: Annotated[
+        float, typer.Option("--timeout", help="Per-file timeout in seconds before a restart.")
+    ] = 120.0,
+    dxf_version: Annotated[
+        str,
+        typer.Option(
+            "--dxf-version",
+            help=(
+                "SaveAs version: the DXF version for .dwg->.dxf, or the DWG "
+                "version for .dxf->.dwg (e.g. 2013, 2018)."
+            ),
+        ),
+    ] = "2013",
+) -> None:
+    """Convert one file through the hidden ZWCAD COM bridge (R1-02).
+
+    Windows-only manual-check tool (``docs/dev/zwcad-bridge.md``) -- the
+    engine's own compare/ingest pipeline calls ``ZwcadConverter`` directly,
+    not this CLI. Prints one JSON line and exits 0 on success, 1 on failure.
+    """
+    in_is_dwg = input_path.suffix.lower() == ".dwg"
+    out_is_dwg = output_path.suffix.lower() == ".dwg"
+    if in_is_dwg == out_is_dwg:
+        typer.echo(json.dumps({"error": "expects .dwg->.dxf or .dxf->.dwg"}))
+        raise typer.Exit(code=1)
+
+    try:
+        with ZwcadConverter(timeout_s=timeout, dxf_version=dxf_version) as converter:
+            if in_is_dwg:
+                result = converter.convert_dwg_to_dxf(input_path, output_path)
+            else:
+                result = converter.convert_dxf_to_dwg(
+                    input_path, output_path, dwg_version=dxf_version
+                )
+    except ZwcadError as exc:
+        typer.echo(json.dumps({"error": str(exc)}))
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(
+        json.dumps(
+            {
+                "converter": result.converter,
+                "zwcad_version": result.zwcad_version,
+                "elapsed_s": result.elapsed_s,
+                "warnings": result.warnings,
+                "output": str(output_path),
+            }
+        )
+    )
 
 
 @app.command()

@@ -1,0 +1,358 @@
+/**
+ * The two group codes `dxfOut()` omits (ADR-0002 개정 2026-09-02 §3).
+ *
+ * The round trip at the bottom is the real check: F06.dxf → `dxfOut()` →
+ * post-process → re-open → statistics equal to the ezdxf truth. The engine-side
+ * half of the same assertion (ezdxf reading the post-processed file) is the
+ * acceptance command of `docs/briefs/W3-02.md` and is documented in
+ * `docs/dev/viewer-integration.md`, because it needs Python.
+ */
+
+import { describe, expect, it } from 'vitest';
+
+import { postProcessDxfOut } from '../src/dxfout-postprocess';
+import { dispose, exportDxf, openDxf, statsByLayer } from '../src/index';
+import { fixtureBytes, sha256Of, truthEntry } from './helpers';
+
+/** Minimal but structurally faithful `INSERT ATTRIB SEQEND` triple. */
+const INSERT_WITH_ATTRIB = [
+  '0',
+  'SECTION',
+  '2',
+  'ENTITIES',
+  '0',
+  'INSERT',
+  '5',
+  '9E',
+  '330',
+  '17',
+  '100',
+  'AcDbEntity',
+  '8',
+  'X-GRID',
+  '100',
+  'AcDbBlockReference',
+  '10',
+  '8000',
+  '20',
+  '23400',
+  '30',
+  '0',
+  '2',
+  'GRID-BUBBLE',
+  '0',
+  'ATTRIB',
+  '5',
+  'A0',
+  '330',
+  '9E',
+  '100',
+  'AcDbEntity',
+  '8',
+  'X-GRID',
+  '100',
+  'AcDbText',
+  '1',
+  'X1',
+  '100',
+  'AcDbAttribute',
+  '2',
+  'LABEL',
+  '70',
+  '0',
+  '0',
+  'SEQEND',
+  '5',
+  'A1',
+  '330',
+  '9E',
+  '0',
+  'ENDSEC',
+  '0',
+  'EOF',
+  '',
+].join('\n');
+
+function hatch(loops: { flags: number; box: [number, number, number, number] }[]): string {
+  const lines = ['0', 'SECTION', '2', 'ENTITIES', '0', 'HATCH', '5', 'B0', '100', 'AcDbEntity', '8', 'A-HATCH', '100', 'AcDbHatch', '10', '0', '20', '0', '30', '0', '2', 'SOLID', '70', '1', '71', '0', '91', String(loops.length)];
+  for (const loop of loops) {
+    const [minX, minY, maxX, maxY] = loop.box;
+    lines.push('92', String(loop.flags), '72', '0', '73', '1', '93', '4');
+    lines.push('10', String(minX), '20', String(minY));
+    lines.push('10', String(maxX), '20', String(minY));
+    lines.push('10', String(maxX), '20', String(maxY));
+    lines.push('10', String(minX), '20', String(maxY));
+    lines.push('97', '0');
+  }
+  lines.push('75', '1', '76', '1', '98', '0', '0', 'ENDSEC', '0', 'EOF', '');
+  return lines.join('\n');
+}
+
+function pairsOf(text: string): [string, string][] {
+  const lines = text.split('\n');
+  const out: [string, string][] = [];
+  for (let index = 0; index + 1 < lines.length; index += 2) {
+    out.push([lines[index]!.trim(), lines[index + 1]!]);
+  }
+  return out;
+}
+
+describe('postProcessDxfOut: INSERT group 66', () => {
+  it('adds `66 1` right after the AcDbBlockReference marker when an ATTRIB follows', () => {
+    const result = postProcessDxfOut(INSERT_WITH_ATTRIB);
+    expect(result.insertsFlagged).toBe(1);
+    expect(result.unchanged).toBe(false);
+    const pairs = pairsOf(result.text);
+    const marker = pairs.findIndex(([code, value]) => code === '100' && value === 'AcDbBlockReference');
+    expect(pairs[marker + 1]).toEqual(['66', '1']);
+    // The block name still follows, i.e. nothing else was reordered.
+    expect(pairs.slice(marker + 2, marker + 6).map(([code]) => code)).toEqual(['10', '20', '30', '2']);
+  });
+
+  it('changes nothing else: removing the inserted pair restores the input byte for byte', () => {
+    const result = postProcessDxfOut(INSERT_WITH_ATTRIB);
+    const lines = result.text.split('\n');
+    const at = lines.findIndex((line, index) => line === '66' && lines[index + 1] === '1');
+    lines.splice(at, 2);
+    expect(lines.join('\n')).toBe(INSERT_WITH_ATTRIB);
+  });
+
+  it('is idempotent', () => {
+    const once = postProcessDxfOut(INSERT_WITH_ATTRIB);
+    const twice = postProcessDxfOut(once.text);
+    expect(twice.text).toBe(once.text);
+    expect(twice.unchanged).toBe(true);
+    expect(twice.insertsAlreadyFlagged).toBe(1);
+  });
+
+  it('leaves an INSERT without ATTRIBs alone', () => {
+    const withoutAttrib = INSERT_WITH_ATTRIB.replace(
+      /0\nATTRIB[\s\S]*?0\nSEQEND\n5\nA1\n330\n9E\n/,
+      ''
+    );
+    const result = postProcessDxfOut(withoutAttrib);
+    expect(result.insertsFlagged).toBe(0);
+    expect(result.text).toBe(withoutAttrib);
+  });
+
+  it('repairs a wrong `66 0` instead of inserting a second flag', () => {
+    const wrong = INSERT_WITH_ATTRIB.replace('100\nAcDbBlockReference\n', '100\nAcDbBlockReference\n66\n0\n');
+    const result = postProcessDxfOut(wrong);
+    expect(result.insertsFlagged).toBe(0);
+    expect(result.text.split('\n').filter((line) => line === '66')).toHaveLength(1);
+    const pairs = pairsOf(result.text);
+    expect(pairs.find(([code]) => code === '66')?.[1]).toBe('1');
+  });
+
+  it('preserves right-aligned group code columns when the writer uses them', () => {
+    const padded = INSERT_WITH_ATTRIB.split('\n')
+      .map((line, index) => (index % 2 === 0 ? line.padStart(3, ' ') : line))
+      .join('\n');
+    const result = postProcessDxfOut(padded);
+    expect(result.text).toContain('\n 66\n1\n');
+  });
+});
+
+describe('postProcessDxfOut: HATCH group 92', () => {
+  it('sets the External bit on a single boundary path', () => {
+    const result = postProcessDxfOut(hatch([{ flags: 2, box: [0, 0, 100, 100] }]));
+    expect(result.hatchLoopsFlagged).toBe(1);
+    expect(pairsOf(result.text).filter(([code]) => code === '92').map(([, value]) => value)).toEqual(['3']);
+  });
+
+  it('leaves a hole (a path contained in another) as a hole', () => {
+    const result = postProcessDxfOut(
+      hatch([
+        { flags: 2, box: [0, 0, 100, 100] },
+        { flags: 2, box: [20, 20, 80, 80] },
+      ])
+    );
+    expect(result.hatchLoopsFlagged).toBe(1);
+    expect(pairsOf(result.text).filter(([code]) => code === '92').map(([, value]) => value)).toEqual(['3', '2']);
+  });
+
+  it('flags both loops of two disjoint islands', () => {
+    const result = postProcessDxfOut(
+      hatch([
+        { flags: 2, box: [0, 0, 100, 100] },
+        { flags: 2, box: [200, 0, 300, 100] },
+      ])
+    );
+    expect(result.hatchLoopsFlagged).toBe(2);
+    expect(pairsOf(result.text).filter(([code]) => code === '92').map(([, value]) => value)).toEqual(['3', '3']);
+  });
+
+  it('flags an island inside a hole again (nesting depth 2)', () => {
+    const result = postProcessDxfOut(
+      hatch([
+        { flags: 2, box: [0, 0, 100, 100] },
+        { flags: 2, box: [20, 20, 80, 80] },
+        { flags: 2, box: [40, 40, 60, 60] },
+      ])
+    );
+    expect(pairsOf(result.text).filter(([code]) => code === '92').map(([, value]) => value)).toEqual(['3', '2', '3']);
+  });
+
+  it('does not touch a path that already carries External or Outermost', () => {
+    const already = hatch([{ flags: 3, box: [0, 0, 100, 100] }]);
+    expect(postProcessDxfOut(already).text).toBe(already);
+    const outermost = hatch([{ flags: 16, box: [0, 0, 100, 100] }]);
+    expect(postProcessDxfOut(outermost).text).toBe(outermost);
+  });
+});
+
+describe('postProcessDxfOut: robustness', () => {
+  it('returns non-DXF input untouched', () => {
+    // The NUL pair is written as an escape, not as literal bytes: a source file
+    // with a NUL in it is `binary` to git, and every merge of this file then
+    // conflicts as a whole instead of by line.
+    const junk = 'AutoCAD Binary DXF\u0000\u0000';
+    expect(postProcessDxfOut(junk).text).toBe(junk);
+    expect(postProcessDxfOut('').text).toBe('');
+  });
+
+  it('keeps CRLF line endings', () => {
+    const crlf = INSERT_WITH_ATTRIB.split('\n').join('\r\n');
+    const result = postProcessDxfOut(crlf);
+    expect(result.lineEnding).toBe('\r\n');
+    expect(result.text).toContain('\r\n66\r\n1\r\n');
+    expect(result.text.includes('\n\n')).toBe(false);
+  });
+});
+
+describe('F06 round trip: dxfOut + post-process', () => {
+  it('restores the truth statistics that raw dxfOut loses', async () => {
+    const bytes = fixtureBytes('F06.dxf');
+    const source = await openDxf(bytes, { fileSha256: sha256Of(bytes) });
+    let raw: string;
+    try {
+      raw = exportDxf(source);
+    } finally {
+      dispose(source);
+    }
+
+    const processed = postProcessDxfOut(raw);
+    // F06 has 8 INSERTs, 7 of them with ATTRIBs, plus 12 single-loop hatches.
+    expect(processed.insertsFlagged).toBeGreaterThanOrEqual(7);
+    expect(processed.hatchLoopsFlagged).toBe(12);
+    expect(processed.hatchCount).toBe(12);
+
+    const encoded = new TextEncoder().encode(processed.text);
+    const buffer = encoded.buffer.slice(
+      encoded.byteOffset,
+      encoded.byteOffset + encoded.byteLength
+    ) as ArrayBuffer;
+    const reopened = await openDxf(buffer, { fileSha256: 'post-processed' });
+    try {
+      const stats = statsByLayer(reopened, { file_sha256: 'post-processed' });
+      const truth = truthEntry('F06').doc.totals;
+      expect(stats.totals.count_by_type).toEqual(truth.count_by_type);
+      expect(stats.totals.entity_count).toBe(truth.entity_count);
+      expect(stats.totals.insert_by_block).toEqual(truth.insert_by_block);
+      expect(stats.totals.text_count).toBe(truth.text_count);
+      expect(stats.totals.text_hash).toBe(truth.text_hash);
+      expect(stats.totals.length_sum_mm).toBeCloseTo(truth.length_sum_mm, 3);
+      expect(stats.totals.hatch_area_sum_mm2).toBeCloseTo(truth.hatch_area_sum_mm2, 3);
+    } finally {
+      dispose(reopened);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// W3-09 repairs: dimension styles, big fonts, duplicate handles
+// ---------------------------------------------------------------------------
+
+/**
+ * A miniature file with the three defects W3-09 measured over the real set:
+ * a LEADER naming the dimension style `0`, a STYLE whose big font is the
+ * literal `0`, and two records sharing handle `A0`.
+ */
+function realWorldDefects(options: { activeDimStyle?: string } = {}): string {
+  const lines = [
+    '0', 'SECTION', '2', 'HEADER',
+    '9', '$HANDSEED', '5', 'FF',
+    '9', '$DIMSTYLE', '2', options.activeDimStyle ?? 'DAEMYUNG',
+    '0', 'ENDSEC',
+    '0', 'SECTION', '2', 'TABLES',
+    '0', 'TABLE', '2', 'DIMSTYLE',
+    '0', 'DIMSTYLE', '105', '30', '2', 'Standard',
+    '0', 'DIMSTYLE', '105', '31', '2', 'DAEMYUNG',
+    '0', 'ENDTAB',
+    '0', 'TABLE', '2', 'STYLE',
+    '0', 'STYLE', '5', '40', '2', '돋움', '3', 'whgtxt.shx', '4', '0',
+    '0', 'STYLE', '5', '41', '2', 'Standard', '3', 'txt.shx', '4', '',
+    '0', 'ENDTAB',
+    '0', 'ENDSEC',
+    '0', 'SECTION', '2', 'ENTITIES',
+    '0', 'LEADER', '5', 'A0', '100', 'AcDbEntity', '8', 'A-ANNO',
+    '100', 'AcDbLeader', '3', '0', '71', '1',
+    '0', 'LINE', '5', 'A0', '100', 'AcDbEntity', '8', '0',
+    '100', 'AcDbLine', '10', '0', '20', '0', '11', '10', '21', '0',
+    '0', 'ENDSEC',
+    '0', 'EOF',
+    '',
+  ];
+  return lines.join('\n');
+}
+
+describe('postProcessDxfOut: LEADER dimension style (W3-09)', () => {
+  it('restores the drawing active style when the name is not in the table', () => {
+    const result = postProcessDxfOut(realWorldDefects());
+    expect(result.dimStylesRestored).toBe(1);
+    const pairs = pairsOf(result.text);
+    const leaderAt = pairs.findIndex(([code, value]) => code === '0' && value === 'LEADER');
+    const style = pairs.slice(leaderAt).find(([code]) => code === '3');
+    expect(style?.[1]).toBe('DAEMYUNG');
+  });
+
+  it('falls back to Standard when the active style is not defined either', () => {
+    const result = postProcessDxfOut(realWorldDefects({ activeDimStyle: 'MISSING' }));
+    const pairs = pairsOf(result.text);
+    const leaderAt = pairs.findIndex(([code, value]) => code === '0' && value === 'LEADER');
+    expect(pairs.slice(leaderAt).find(([code]) => code === '3')?.[1]).toBe('Standard');
+  });
+
+  it('leaves a LEADER that already names a defined style alone', () => {
+    const good = realWorldDefects().replace('AcDbLeader\n3\n0\n', 'AcDbLeader\n3\nStandard\n');
+    expect(postProcessDxfOut(good).dimStylesRestored).toBe(0);
+  });
+});
+
+describe('postProcessDxfOut: STYLE big font (W3-09)', () => {
+  it('clears a big font written as the literal 0 and leaves real ones', () => {
+    const result = postProcessDxfOut(realWorldDefects());
+    expect(result.bigFontsCleared).toBe(1);
+    const pairs = pairsOf(result.text);
+    const styleAt = pairs.findIndex(([code, value]) => code === '0' && value === 'STYLE');
+    const bigFont = pairs.slice(styleAt).find(([code]) => code === '4');
+    expect(bigFont?.[1]).toBe('');
+    // The primary font is untouched.
+    expect(pairs.slice(styleAt).find(([code]) => code === '3')?.[1]).toBe('whgtxt.shx');
+  });
+});
+
+describe('postProcessDxfOut: duplicate handles (W3-09)', () => {
+  it('re-issues the later handle above $HANDSEED and bumps the seed', () => {
+    const result = postProcessDxfOut(realWorldDefects());
+    expect(result.handlesReassigned).toBe(1);
+    const pairs = pairsOf(result.text);
+    const handles = pairs
+      .filter(([code]) => code === '5' || code === '105')
+      .map(([, value]) => value);
+    expect(new Set(handles).size).toBe(handles.length);
+    // 0xFF was the seed, so the re-issued handle is the next one up.
+    expect(handles).toContain('100');
+    const seed = pairs.findIndex(([, value]) => value === '$HANDSEED');
+    expect(pairs[seed + 1]?.[1]).toBe('101');
+  });
+
+  it('is idempotent: a second pass finds nothing left to repair', () => {
+    const once = postProcessDxfOut(realWorldDefects());
+    const twice = postProcessDxfOut(once.text);
+    expect(twice.handlesReassigned).toBe(0);
+    expect(twice.dimStylesRestored).toBe(0);
+    expect(twice.bigFontsCleared).toBe(0);
+    expect(twice.unchanged).toBe(true);
+  });
+});

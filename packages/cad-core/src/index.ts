@@ -17,7 +17,7 @@
 
 import type { EntityRef } from '@halo-cad/schema/gen/ts/common/entity-ref';
 
-import { disposeDocument, openDxfDatabase } from './mlightcad-surface';
+import { disposeDocument, openDwgDatabase, openDxfDatabase, writeDxfText } from './mlightcad-surface';
 import type { CadDocumentHandle, CadEntity, CurveLengthPath } from './surface-types';
 
 export type {
@@ -40,12 +40,61 @@ export type {
 } from './surface-types';
 
 export { SCHEMA_VERSION, VIEWER_PRODUCER } from './constants';
-export { normaliseEntityType, mtextToPlain } from './mlightcad-surface';
+export { normaliseEntityType, mtextToPlain, repairDanglingReferences } from './mlightcad-surface';
+export type { DanglingReferenceRepair } from './mlightcad-surface';
 export { sha1Hex, textHash, compareByCodePoint } from './sha1';
 export { statsByLayer } from './stats';
 export type { StatsMeta } from './stats';
 export { exportNdj, toNdjsonLines } from './ndj';
 export type { NdjMeta } from './ndj';
+export {
+  FLATTEN_DISTANCE_MM,
+  cadFitPointCurve,
+  clampedUniformKnots,
+  evaluateNurbs,
+  fitPointSplineLength,
+  flattenNurbs,
+  nurbsFromControlPoints,
+  nurbsLength,
+  scanSplineFitData,
+} from './curve-length';
+export type { NurbsCurve, Point3, SplineFitData } from './curve-length';
+export { postProcessDxfOut } from './dxfout-postprocess';
+export type { DxfPostProcessReport, DxfPostProcessResult } from './dxfout-postprocess';
+
+// The view half (W3-02): CadHost mounts the mlightcad viewer into a DOM
+// container. Node consumers (vitest, the desktop main process) can keep
+// importing everything above without pulling the WebGL surface in — the module
+// only touches the DOM once `CadHost.create()` is called.
+export { CadHost } from './host';
+export type {
+  BoxLike,
+  CadEditTx,
+  CadHostEvent,
+  CadHostEventMap,
+  CadHostOptions,
+  CadHostStatus,
+  CadHostWarning,
+  CadOpenMode,
+  EntityTier,
+  FlatBox,
+  LayerDto,
+  OpenProgress,
+  OpenResult,
+  OverlayEntitySpec,
+  OverlayId,
+  OverlayJson,
+  ViewBox,
+  ViewPoint,
+} from './host';
+export {
+  DXF_BYTES_PER_ENTITY,
+  DWG_BYTES_PER_ENTITY,
+  estimateEntityTier,
+  renders,
+  tierOf,
+  toViewBox,
+} from './host';
 
 export interface OpenDxfOptions {
   /**
@@ -72,6 +121,34 @@ export function openDxf(
   options: OpenDxfOptions = {}
 ): Promise<CadDocumentHandle> {
   return openDxfDatabase(bytes, options);
+}
+
+/**
+ * Opens DWG bytes headlessly (no viewer, no canvas).
+ *
+ * Only usable where `@halo-cad/dwg-io-gpl`'s `registerLibreDwgConverter()` has
+ * run and a `Worker` global exists — in practice the hidden converter window of
+ * `apps/desktop/src/main/convert` (ADR-0002 개정 §2). The desktop main process
+ * cannot call it: the DWG parser is worker-only.
+ */
+export function openDwg(
+  bytes: ArrayBuffer,
+  options: { fileSha256?: string } = {}
+): Promise<CadDocumentHandle> {
+  return openDwgDatabase(bytes, options);
+}
+
+/**
+ * Serialises an open document to DXF text with the viewer's own DXF writer.
+ *
+ * The result still has the two defects of ADR-0002 개정 §3; run
+ * {@link postProcessDxfOut} on it before handing it to the engine.
+ */
+export function exportDxf(
+  document: CadDocumentHandle,
+  options: { version?: string; precision?: number } = {}
+): string {
+  return writeDxfText(document, options);
 }
 
 /**

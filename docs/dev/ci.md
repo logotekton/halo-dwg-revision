@@ -72,3 +72,54 @@ bash tools/verify.sh
 | ts(windows) exit 1 | 린트 픽스처 검사가 `pnpm`을 셸 없이 spawn(`.cmd` 심), ESLint 출력 경로가 백슬래시 | Node로 ESLint 직접 실행, 구분자 정규화, `.npmrc shell-emulator=true` |
 | `test_ready_line_then_health` pid 불일치 | `halo-engine.exe` 런처가 파이썬을 자식으로 띄움 → Popen.pid ≠ READY.pid | 테스트는 READY pid 생존만 단언(POSIX는 등호 유지). 사이드카 종료는 프로세스 트리(`taskkill /T`) 필수 |
 | `test_parent_pid_watch...` 엔진 미종료 | `os.kill(pid, 0)`이 Windows에서는 TerminateProcess이며 없는 PID에 OSError | `halo_engine.procutil.pid_alive`(OpenProcess/GetExitCodeProcess)로 교체 |
+
+## Windows Installer 워크플로 (`.github/workflows/windows-installer.yml`, R1-00b)
+
+이 파일은 위 `ci.yml`(lint/typecheck/test, 매 push·PR)과 별개다. 목적이 다르다 —
+사용자는 Windows에서 **설치본으로만** 확인하므로(`docs/briefs/R1-00b.md`,
+`docs/contracts/r1.md` §0), `main`·`task/**` 브랜치 푸시와 `workflow_dispatch`마다
+`windows-latest` 한 잡에서 NSIS x64 설치본을 빌드해 아티팩트로 올린다. `ci.yml`은 이
+태스크의 Forbidden 목록이라 변경하지 않았다 — 두 워크플로는 각자 독립적으로 트리거되고
+캐시 키·동시성 그룹도 `${{ github.workflow }}`가 갈라 서로 간섭하지 않는다.
+
+### 잡 구성
+
+| 단계 | 내용 |
+|---|---|
+| 체크아웃 전 | `git config --global core.autocrlf false` (ci.yml과 동일한 사유) |
+| Node/pnpm | `actions/setup-node@v7`(`.nvmrc`) → corepack → `pnpm install --frozen-lockfile` (pnpm 스토어는 `actions/cache@v6`로 캐시, ci.yml과 동일한 키 규칙) |
+| Python/uv | `astral-sh/setup-uv@v10.0.1` → `uv python install 3.12` |
+| 사이드카 | `bash engine/scripts/build-sidecar.sh` — Git Bash로 실행(브리프 제약: "Windows 셸은 bash 기본, PowerShell 전용 단계 없음"). `HALO_SIDECAR_SMOKE` 환경변수를 `workflow_dispatch`의 `skip_sidecar_smoke` 입력에서 계산해 넘긴다(기본은 스모크 체크 실행) |
+| 빌드 | `pnpm build` (apps/web dist + apps/desktop out, 스키마 패키지는 pnpm의 워크스페이스 의존 그래프가 위상 정렬로 먼저 빌드함 — `tools/package.sh`와 동일 순서, 로컬에서 mac으로 검증) |
+| 패키징 | `pnpm --filter @halo-cad/desktop build:app` — `apps/desktop/electron-builder.yml`의 `win`/`nsis` 설정으로 NSIS x64 설치본 생성 |
+| 업로드 | `actions/upload-artifact@v4`, 이름 `halo-dwg-revision-windows-x64`, 대상 `dist/*.exe` + `dist/latest.yml`, 보존 14일. 실패 시에만 `engine/build`·`engine/dist`·`dist` 전체를 별도 아티팩트(`-failure-logs`, 보존 7일)로 올린다 |
+
+동시성은 ci.yml과 같은 패턴(`${{ github.workflow }}-${{ github.ref }}`, `cancel-in-progress: true`)
+— 같은 브랜치에 새 push가 오면 이전 빌드를 취소한다.
+
+### `latest.yml`이 생성되지 않는 이유
+
+브리프는 아티팩트 구성을 "`*.exe` + `latest.yml`"로 적었지만, 로컬 mac 빌드로 실측한 결과
+`latest.yml`(electron-updater 갱신 메타파일)은 **생성되지 않는다**. electron-builder는
+`build.publish` 설정이 없으면 `package.json`의 `repository` 필드나 `.git/config`의
+`origin`이 `github.com`(또는 인식되는 다른 호스트)을 가리켜야만 업데이트 메타파일을
+만든다(`app-builder-lib`의 `getPublishConfigsForUpdateInfo`, 소스: `node_modules/.pnpm/
+app-builder-lib@26.15.3.../out/publish/updateInfoBuilder.js`) — 이 저장소는 `repository`
+필드가 없고 `git remote -v`도 로컬 경로(`halo-cad-local`)뿐이라 어느 쪽도 해당하지 않는다.
+CLAUDE.md가 자동 업데이트(`publish` 설정) 자체를 금지하므로 이는 오히려 의도에 맞는
+상태다 — 워크플로는 `latest.yml`이 없어도 실패하지 않도록 `if-no-files-found: warn`으로
+뒀다(`dist/*.exe`는 항상 매치하므로 업로드 자체는 항상 성공한다). 원격이 GitHub로
+바뀌거나 `repository` 필드가 추가되면 이 절을 재확인한다.
+
+### 미검증 항목
+
+이 저장소에는 아직 GitHub 원격이 없어(`git remote -v`, `halo-cad-local`뿐) 이 워크플로가
+실제 `windows-latest` 러너에서 실행된 적이 없다. R1-00b가 확인한 것은 (a) YAML 파싱
+유효성(`python -c "import yaml; yaml.safe_load(...)"`), (b) `engine/halo-engine.spec`·
+`engine/scripts/build-sidecar.sh`의 OS 분기 로직이 mac에서 기존 동작을 깨지 않음(READY
+스모크 그대로 통과), (c) `apps/desktop/electron-builder.yml`에 `win`/`nsis` 블록을
+추가해도 mac dmg/zip 빌드가 그대로 성공함, (d) `docs/dev/ci.md`(이 문서, 위 표)에 이미
+기록된 Windows 차이(CRLF, taskkill, pid 불일치)를 build-sidecar.sh에도 동일하게
+반영했다는 점이다. 실제 `windows-latest` 러너에서의 첫 실행 결과(sips로 만든 아이콘이
+electron-builder에서 정상적으로 `.ico`로 변환되는지, NSIS 빌드 자체가 통과하는지 등)는
+원격이 생기고 처음 push된 뒤 이 절을 실측 결과로 갱신해야 한다.

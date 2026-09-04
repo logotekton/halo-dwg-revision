@@ -23,6 +23,11 @@ dependencies = [
   "sqlalchemy==2.0.52",
   "alembic==1.19.1",
   "typer==0.27.2",
+  # ZWCAD COM bridge (ADR-0007, halo_engine.compare.zwcad, R1-02). MIT
+  # (github.com/enthought/comtypes LICENSE.txt). Windows-only via the
+  # environment marker below -- uv resolves and locks it, but only
+  # installs it on win32 (`uv sync --frozen` on macOS/Linux skips it).
+  "comtypes==1.4.16; sys_platform == 'win32'",
 ]
 
 [dependency-groups]
@@ -69,6 +74,17 @@ strict = true
 # Hatch, Insert, ...), never the DXFGraphic base ingest code iterates as --
 # treat it as untyped rather than chasing attr-defined noise on every access.
 module = ["ezdxf", "ezdxf.*"]
+follow_imports = "skip"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# comtypes (ADR-0007) is Windows-only (`sys_platform == 'win32'` marker
+# above) and is therefore never installed in the mypy venv on macOS/Linux
+# dev machines or CI legs. Its dynamic COM wrapper generation
+# (`comtypes.gen`, populated at runtime from typelibs) also isn't something
+# static analysis can usefully check. Treat it as untyped everywhere rather
+# than erroring when it's simply absent.
+module = ["comtypes", "comtypes.*"]
 follow_imports = "skip"
 ignore_missing_imports = true
 

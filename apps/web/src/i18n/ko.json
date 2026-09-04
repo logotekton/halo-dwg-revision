@@ -41,7 +41,21 @@
   },
   "viewer": {
     "areaLabel": "도면 캔버스",
-    "placeholder": "열린 도면이 없습니다"
+    "placeholder": "열린 도면이 없습니다",
+    "canvasLabel": "도면 캔버스",
+    "empty": "열린 도면이 없습니다",
+    "noDocument": "도면 없음",
+    "progress": "여는 중 {{percentage}}%",
+    "error": "도면을 열지 못했습니다: {{message}}",
+    "info": "{{name}} · 레이어 {{layers}}개 · 요소 {{entities}}개 · 선택 {{selected}}개",
+    "warning": {
+      "tierB": "이 도면은 큽니다(약 {{count}}개 요소). 화면에는 축약본을 열고 물량은 원본으로 계산합니다.",
+      "tierC": "이 도면은 화면에 통째로 열기에 너무 큽니다. 도곽 단위로 나눠 열거나, 물량 계산만 진행할 수 있습니다.",
+      "tierChanged": "실제 요소 수가 예상보다 많아({{count}}개) 축약본으로 전환했습니다.",
+      "renderTimeout": "화면 그리기가 제한 시간 안에 끝나지 않았습니다. 표시가 일부 비어 있을 수 있습니다.",
+      "fontsMissing": "글꼴을 찾지 못했습니다: {{fonts}}",
+      "xrefUnresolved": "연결되지 않은 외부 참조 {{count}}건이 있습니다."
+    }
   },
   "docks": {
     "layersTitle": "레이어",

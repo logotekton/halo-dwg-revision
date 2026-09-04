@@ -12,6 +12,12 @@ const USAGE = "Usage: acad-bridge info <in.dwg|in.dxf> [--xrefs]";
  * shape (used by other tasks/tests already) does not change, and walking
  * every BLOCK/STYLE table entry for these two extra arrays costs nothing a
  * caller that only wants version/entity_count should pay for.
+ *
+ * R1-00a merged W3-02, which had grown a second copy of the same two walks
+ * inside this file. The W3-06 pair in `../acad/xref-style-scan` is the one
+ * kept (it is the tested one); the desktop DWG converter
+ * (`apps/desktop/src/main/convert/metadata.ts`) therefore calls
+ * `info <dwg> --xrefs`.
  */
 export function runInfo(argv: string[]): number {
   const includeXrefs = argv.includes("--xrefs");

@@ -1,0 +1,269 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.halo-cad.internal/v0/compare/compare-set.schema.json",
+  "title": "CompareSetSummary",
+  "description": "One before/after pair of drawing sets and how far its pipeline has got (docs/contracts/r1.md §3 `compare_set`, response shape in §7). This is the single object screens A and B poll: it carries the per-side ingest counts, which converter each side actually used, whether ZWCAD is available on this PC, the fonts that could not be resolved, and the frame/pair tallies. A value that the pipeline has not reached yet is `null` rather than zero, so the UI can tell 아직 안 함 from 0건.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "project_id",
+    "project_dir",
+    "status",
+    "run_date",
+    "before",
+    "after",
+    "converter",
+    "zwcad",
+    "fonts_missing",
+    "crosscheck",
+    "frames",
+    "pairs",
+    "last_job_id"
+  ],
+  "properties": {
+    "id": {
+      "description": "`compare_set` row id.",
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+    },
+    "project_id": {
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+    },
+    "project_dir": {
+      "description": "The folder the user picked: the common parent of the two set folders. `.halo/` and `출력/` live directly under it (docs/contracts/r1.md §2).",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/compare-set.schema.json#/$defs/compare_set_status"
+    },
+    "run_date": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/compare-set.schema.json#/$defs/run_date"
+    },
+    "before": {
+      "description": "The 변경 전 set.",
+      "$ref": "https://schema.halo-cad.internal/v0/compare/compare-set.schema.json#/$defs/set_side"
+    },
+    "after": {
+      "description": "The 변경 후 set.",
+      "$ref": "https://schema.halo-cad.internal/v0/compare/compare-set.schema.json#/$defs/set_side"
+    },
+    "converter": {
+      "description": "Which converter produced each side's working DXF. Comparing a ZWCAD-converted sheet against a self-converted one is not allowed, so a mismatch is counted here and the affected pairs get `status = \"converter_mismatch\"`.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["before", "after", "mismatch_files"],
+      "properties": {
+        "before": {
+          "anyOf": [
+            {
+              "$ref": "https://schema.halo-cad.internal/v0/compare/compare-set.schema.json#/$defs/converter_name"
+            },
+            { "type": "null" }
+          ]
+        },
+        "after": {
+          "anyOf": [
+            {
+              "$ref": "https://schema.halo-cad.internal/v0/compare/compare-set.schema.json#/$defs/converter_name"
+            },
+            { "type": "null" }
+          ]
+        },
+        "mismatch_files": {
+          "description": "Files whose converter differs from the set's dominant converter.",
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "zwcad": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/compare-set.schema.json#/$defs/zwcad_status"
+    },
+    "fonts_missing": {
+      "description": "SHX/TTF names referenced by the STYLE tables of these files that are not installed on this PC, sorted. Text drawn with a substituted font still compares correctly, but the markup DWG will not look like the original.",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "crosscheck": {
+      "description": "Result of converting a sample of files with both converters on a PC that has both (`compare.yaml` `ingest.crosscheck_sample`). Null when no crosscheck was possible.",
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sampled", "mismatched"],
+          "properties": {
+            "sampled": { "type": "integer", "minimum": 0 },
+            "mismatched": {
+              "description": "Sampled files where the two converters disagreed beyond the ADR-0002 thresholds. Each one is written to `.halo/log/<compare_set_id>.log`.",
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        { "type": "null" }
+      ]
+    },
+    "frames": {
+      "description": "Title-block tally after extraction. Null before `POST /compare/sets/{id}/frames` has run.",
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["before", "after", "unrecognized_files"],
+          "properties": {
+            "before": { "type": "integer", "minimum": 0 },
+            "after": { "type": "integer", "minimum": 0 },
+            "unrecognized_files": {
+              "description": "Files that produced no title block on either side.",
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        { "type": "null" }
+      ]
+    },
+    "pairs": {
+      "description": "Sheet pairs by status. Null before matching has run.",
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "changed",
+            "same",
+            "added",
+            "removed",
+            "unpaired",
+            "unrecognized",
+            "converter_mismatch",
+            "pending"
+          ],
+          "properties": {
+            "changed": { "type": "integer", "minimum": 0 },
+            "same": { "type": "integer", "minimum": 0 },
+            "added": { "type": "integer", "minimum": 0 },
+            "removed": { "type": "integer", "minimum": 0 },
+            "unpaired": { "type": "integer", "minimum": 0 },
+            "unrecognized": { "type": "integer", "minimum": 0 },
+            "converter_mismatch": { "type": "integer", "minimum": 0 },
+            "pending": {
+              "description": "Matched but not compared yet.",
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        { "type": "null" }
+      ]
+    },
+    "last_job_id": {
+      "description": "Most recent job started for this compare set, so a reloaded screen can re-attach to its WebSocket progress.",
+      "anyOf": [
+        {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+        },
+        { "type": "null" }
+      ]
+    }
+  },
+  "$defs": {
+    "run_date": {
+      "title": "RunDate",
+      "description": "`YYYY-MM-DD`, an explicit input of the compare set and of every run. The engine never calls the clock for it (docs/contracts/r1.md §11); the renderer supplies today's date on screen A and the e2e suite pins it.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
+    },
+    "compare_set_status": {
+      "title": "CompareSetStatus",
+      "description": "Pipeline stage: `ingesting` -> `ingested` -> `extracting` -> `matched` -> `comparing` -> `compared`, with `exporting` returning to `compared`. `failed` is terminal until the user restarts (docs/contracts/r1.md §3).",
+      "type": "string",
+      "enum": [
+        "ingesting",
+        "ingested",
+        "extracting",
+        "matched",
+        "comparing",
+        "compared",
+        "exporting",
+        "failed"
+      ]
+    },
+    "converter_name": {
+      "title": "ConverterName",
+      "description": "`zwcad-com` the background ZWCAD instance (the production path), `mlightcad-dxfout` the desktop's own writer, `acad-ts` the Node CLI fallback (ADR-0002).",
+      "type": "string",
+      "enum": ["zwcad-com", "mlightcad-dxfout", "acad-ts"]
+    },
+    "set_side": {
+      "title": "CompareSetSide",
+      "description": "Ingest tally for one of the two drawing sets.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["set_id", "dir", "label", "files", "converted", "failed", "excluded"],
+      "properties": {
+        "set_id": {
+          "description": "`drawing_set` row id.",
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+        },
+        "dir": {
+          "description": "Absolute path of the set folder the user picked. Read-only for the whole app (CLAUDE.md rule 1).",
+          "type": "string"
+        },
+        "label": {
+          "description": "Folder name, used in the output file name `<도면번호>_<후 라벨>_markup.dwg`.",
+          "type": "string"
+        },
+        "files": {
+          "description": "Drawings found in the folder, excluded ones included.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "converted": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "excluded": {
+          "description": "Files skipped by `compare.yaml` `ingest.ignore_patterns`.",
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "zwcad_status": {
+      "title": "ZwcadStatus",
+      "description": "Whether this process can convert with ZWCAD right now (docs/contracts/r1.md §6.1, `compare/zwcad.py` `detect()`). Also the body of `GET /compare/zwcad/status`. On macOS and Linux `available` is always false with `reason = \"not_windows\"`.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available", "installed", "version", "prog_id", "reason"],
+      "properties": {
+        "available": {
+          "description": "Windows + comtypes + a registered ProgID, verified by actually creating the COM object.",
+          "type": "boolean"
+        },
+        "installed": {
+          "description": "ZWCAD appears to be installed, even if this process cannot drive it.",
+          "type": "boolean"
+        },
+        "version": {
+          "description": "Product year, e.g. `2026`.",
+          "type": ["string", "null"],
+          "maxLength": 32
+        },
+        "prog_id": {
+          "description": "`ZWCAD.Application`, or the version-suffixed ProgID that was found.",
+          "type": ["string", "null"],
+          "maxLength": 64
+        },
+        "reason": {
+          "description": "Machine-readable cause when `available` is false. The UI turns it into Korean via `zwcad.reason.*`; the code itself is never translated.",
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": ["not_windows", "comtypes_missing", "not_registered", "com_error"]
+            },
+            { "type": "null" }
+          ]
+        }
+      }
+    }
+  }
+}

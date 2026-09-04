@@ -1,0 +1,37 @@
+{
+  "id": "ch1",
+  "seq": 1,
+  "kind": "moved",
+  "etype": "INSERT",
+  "layer": "A-DOOR",
+  "before_handle": "1A3",
+  "after_handle": "1A3",
+  "bbox": [12500, 8200, 15150, 10400],
+  "delta": {
+    "move": [1250, 0],
+    "distance": 1250,
+    "before": { "insert": [12500, 8200] },
+    "after": { "insert": [13750, 8200] }
+  },
+  "minor": false,
+  "minor_reason": null,
+  "cluster_id": "c1",
+  "compare_handles": {
+    "added": ["2A1"],
+    "removed": ["2A2"]
+  },
+  "provenance": {
+    "before": {
+      "file": "01JQ8Z5K3M7P0RSTVWXYZ0A1B6",
+      "handle": "1A3",
+      "path": [],
+      "space": "MODEL"
+    },
+    "after": {
+      "file": "01JQ8Z5K3M7P0RSTVWXYZ0A1B7",
+      "handle": "1A3",
+      "path": [],
+      "space": "MODEL"
+    }
+  }
+}

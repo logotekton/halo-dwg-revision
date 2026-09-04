@@ -1,0 +1,30 @@
+{
+  "id": "01JQ8Z5K3M7P0RSTVWXYZ0A1B9",
+  "compare_set_id": "01JQ8Z5K3M7P0RSTVWXYZ0A1B2",
+  "role": "after",
+  "file_id": "01JQ8Z5K3M7P0RSTVWXYZ0A1B7",
+  "kind": "titleblock",
+  "titleblock_handle": "1F3",
+  "block_name": "TITLE_A1",
+  "bbox": [0, 0, 84100, 59400],
+  "sheet_no": "A-101",
+  "sheet_title": "3층 평면도",
+  "scale_text": "1:100",
+  "scale_denominator": 100,
+  "date_text": "2026-08-20",
+  "norm_key": "A-101",
+  "sort_index": 0,
+  "entity_handles": ["1A3", "1A4", "1F3"],
+  "provenance": {
+    "file": "01JQ8Z5K3M7P0RSTVWXYZ0A1B7",
+    "handle": "1F3",
+    "path": [],
+    "space": "MODEL"
+  },
+  "attributes": {
+    "DWG_NO": "A-101",
+    "TITLE": "3층 평면도",
+    "SCALE": "1:100",
+    "DATE": "2026-08-20"
+  }
+}

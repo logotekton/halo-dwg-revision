@@ -7,12 +7,20 @@ import crosscheckReportSchema from "../src/stats/crosscheck-report.schema.json";
 import {
   formatErrors,
   validateBridgeMessage,
+  validateChange,
+  validateCluster,
+  validateClustersSidecar,
+  validateCompareSetSummary,
   validateConsistencyCheckSet,
   validateFloorLevels,
   validateLayerStats,
   validateMarkupSidecar,
   validateNdjDocument,
   validateNdjEntity,
+  validateRevisionTruth,
+  validateRun,
+  validateSheetFrame,
+  validateSheetPair,
   validateTagsSidecar,
 } from "../src/validate";
 import { listExamples, loadExample } from "./helpers";
@@ -138,6 +146,70 @@ const CASES: Record<string, ExampleCase> = {
     reason:
       "a real report from the engine's compare(), ezdxf vs. a perturbed mlightcad copy on F06 " +
       "(one RED count_by_type difference on X-GRID)",
+  },
+  "compare.sheet-frame.json": {
+    validate: validateSheetFrame,
+    valid: true,
+    reason: "one recognised title block: A-101 at 1:100, with the raw ATTRIB values kept as evidence",
+  },
+  "compare.sheet-pair.json": {
+    validate: validateSheetPair,
+    valid: true,
+    reason: "A-101 matched by number, with both frame summaries embedded as the pairs list sends them",
+  },
+  "compare.change.json": {
+    validate: validateChange,
+    valid: true,
+    reason: "a door block moved 1,250mm east, with both sides' provenance and its compare-DXF handles",
+  },
+  "compare.cluster.json": {
+    validate: validateCluster,
+    valid: true,
+    reason: "the cloud mark around that move: four bulged vertices and the numbered badge",
+  },
+  "compare.run.json": {
+    validate: validateRun,
+    valid: true,
+    reason: "one export: a single markup DWG written by ZWCAD into 출력/2026-09-04",
+  },
+  "compare.clusters-sidecar.json": {
+    validate: validateClustersSidecar,
+    valid: true,
+    reason:
+      "a whole clusters.json: one cluster, one clustered change and one minor change that is " +
+      "counted but not clustered",
+  },
+  "compare.compare-set.json": {
+    validate: validateCompareSetSummary,
+    valid: true,
+    reason: "the screen A/B summary of a finished comparison, ZWCAD available on both sides",
+  },
+  "compare.truth.json": {
+    validate: validateRevisionTruth,
+    valid: true,
+    reason: "a synthetic scenario's expectations: a planted move, a folded layer change, a clean region",
+  },
+  "compare.bad-change-no-provenance.json": {
+    validate: validateChange,
+    valid: false,
+    reason: "a change with no provenance: the marked-up entity could never be traced back (CLAUDE.md rule 5)",
+  },
+  "compare.bad-change-unknown-kind.json": {
+    validate: validateChange,
+    valid: false,
+    reason: "`kind: \"recolored\"` -- outside the closed set the compare DXF knows how to draw",
+  },
+  "compare.bad-cluster-decision-typo.json": {
+    validate: validateCluster,
+    valid: false,
+    reason: "`decision: \"aproved\"` -- a typo must not silently read as 미검토 and drop the cluster from the export",
+  },
+  "compare.bad-sidecar-dangling-handle.json": {
+    validate: validateClustersSidecar,
+    valid: true,
+    reason:
+      "schema-valid on purpose: `handle_to_cluster` points at a cluster that is not in the file, " +
+      "which 2020-12 cannot express -- clustersSidecarIntegrityFailures rejects it, see compare.test.ts",
   },
 };
 

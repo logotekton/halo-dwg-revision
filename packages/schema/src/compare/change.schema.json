@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.halo-cad.internal/v0/compare/change.schema.json",
+  "title": "Change",
+  "description": "One entity-level difference between the before and the after sheet (docs/contracts/r1.md §3 `change`, sidecar `changes[]` in docs/contracts/compare-dxf.md §7). Ids are deterministic (`ch<seq>`), so the same inputs and the same `run_date` always produce byte-identical `clusters.json`; the database ULID is never written to the file. A change that the rules fold as `minor` still gets a record -- it is what the review screen shows when 사소한 변경 보기 is switched on -- but it is not clustered and draws no cloud mark.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "seq", "kind", "etype", "layer", "bbox", "minor", "provenance"],
+  "properties": {
+    "id": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/change.schema.json#/$defs/change_id"
+    },
+    "seq": {
+      "description": "1-based position of the change within its pair, in the comparison's own deterministic order. `id` is `\"ch\" + seq`.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "kind": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/change.schema.json#/$defs/change_kind"
+    },
+    "etype": {
+      "description": "DXF record name of the entity the change is about (`LINE`, `INSERT`, `MTEXT`, ...). For `blockdef` it is `INSERT`, since that is what is drawn.",
+      "type": "string",
+      "maxLength": 32
+    },
+    "layer": {
+      "description": "Layer of the entity in its own drawing (the after layer when there is an after side, otherwise the before layer). Kept in XDATA as `orig_layer` on the compare DXF entity.",
+      "type": "string",
+      "maxLength": 255
+    },
+    "before_handle": {
+      "description": "Handle in the before working DXF. Null for `added`.",
+      "anyOf": [
+        {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/handle"
+        },
+        { "type": "null" }
+      ]
+    },
+    "after_handle": {
+      "description": "Handle in the after working DXF. Null for `removed`.",
+      "anyOf": [
+        {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/handle"
+        },
+        { "type": "null" }
+      ]
+    },
+    "bbox": {
+      "description": "Extent of the change in the after sheet's world coordinates (mm). For `moved` it is the union of the before and the after position (docs/contracts/compare-dxf.md §5).",
+      "$ref": "https://schema.halo-cad.internal/v0/compare/sheet-frame.schema.json#/$defs/bbox"
+    },
+    "delta": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/change.schema.json#/$defs/delta"
+    },
+    "minor": {
+      "description": "True when the change was folded by the `compare.yaml` `minor` rules: a move of at most `move_tolerance` mm, or one of the structural fold reasons. Minor changes are excluded from clusters, cloud marks and the revision table.",
+      "type": "boolean"
+    },
+    "minor_reason": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/change.schema.json#/$defs/minor_reason"
+    },
+    "cluster_id": {
+      "description": "Cluster this change was grouped into, `c<number>` (`compare/cluster.schema.json` `$defs.cluster_id` owns the form; it is spelled out here rather than referenced so the two files stay a one-way dependency -- `cluster` refers to `change`, never back). Null for a minor change and for a change that no cloud mark covers.",
+      "type": ["string", "null"],
+      "pattern": "^c[1-9][0-9]*$"
+    },
+    "compare_handles": {
+      "description": "Handles this change occupies inside the compare DXF, so the viewer's hit test can reach the change record. Filled in by `compare/compare_dxf.py` after the file is written.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "added": {
+          "description": "Entities written to `__CMP_ADDED` for this change.",
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/handle"
+          }
+        },
+        "removed": {
+          "description": "Entities written to `__CMP_REMOVED` for this change.",
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/handle"
+          }
+        }
+      }
+    },
+    "provenance": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/change.schema.json#/$defs/change_provenance"
+    }
+  },
+  "$defs": {
+    "change_id": {
+      "title": "ChangeId",
+      "description": "`ch<seq>` -- deterministic within one pair, so `clusters.json` diffs cleanly between runs.",
+      "type": "string",
+      "pattern": "^ch[1-9][0-9]*$"
+    },
+    "change_kind": {
+      "title": "ChangeKind",
+      "description": "`added` only in the after sheet, `removed` only in the before sheet, `modified` same entity with different geometry or properties, `moved` same entity translated, `text` string content differs, `dimension` a dimension's measurement or text differs, `blockdef` the block definition behind an unchanged INSERT differs (docs/contracts/r1.md §3).",
+      "type": "string",
+      "enum": ["added", "removed", "modified", "moved", "text", "dimension", "blockdef"]
+    },
+    "minor_reason": {
+      "title": "MinorReason",
+      "description": "Why the change was folded as minor, or null when it was not folded. Several reasons are joined with `+` in the order they are listed here: `move_le_0_01` a translation of at most `compare.yaml` `minor.move_tolerance` mm, `layer_only`/`color_only`/`linetype_only`/`lineweight_only` a property change with identical geometry, `hatch_regen` a hatch re-generated with the same boundary, `dim_regen` a dimension re-generated with the same measurement, `mtext_format_only` MTEXT whose plain text is unchanged (docs/contracts/r1.md §3).",
+      "$comment": "`null` is part of the type rather than an `anyOf` branch at the two use sites, so datamodel-code-generator collapses the reference to `str | None` instead of wrapping it in a RootModel that would never compare equal to a plain string.",
+      "type": ["string", "null"],
+      "pattern": "^(move_le_0_01|layer_only|color_only|linetype_only|lineweight_only|hatch_regen|dim_regen|mtext_format_only)(\\+(move_le_0_01|layer_only|color_only|linetype_only|lineweight_only|hatch_regen|dim_regen|mtext_format_only))*$"
+    },
+    "delta": {
+      "title": "ChangeDelta",
+      "description": "What actually differs, in a shape that depends on `kind`. `move` and `distance` are pinned here because the auto label and the review list read them directly; everything else is filled in per kind by the compare engine (R1-06) and is deliberately left open. Null when the kind carries no measurable delta (`added`, `removed`).",
+      "$comment": "The one open object in the compare contract. `additionalProperties: true` is deliberate (brief R1-01, Defaults for ambiguity): pinning every per-kind payload now would force a schema change with every rule the diff engine grows.",
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "properties": {
+        "move": {
+          "description": "Translation `[dx, dy]` in millimetres, rounded to 3 decimals.",
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "distance": {
+          "description": "Length of `move` in millimetres, rounded to 6 decimals. What the auto label prints as `이동 1,250mm`.",
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "change_provenance": {
+      "title": "ChangeProvenance",
+      "description": "Where the two sides of the change came from (CLAUDE.md rule 5). `before` is absent for `added`, `after` for `removed`; at least one side is always present.",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "before": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/provenance.schema.json"
+        },
+        "after": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/provenance.schema.json"
+        }
+      }
+    }
+  }
+}

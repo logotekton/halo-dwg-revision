@@ -1,0 +1,25 @@
+{
+  "schema_version": "0.1",
+  "id": "01JQ8Z5K3M7P0RSTVWXYZ0A1BC",
+  "compare_set_id": "01JQ8Z5K3M7P0RSTVWXYZ0A1B2",
+  "run_date": "2026-09-04",
+  "layer_name": "REV-20260904",
+  "output_dir": "/Users/dm/현장/한강자이/출력/2026-09-04",
+  "scope": "all",
+  "method": "auto",
+  "pair_ids": ["01JQ8Z5K3M7P0RSTVWXYZ0A1BA"],
+  "approved_count": 1,
+  "ignored_count": 0,
+  "files": [
+    {
+      "pair_id": "01JQ8Z5K3M7P0RSTVWXYZ0A1BA",
+      "sheet_no": "A-101",
+      "path": "/Users/dm/현장/한강자이/출력/2026-09-04/A-101_20260820_markup.dwg",
+      "format": "dwg",
+      "writer": "zwcad-com"
+    }
+  ],
+  "status": "done",
+  "error_message": null,
+  "created_at": "2026-09-04T10:12:33+09:00"
+}

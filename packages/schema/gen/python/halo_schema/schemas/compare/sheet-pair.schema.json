@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.halo-cad.internal/v0/compare/sheet-pair.schema.json",
+  "title": "SheetPair",
+  "description": "One before-frame matched to one after-frame (docs/contracts/r1.md §1 도곽 짝, §3 `sheet_pair`). Either side may be missing: a sheet only in the after set is `added`, only in the before set is `removed`. Every comparison artefact -- the compare DXF, the `clusters.json` sidecar, one markup DWG -- is produced per pair. Serialised by `GET /compare/sets/{id}/pairs`, which embeds the two frame summaries.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "compare_set_id",
+    "status",
+    "sort_key",
+    "change_count",
+    "minor_count",
+    "cluster_count"
+  ],
+  "properties": {
+    "id": {
+      "description": "`sheet_pair` row id. Also the directory name under `.halo/compare/`.",
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+    },
+    "compare_set_id": {
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+    },
+    "before_frame_id": {
+      "description": "Null when the sheet exists only in the after set (`status = \"added\"`).",
+      "anyOf": [
+        {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+        },
+        { "type": "null" }
+      ]
+    },
+    "after_frame_id": {
+      "description": "Null when the sheet exists only in the before set (`status = \"removed\"`).",
+      "anyOf": [
+        {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+        },
+        { "type": "null" }
+      ]
+    },
+    "status": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/sheet-pair.schema.json#/$defs/pair_status"
+    },
+    "match_method": {
+      "anyOf": [
+        {
+          "$ref": "https://schema.halo-cad.internal/v0/compare/sheet-pair.schema.json#/$defs/match_method"
+        },
+        { "type": "null" }
+      ]
+    },
+    "score": {
+      "description": "Confidence of the match, 0..1. Null for a manual pair and for an unmatched sheet.",
+      "anyOf": [
+        {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/confidence"
+        },
+        { "type": "null" }
+      ]
+    },
+    "sort_key": {
+      "description": "Stable ordering key for the sheet list: normalised drawing number, falling back to the file name plus `sort_index`.",
+      "type": "string"
+    },
+    "change_count": {
+      "description": "Total `change` rows for this pair, sizeable ones and minor ones together.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "minor_count": {
+      "description": "How many of `change_count` were folded as minor (`compare.yaml` `minor`). A pair whose changes are all minor is still `changed`, but its review screen defaults to hiding them.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "cluster_count": {
+      "description": "Cloud marks that would be drawn for this pair -- minor changes are not clustered.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "compare_dxf_path": {
+      "description": "`.halo/compare/<pair_id>/compare.dxf`, absolute. Null until the pair has been compared.",
+      "type": ["string", "null"]
+    },
+    "clusters_json_path": {
+      "description": "`.halo/compare/<pair_id>/clusters.json`, absolute. Null until the pair has been compared.",
+      "type": ["string", "null"]
+    },
+    "warnings": {
+      "description": "Non-fatal findings from matching and comparison, as message codes (e.g. `offset_only`, `frame_size_differs`). The UI renders them from `compare.sheets.warning.*`.",
+      "type": ["array", "null"],
+      "items": { "type": "string" }
+    },
+    "before_frame": {
+      "description": "Frame summary embedded by `GET /compare/sets/{id}/pairs` so the list needs no second request.",
+      "anyOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/compare/sheet-frame.schema.json" },
+        { "type": "null" }
+      ]
+    },
+    "after_frame": {
+      "description": "Frame summary for the after side.",
+      "anyOf": [
+        { "$ref": "https://schema.halo-cad.internal/v0/compare/sheet-frame.schema.json" },
+        { "type": "null" }
+      ]
+    }
+  },
+  "$defs": {
+    "pair_status": {
+      "title": "PairStatus",
+      "description": "`pending` matched but not compared yet, `changed` at least one non-minor change, `same` no change beyond the minor fold, `added` only in the after set, `removed` only in the before set, `unpaired` several equally good candidates so the user has to pair it by hand, `unrecognized` the file produced no title block, `converter_mismatch` the two sides were converted by different converters and must not be compared (docs/contracts/r1.md §3).",
+      "type": "string",
+      "enum": [
+        "pending",
+        "changed",
+        "same",
+        "added",
+        "removed",
+        "unpaired",
+        "unrecognized",
+        "converter_mismatch"
+      ]
+    },
+    "match_method": {
+      "title": "MatchMethod",
+      "description": "How the two frames were paired: by normalised drawing `number`, by `title` similarity, by `position` fingerprint, or `manual` when the user paired them on screen B.",
+      "type": "string",
+      "enum": ["number", "title", "position", "manual"]
+    }
+  }
+}

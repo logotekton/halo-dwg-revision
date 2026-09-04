@@ -37,6 +37,13 @@ class Handle(RootModel[str]):
     """
 
 
+class Confidence(RootModel[float]):
+    root: float = Field(..., ge=0.0, le=1.0, title='Confidence')
+    """
+    Confidence in [0, 1]. 1.0 means read directly and unambiguously from the drawing.
+    """
+
+
 class Point(RootModel[list[float]]):
     """
     `[x, y]` or `[x, y, z]` in millimetres, working-DXF world coordinates.

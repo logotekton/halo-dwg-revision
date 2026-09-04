@@ -1,0 +1,25 @@
+{
+  "id": "c1",
+  "number": 1,
+  "bbox": [12500, 8200, 15150, 10400],
+  "kind": "moved",
+  "label": "블록 DOOR_900 이동 1,250mm",
+  "user_label": null,
+  "decision": "aproved",
+  "note": null,
+  "change_ids": ["ch1"],
+  "cloud": {
+    "handle": "2F1",
+    "points": [
+      [12450, 8150, 0.5],
+      [15200, 8150, 0.5],
+      [15200, 10450, 0.5],
+      [12450, 10450, 0.5]
+    ]
+  },
+  "badge": {
+    "shape_handle": "2F2",
+    "text_handle": "2F3",
+    "center": [15300, 10650]
+  }
+}

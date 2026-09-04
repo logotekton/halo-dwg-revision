@@ -4,6 +4,14 @@ import bridgeMessagesSchema from "./bridge/messages.schema.json";
 import entityRefSchema from "./common/entity-ref.schema.json";
 import primitivesSchema from "./common/primitives.schema.json";
 import provenanceSchema from "./common/provenance.schema.json";
+import changeSchema from "./compare/change.schema.json";
+import clusterSchema from "./compare/cluster.schema.json";
+import clustersSidecarSchema from "./compare/clusters-sidecar.schema.json";
+import compareSetSchema from "./compare/compare-set.schema.json";
+import runSchema from "./compare/run.schema.json";
+import sheetFrameSchema from "./compare/sheet-frame.schema.json";
+import sheetPairSchema from "./compare/sheet-pair.schema.json";
+import revisionTruthSchema from "./compare/truth.schema.json";
 import consistencyCheckSetSchema from "./levels/consistency-check.schema.json";
 import floorLevelsSchema from "./levels/floor-levels.schema.json";
 import levelObservationSchema from "./levels/level-observation.schema.json";
@@ -43,6 +51,16 @@ export const SCHEMA_IDS = {
   markupSidecar: `${SCHEMA_BASE_URI}sidecar/markup.schema.json`,
   tagsSidecar: `${SCHEMA_BASE_URI}sidecar/tags.schema.json`,
   bridgeMessage: `${SCHEMA_BASE_URI}bridge/messages.schema.json`,
+  // R1 revision comparison (docs/contracts/r1.md §4). Listed after the older
+  // families so the generated Python `SCHEMA_FILES` order matches this one.
+  sheetFrame: `${SCHEMA_BASE_URI}compare/sheet-frame.schema.json`,
+  sheetPair: `${SCHEMA_BASE_URI}compare/sheet-pair.schema.json`,
+  change: `${SCHEMA_BASE_URI}compare/change.schema.json`,
+  cluster: `${SCHEMA_BASE_URI}compare/cluster.schema.json`,
+  run: `${SCHEMA_BASE_URI}compare/run.schema.json`,
+  clustersSidecar: `${SCHEMA_BASE_URI}compare/clusters-sidecar.schema.json`,
+  compareSetSummary: `${SCHEMA_BASE_URI}compare/compare-set.schema.json`,
+  revisionTruth: `${SCHEMA_BASE_URI}compare/truth.schema.json`,
 } as const;
 
 export type SchemaKey = keyof typeof SCHEMA_IDS;
@@ -70,6 +88,14 @@ export const SCHEMAS: Record<SchemaKey, SchemaObject> = {
   markupSidecar: markupSchema as SchemaObject,
   tagsSidecar: tagsSchema as SchemaObject,
   bridgeMessage: bridgeMessagesSchema as SchemaObject,
+  sheetFrame: sheetFrameSchema as SchemaObject,
+  sheetPair: sheetPairSchema as SchemaObject,
+  change: changeSchema as SchemaObject,
+  cluster: clusterSchema as SchemaObject,
+  run: runSchema as SchemaObject,
+  clustersSidecar: clustersSidecarSchema as SchemaObject,
+  compareSetSummary: compareSetSchema as SchemaObject,
+  revisionTruth: revisionTruthSchema as SchemaObject,
 };
 
 export const ALL_SCHEMAS: readonly SchemaObject[] = Object.values(SCHEMAS);

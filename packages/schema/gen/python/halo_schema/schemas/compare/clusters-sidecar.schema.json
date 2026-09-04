@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.halo-cad.internal/v0/compare/clusters-sidecar.schema.json",
+  "title": "ClustersSidecar",
+  "description": "`.halo/compare/<pair_id>/clusters.json` -- everything the review screen needs about one sheet pair, written next to the compare DXF it describes (docs/contracts/compare-dxf.md §7). The two files are produced together and must stay in step: `handle_to_cluster` maps handles *inside the compare DXF* to cluster ids, which is how a click in the viewer becomes a selected cluster. Also the body of `GET /compare/pairs/{pair_id}/clusters`, with the user's decisions merged in from the database. Written with `ensure_ascii=False, indent=2`, LF endings, and rounded coordinates, so the same inputs and the same `run_date` produce byte-identical bytes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "pair_id",
+    "pair_key",
+    "run_date",
+    "layer",
+    "frame",
+    "clusters",
+    "changes",
+    "handle_to_cluster",
+    "counts"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/schema_version"
+    },
+    "pair_id": {
+      "description": "`sheet_pair` row id -- also the name of the directory this file sits in.",
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+    },
+    "pair_key": {
+      "description": "Normalised drawing number, or the file name when the sheet has none. Stable across re-runs, which is what lets decisions be carried over even after the row ids change.",
+      "type": "string"
+    },
+    "run_date": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/compare-set.schema.json#/$defs/run_date"
+    },
+    "layer": {
+      "description": "Layer the cloud marks and badges were drawn on, `REV-<YYYYMMDD>`. The compare DXF never carries the `-<n>` suffix; only the export adds it (docs/contracts/compare-dxf.md §2).",
+      "type": "string",
+      "pattern": "^REV-[0-9]{8}$"
+    },
+    "frame": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/clusters-sidecar.schema.json#/$defs/frame_geometry"
+    },
+    "clusters": {
+      "description": "Cloud marks, ascending by `number`.",
+      "type": "array",
+      "items": { "$ref": "https://schema.halo-cad.internal/v0/compare/cluster.schema.json" }
+    },
+    "changes": {
+      "description": "Every change of the pair, ascending by `seq`, minor ones included.",
+      "type": "array",
+      "items": { "$ref": "https://schema.halo-cad.internal/v0/compare/change.schema.json" }
+    },
+    "handle_to_cluster": {
+      "description": "Compare-DXF handle -> cluster id, keys sorted. Covers the cloud, the badge shape and text, and every entity the cluster's changes wrote to `__CMP_ADDED`/`__CMP_REMOVED`. The viewer hit-tests a click, looks the handle up here, and selects that cluster. Every value must be the `id` of one of `clusters` -- JSON Schema cannot state that, so it is asserted by `packages/schema/test/compare.test.ts` and by `clustersSidecarIntegrityFailures`.",
+      "$comment": "The key and the value repeat the `handle` and `cluster_id` patterns instead of `$ref`-ing them: datamodel-code-generator turns a `$ref` in `propertyNames` into a RootModel, which is unhashable and cannot be a dict key in the generated pydantic model.",
+      "type": "object",
+      "propertyNames": { "type": "string", "pattern": "^[0-9A-F]{1,16}$" },
+      "additionalProperties": { "type": "string", "pattern": "^c[1-9][0-9]*$" }
+    },
+    "counts": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/clusters-sidecar.schema.json#/$defs/counts"
+    }
+  },
+  "$defs": {
+    "frame_geometry": {
+      "title": "SidecarFrame",
+      "description": "The after sheet's frame, which is the coordinate system of both the compare DXF and every box in this file.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bbox", "scale_denominator", "scale_factor", "offset_before"],
+      "properties": {
+        "bbox": {
+          "description": "The after frame's outline in millimetres.",
+          "$ref": "https://schema.halo-cad.internal/v0/compare/sheet-frame.schema.json#/$defs/bbox"
+        },
+        "scale_denominator": {
+          "description": "Read from the after title block (`1:50` -> 50). Null when it could not be read.",
+          "type": ["integer", "null"],
+          "minimum": 1
+        },
+        "scale_factor": {
+          "description": "`scale_denominator / 100`, or 1.0 when the scale is unknown. Every `compare.yaml` `cloud` and `revtable` length is multiplied by it (docs/contracts/compare-dxf.md §5).",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "offset_before": {
+          "description": "`[dx, dy]` added to before-sheet coordinates to bring them into the after sheet's frame: `after.bbox.min - before.bbox.min`. `[0, 0]` when the two frames sit at the same origin.",
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    },
+    "counts": {
+      "title": "SidecarCounts",
+      "description": "Tallies the UI shows without walking the arrays. `clusters` and `changes` are the array lengths; `approved` + `ignored` never exceeds `clusters`.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clusters", "changes", "minor", "approved", "ignored"],
+      "properties": {
+        "clusters": { "type": "integer", "minimum": 0 },
+        "changes": { "type": "integer", "minimum": 0 },
+        "minor": {
+          "description": "Changes folded as minor -- included in `changes`, excluded from every cluster.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "approved": { "type": "integer", "minimum": 0 },
+        "ignored": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

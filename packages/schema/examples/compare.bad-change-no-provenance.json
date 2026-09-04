@@ -1,0 +1,17 @@
+{
+  "id": "ch1",
+  "seq": 1,
+  "kind": "moved",
+  "etype": "INSERT",
+  "layer": "A-DOOR",
+  "before_handle": "1A3",
+  "after_handle": "1A3",
+  "bbox": [12500, 8200, 15150, 10400],
+  "delta": {
+    "move": [1250, 0],
+    "distance": 1250
+  },
+  "minor": false,
+  "minor_reason": null,
+  "cluster_id": "c1"
+}

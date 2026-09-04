@@ -45,6 +45,18 @@ SCHEMA_FILES: dict[str, str] = {
     "markup_sidecar": "sidecar/markup.schema.json",
     "tags_sidecar": "sidecar/tags.schema.json",
     "bridge_message": "bridge/messages.schema.json",
+    # R1 revision comparison (docs/contracts/r1.md §4). Same order and the same
+    # eight files as `SCHEMA_IDS` in packages/schema/src/schemas.ts; the keys
+    # differ only in spelling (snake_case, `compare_` prefixed) so a Python
+    # caller reads `assert_valid("compare_clusters_sidecar", ...)`.
+    "compare_sheet_frame": "compare/sheet-frame.schema.json",
+    "compare_sheet_pair": "compare/sheet-pair.schema.json",
+    "compare_change": "compare/change.schema.json",
+    "compare_cluster": "compare/cluster.schema.json",
+    "compare_run": "compare/run.schema.json",
+    "compare_clusters_sidecar": "compare/clusters-sidecar.schema.json",
+    "compare_set_summary": "compare/compare-set.schema.json",
+    "compare_truth": "compare/truth.schema.json",
 }
 
 SCHEMA_IDS: dict[str, str] = {

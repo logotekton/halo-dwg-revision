@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.halo-cad.internal/v0/compare/sheet-frame.schema.json",
+  "title": "SheetFrame",
+  "description": "One title-block INSERT and the drawing frame around it -- a single sheet inside a DWG file (docs/contracts/r1.md §1 도곽, §3 `sheet_frame`). One file can carry many frames; entities are assigned to a frame by bbox centre (`frames.yaml` `frame.assign`). A file where no title block was recognised still produces one row, with `kind = \"unrecognized_file\"` and the whole model-space extent as `bbox`, so the sheet list can show it instead of dropping it silently. This schema is the serialisation of the `sheet_frame` table and of the `before_frame`/`after_frame` summaries embedded in `GET /compare/sets/{id}/pairs`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "compare_set_id",
+    "role",
+    "file_id",
+    "kind",
+    "bbox",
+    "norm_key",
+    "sort_index",
+    "provenance"
+  ],
+  "properties": {
+    "id": {
+      "description": "`sheet_frame` row id.",
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+    },
+    "compare_set_id": {
+      "description": "`compare_set` this frame was extracted for.",
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+    },
+    "role": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/sheet-frame.schema.json#/$defs/role"
+    },
+    "file_id": {
+      "description": "`drawing_file` the frame was read from.",
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+    },
+    "kind": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/sheet-frame.schema.json#/$defs/frame_kind"
+    },
+    "titleblock_handle": {
+      "description": "Handle of the title-block INSERT in the working DXF. Null for `unrecognized_file`.",
+      "anyOf": [
+        {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/handle"
+        },
+        { "type": "null" }
+      ]
+    },
+    "block_name": {
+      "description": "Block definition name of the title block, as written in the DXF.",
+      "type": ["string", "null"],
+      "maxLength": 255
+    },
+    "bbox": {
+      "description": "Frame outline in the working DXF's world coordinates (mm). For `unrecognized_file` this is the model-space extent.",
+      "$ref": "https://schema.halo-cad.internal/v0/compare/sheet-frame.schema.json#/$defs/bbox"
+    },
+    "sheet_no": {
+      "description": "Drawing number as read from the title block, raw text (e.g. `A-101`). Null when no number tag matched.",
+      "type": ["string", "null"]
+    },
+    "sheet_title": {
+      "description": "Drawing name as read from the title block, raw text.",
+      "type": ["string", "null"]
+    },
+    "scale_text": {
+      "description": "Scale as printed in the title block, raw text (e.g. `1:50`, `A1 1/100`).",
+      "type": ["string", "null"],
+      "maxLength": 64
+    },
+    "scale_denominator": {
+      "description": "Denominator parsed out of `scale_text` (`1:50` -> 50). Null when it could not be read; the cloud-mark scale factor is then 1.0 (docs/contracts/compare-dxf.md §5).",
+      "type": ["integer", "null"],
+      "minimum": 1
+    },
+    "date_text": {
+      "description": "Date as printed in the title block, raw text. Never parsed into `run_date`.",
+      "type": ["string", "null"],
+      "maxLength": 64
+    },
+    "norm_key": {
+      "description": "Normalised `sheet_no` (or the file name when there is none) used for number matching: `frames.yaml` `normalize` applied -- spaces stripped, full-width folded to ASCII, upper-cased, hyphen variants unified.",
+      "type": "string"
+    },
+    "sort_index": {
+      "description": "Position of the frame inside its file, ordered top-left to bottom-right. Makes the sheet list deterministic when several frames share a number.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "entity_handles": {
+      "description": "Handles of the working-DXF entities assigned to this frame, in document order. Omitted from the pairs-list summary because it is large; always present on the full record.",
+      "type": "array",
+      "items": {
+        "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/handle"
+      }
+    },
+    "provenance": {
+      "description": "Working DXF and title-block handle this frame came from (CLAUDE.md rule 5). `handle` is the title-block INSERT, or the frame outline entity when there is no title block.",
+      "$ref": "https://schema.halo-cad.internal/v0/common/provenance.schema.json"
+    },
+    "attributes": {
+      "description": "Every ATTRIB of the title block, tag -> value, exactly as read. Keeps the evidence for `sheet_no`/`sheet_title`/`scale_text` reviewable when a tag mapping is wrong.",
+      "type": ["object", "null"],
+      "additionalProperties": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "role": {
+      "title": "FrameRole",
+      "description": "Which side of the revision the frame belongs to: the drawing set before the change, or after it.",
+      "type": "string",
+      "enum": ["before", "after"]
+    },
+    "frame_kind": {
+      "title": "FrameKind",
+      "description": "`titleblock` a recognised title block, `unrecognized_file` a whole file that produced no title block at all (docs/contracts/r1.md §3).",
+      "type": "string",
+      "enum": ["titleblock", "unrecognized_file"]
+    },
+    "bbox": {
+      "title": "CompareBBox",
+      "description": "Axis-aligned box as the four numbers `[x0, y0, x1, y1]` in millimetres, `x0 <= x1` and `y0 <= y1`. The compare records use this flat form (docs/contracts/r1.md §3) rather than `common/primitives` `bbox`, because it is what the `clusters.json` sidecar writes and what the viewer feeds straight into `zoomTo`.",
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 4,
+      "maxItems": 4
+    }
+  }
+}

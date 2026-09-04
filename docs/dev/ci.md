@@ -33,6 +33,12 @@ pnpm -r typecheck
 pnpm -r test
 
 # 엔진 (engine/에 uv.lock이 없다 — 루트 uv.lock의 워크스페이스 멤버라서 uv가 알아서 찾는다)
+# 주의: 엔진 pytest를 tools/verify.sh 밖에서 단독으로 돌릴 때도 위 TS 단계의
+# `pnpm install --frozen-lockfile`과 `pnpm --filter @halo-cad/schema build`가 먼저 필요하다.
+# 엔진 테스트 일부(acad-ts 폴백·DWG XREF·live round trip·compare 인입 폴백)가
+# packages/acad-bridge/bin/acad-bridge.mjs를 node로 실행하고, 그 CLI는
+# @node-projects/acad-ts와 @halo-cad/schema/dist를 런타임에 찾는다(없으면
+# ERR_MODULE_NOT_FOUND로 FAIL). CI의 engine 잡도 같은 이유로 두 단계를 먼저 한다.
 cd engine
 uv sync --frozen
 uv run ruff check .

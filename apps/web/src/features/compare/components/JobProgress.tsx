@@ -10,9 +10,16 @@ import type { CompareJobState } from '../../../state/compare'
  * carries the n/N and file name the brief asks for; only the stage gets a
  * Korean label of its own.
  */
+// Stage names as the engine emits them (contract r1.md §6.2): compare.ingest ->
+// convert/crosscheck, compare.frames -> frames, compare.run -> compare,
+// compare.export -> markup/dwg. Unknown stages fall back to the raw name.
 const STAGE_LABEL_KEYS: Record<string, string> = {
   convert: 'compare.set.job.stage.convert',
   crosscheck: 'compare.set.job.stage.crosscheck',
+  frames: 'compare.set.job.stage.frames',
+  compare: 'compare.set.job.stage.compare',
+  markup: 'compare.set.job.stage.markup',
+  dwg: 'compare.set.job.stage.dwg',
 }
 
 export function JobProgress({ job }: { job: CompareJobState }) {

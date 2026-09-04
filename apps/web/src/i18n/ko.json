@@ -177,7 +177,11 @@
       "job": {
         "stage": {
           "convert": "변환 중",
-          "crosscheck": "교차검증 중"
+          "crosscheck": "교차검증 중",
+          "frames": "도곽 추출 중",
+          "compare": "비교 중",
+          "markup": "마크업 생성 중",
+          "dwg": "DWG 저장 중"
         }
       },
       "summary": {

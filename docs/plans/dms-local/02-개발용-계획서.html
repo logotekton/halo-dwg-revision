@@ -178,7 +178,7 @@
       <tr><td>변경 범위</td><td>기하·치수 1순위, 텍스트 2순위. 레이어·색·선종류만 바뀐 것은 표기하지 않고 접는다. 레이어·블록 이름은 설명의 힌트</td></tr>
       <tr><td>검토</td><td>화면 C에서 항목마다 승인·무시, 설명 수정, 클라우드 마크 직접 그리기(폴리라인)와 텍스트 추가</td></tr>
       <tr><td>출력</td><td>전체 도곽이 기본, 선택 도곽은 대화상자. 마크업 DWG(REV-CLOUD 레이어) + 도곽별 리비전 표 + 전체 변경 리스트. ZWCAD가 실행 중이면 COM으로 바로 삽입, 아니면 DXF 조각·표 텍스트</td></tr>
-      <tr><td>이력</td><td>화면 C → D로 넘어갈 때 프로젝트 폴더의 리비전 이력 엑셀에 실행 날짜 시트를 자동 추가</td></tr>
+      <tr><td>이력</td><td>최초 실행이면 프로젝트 폴더에 리비전 이력 엑셀을 먼저 만든다. 이후 화면 C → D로 넘어갈 때마다 실행 날짜 시트를 자동 추가한다. 파일은 Windows 엑셀에서 바로 열리는 xlsx다</td></tr>
       <tr><td>화면</td><td>A 세트 지정, B 도곽 목록, C 비교 작업, D 출력. 앱 전체 다크. 캔버스는 안 바뀜 원색·후에만 빨강·전에만 시안</td></tr>
       <tr><td>기간</td><td>2주. 1주 MVP, 2주 테스트·상세 개발. 개발 작업일 기준이고 담당자 검증은 병행</td></tr>
     </tbody>
@@ -256,7 +256,7 @@
       <tr><td>저장소</td><td>프로젝트 번들 규약(<code>bundle/layout.py</code>), SQLite</td><td><code>&lt;프로젝트&gt;/.halo/</code> 아래 파생물·DB·사전, 출력 폴더, 이력 엑셀</td></tr>
     </tbody>
   </table></div>
-  <p class="note">macOS에서 개발하고 Windows PC에서 확인한다. COM 경로는 macOS에서 스텁으로 두고 계약 테스트만 돌리며, 실제 ZWCAD 호출은 Windows 셀프호스티드 러너 또는 수동 확인으로 검증한다.</p>
+  <p class="note"><strong>실행 환경은 Windows 10·11 x64다.</strong> 배포는 기존 W1 파이프라인대로 electron-builder NSIS 설치본과 PyInstaller 사이드카를 쓰고, 경로·파일 이름·클립보드·폴더 열기는 Windows 기준으로 만든다(긴 경로, 한글 파일 이름, 백슬래시 XREF 경로). macOS에서 개발하고 Windows PC에서 확인한다. COM 경로는 macOS에서 스텁으로 두고 계약 테스트만 돌리며, 실제 ZWCAD 호출은 Windows 셀프호스티드 러너 또는 수동 확인으로 검증한다.</p>
 
   <h2 id="sec-3"><span class="num">3</span>데이터 모델</h2>
   <p>엔진이 만드는 모든 레코드는 <code>provenance {file, handle, path, space}</code>를 지닌다. 스키마는 <code>packages/schema</code>에 두고 TS·파이썬 타입을 생성한다. 아래는 필드 요지이고, 전체는 스키마 파일이 정본이다.</p>
@@ -363,7 +363,17 @@
   </ol>
 
   <h3>4.9 리비전 이력 엑셀</h3>
-  <p>openpyxl로 <code>&lt;프로젝트&gt;/리비전 이력.xlsx</code>를 열거나 만든다. 화면 C에서 D로 넘어가는 순간 실행 id로 한 번만 만든다(같은 실행에서 다시 넘어가면 시트를 덮어쓴다). 시트 이름은 <code>YYYY-MM-DD</code>이고 같은 날 두 번째부터 <code>(2)</code>를 붙인다. 시트 안에는 두 표를 위아래로 둔다.</p>
+  <p>워크북은 <code>&lt;프로젝트&gt;/리비전 이력.xlsx</code>다. <strong>최초 실행에서는 파일 생성부터 한다.</strong> 없으면 openpyxl로 새 워크북을 만들고 첫 실행 시트를 넣으며, 있으면 열어서 시트를 더한다. 화면 C에서 D로 넘어가는 순간 실행 id로 한 번만 만들고, 같은 실행에서 다시 넘어가면 그 시트를 덮어쓴다. 시트 이름은 <code>YYYY-MM-DD</code>이고 같은 날 두 번째부터 <code>(2)</code>를 붙인다. 시트 안에는 두 표를 위아래로 둔다.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Windows 엑셀 호환 규칙</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td>형식</td><td>xlsx(Office Open XML)만 쓴다. 엑셀 2016 이상에서 경고 없이 열린다. 수식·매크로는 넣지 않는다</td></tr>
+      <tr><td>시트 이름</td><td>31자 이하, <code>: \ / ? * [ ]</code> 금지, 앞뒤 작은따옴표 금지. 날짜 이름은 이 규칙 안에 있다</td></tr>
+      <tr><td>셀 값</td><td>날짜는 문자열이 아니라 엑셀 날짜 값으로, 숫자는 숫자로 넣는다. 머리글 행 고정(freeze panes), 열 너비 지정, 필터 켜기</td></tr>
+      <tr><td>파일 잠김</td><td>Windows에서 엑셀이 파일을 열고 있으면 쓰기가 거부된다. 그때는 <code>리비전 이력.xlsx.new</code>에 쓰고 "엑셀을 닫은 뒤 다시 시도"를 안내하며, 실행 요약 JSON은 항상 남겨 시트를 나중에 다시 만들 수 있게 한다</td></tr>
+      <tr><td>경로·인코딩</td><td>한글 파일 이름과 긴 경로를 허용한다(<code>\\?\</code> 접두 처리). 내부 문자열은 UTF-8, 셀은 유니코드라 인코딩 변환이 없다</td></tr>
+    </tbody>
+  </table></div>
   <div class="tablewrap"><table>
     <thead><tr><th>표</th><th>열</th></tr></thead>
     <tbody>
@@ -437,7 +447,7 @@
       <tr><td rowspan="2" class="num">D4</td><td>R1-08</td><td>화면 C 1차: CadHost에 비교 DXF, 레이어 토글로 겹쳐 보기·전·후, 번호 이동, 리스트 승인·무시·설명 편집, 접힌 목록</td><td><code>features/compare/CompareScreen*</code>, <code>state/viewer.ts</code></td><td>번호를 누르면 카메라가 가고, 승인·무시가 서버에 저장된다</td></tr>
       <tr><td>R1-09</td><td>마크업 DWG 생성기와 도곽별 리비전 표, 전체 도곽 출력 잡, TSV 복사, DWG 저장(ZWCAD 우선·acad-ts 대체)</td><td><code>compare/markup.py</code>, <code>compare/export.py</code>, <code>api/compare_export.py</code></td><td>합성 쌍에서 승인 항목만 마크업 DWG와 표에 들어간다. DWG가 ZWCAD에서 열린다(Windows 확인)</td></tr>
       <tr><td rowspan="2" class="num">D5</td><td>R1-10</td><td>화면 D 1차: 범위(전체), 넣는 방법, 출력 실행과 결과 폴더 열기. 끝까지 잇는 수직 슬라이스 E2E</td><td><code>features/compare/ExportScreen*</code>, <code>tests/e2e/compare.spec.ts</code></td><td>Playwright로 세트 지정 → 목록 → 검토 → 출력이 한 번에 지나간다</td></tr>
-      <tr><td>R1-11</td><td>Windows 확인과 실도면 통과: 실도면 68장 인입, 리비전 쌍 1벌 끝까지, 문제 목록 작성</td><td><code>docs/gates/R1.md</code></td><td>MVP 게이트 문서에 결과와 미해결 목록이 적힌다</td></tr>
+      <tr><td>R1-11</td><td>Windows 설치본 빌드(NSIS + 사이드카)와 확인: 실도면 68장 인입, 리비전 쌍 1벌 끝까지, 이력 엑셀 최초 생성 확인, 문제 목록 작성</td><td><code>docs/gates/R1.md</code></td><td>MVP 게이트 문서에 결과와 미해결 목록이 적힌다</td></tr>
     </tbody>
   </table></div>
   <h3>2주 테스트·상세 개발</h3>

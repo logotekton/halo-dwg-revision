@@ -147,6 +147,12 @@ class CompareFileEntry(BaseModel):
     error_message: str | None = None
     entity_count: int | None = None
     parser_crosscheck: dict[str, object] | None = None
+    #: R1-03 addition (contract §7 lists the endpoint's baseline fields; this
+    #: one is additive): ``{zwcad_version, elapsed_s, warnings[]}``,
+    #: ``{fallback_reason}``, ``{cache_hit: true}`` or
+    #: ``{same_converter_forced: true}`` depending on how the file's working
+    #: DXF was produced. ``None`` for a DXF input that skipped conversion.
+    converter_meta: dict[str, object] | None = None
 
 
 __all__ = [

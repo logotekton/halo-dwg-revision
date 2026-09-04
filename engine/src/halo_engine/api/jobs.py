@@ -51,6 +51,12 @@ def _now() -> datetime:
     return datetime.now(UTC).replace(tzinfo=None)
 
 
+#: Default ``JobRecord.kind`` for the pre-R1 drawing-set import job, so a job
+#: created before R1-03 (or by the still-unmodified ``drawing_sets.py``
+#: caller, which passes no ``kind``) keeps a stable, non-empty value.
+DRAWING_SET_IMPORT_KIND = "drawing_set.import"
+
+
 @dataclass
 class JobRecord:
     id: str
@@ -63,6 +69,17 @@ class JobRecord:
     error: str | None = None
     cancel_requested: bool = False
     task: asyncio.Task[None] | None = None
+    #: R1 (``docs/contracts/r1.md`` §6.2): the ``compare_set`` this job works
+    #: on, when it is one of the ``compare.*`` job kinds. ``None`` for the
+    #: pre-R1 drawing-set import job, which has no compare set.
+    compare_set_id: str | None = None
+    #: R1 §6.2: ``compare.ingest`` | ``compare.frames`` | ``compare.run`` |
+    #: ``compare.export``, or :data:`DRAWING_SET_IMPORT_KIND` for the
+    #: pre-R1 job this module already ran.
+    kind: str = DRAWING_SET_IMPORT_KIND
+    #: R1 §6.2: which step of ``kind`` is running right now (e.g. ``convert``
+    #: for ``compare.ingest``). ``None`` when the job does not report stages.
+    stage: str | None = None
 
     def to_summary(self) -> JobSummary:
         return JobSummary(
@@ -74,6 +91,9 @@ class JobRecord:
             created_at=self.created_at,
             updated_at=self.updated_at,
             error=self.error,
+            compare_set_id=self.compare_set_id,
+            kind=self.kind,
+            stage=self.stage,
         )
 
 
@@ -97,7 +117,13 @@ class JobManager:
     def executor(self) -> Executor:
         return self._executor
 
-    def create(self, *, drawing_set_id: str | None) -> JobRecord:
+    def create(
+        self,
+        *,
+        drawing_set_id: str | None = None,
+        compare_set_id: str | None = None,
+        kind: str = DRAWING_SET_IMPORT_KIND,
+    ) -> JobRecord:
         now = _now()
         job = JobRecord(
             id=new_ulid(),
@@ -107,12 +133,25 @@ class JobManager:
             drawing_set_id=drawing_set_id,
             created_at=now,
             updated_at=now,
+            compare_set_id=compare_set_id,
+            kind=kind,
         )
         self._jobs[job.id] = job
         return job
 
     def get(self, job_id: str) -> JobRecord | None:
         return self._jobs.get(job_id)
+
+    def latest_for_compare_set(self, compare_set_id: str) -> JobRecord | None:
+        """Most recent job started for ``compare_set_id`` (``CompareSetSummary.last_job_id``).
+
+        In-memory only, same caveat as the registry itself (class docstring):
+        an engine restart loses this along with every other in-flight job.
+        """
+        candidates = [job for job in self._jobs.values() if job.compare_set_id == compare_set_id]
+        if not candidates:
+            return None
+        return max(candidates, key=lambda job: job.created_at)
 
     def update(self, job_id: str, **fields: Any) -> JobRecord | None:
         job = self._jobs.get(job_id)
@@ -146,6 +185,117 @@ def get_job_manager(app: FastAPI) -> JobManager:
         manager = JobManager()
         app.state.job_manager = manager
     return manager
+
+
+class JobCancelled(Exception):
+    """Raised by a ``run_job`` work callable to report a cooperative cancel.
+
+    ``docs/contracts/r1.md`` §6.2: "취소는... job.cancel_requested를 단계 사이에서
+    확인" -- a ``compare.*`` job's own loop (e.g. ``compare/ingest_set.py``,
+    between files) checks :attr:`JobRecord.cancel_requested` and raises this
+    instead of returning normally, so :func:`run_job` can tell "cancelled"
+    apart from "finished" without every work callable re-implementing the
+    status/broadcast bookkeeping.
+    """
+
+
+class ProgressReporter:
+    """``docs/contracts/r1.md`` §6.2: the one way a ``compare.*`` job reports progress.
+
+    Bound to one running :class:`JobRecord`; every call updates the record
+    (so a polling ``GET /jobs/{id}`` sees it immediately) and broadcasts a
+    ``job.progress`` WS frame with the same fields plus whatever ``extra``
+    the caller supplies (``compare/ingest_set.py``'s per-file
+    ``{role, index, total, file, converter}``, for instance).
+    """
+
+    def __init__(self, jobs: JobManager, connections: ConnectionManager, job: JobRecord) -> None:
+        self._jobs = jobs
+        self._connections = connections
+        self._job = job
+
+    async def __call__(
+        self,
+        progress: float,
+        message: str,
+        *,
+        stage: str | None = None,
+        extra: dict[str, Any] | None = None,
+    ) -> None:
+        self._jobs.update(self._job.id, progress=progress, message=message, stage=stage)
+        payload: dict[str, Any] = {
+            "type": "job.progress",
+            "job_id": self._job.id,
+            "progress": progress,
+            "message": message,
+            "stage": stage,
+            "compare_set_id": self._job.compare_set_id,
+            "kind": self._job.kind,
+        }
+        if extra:
+            payload.update(extra)
+        await self._connections.broadcast(payload)
+
+
+async def run_job(
+    app: FastAPI, job: JobRecord, work: Callable[[ProgressReporter], Awaitable[None]]
+) -> None:
+    """Generic ``compare.*`` job envelope (``docs/contracts/r1.md`` §6.2).
+
+    Runs ``work`` with a :class:`ProgressReporter` bound to ``job``, then
+    settles the job's terminal state and broadcasts ``job.done``/``job.failed``
+    -- the status-transition/broadcast bookkeeping every ``compare.*`` job
+    (ingest, frames, run, export) shares, factored out so each only has to
+    write its own per-step loop and raise :class:`JobCancelled` between steps
+    to cooperate with ``POST /jobs/{id}/cancel``.
+
+    Deliberately independent of :func:`run_drawing_set_import`, which keeps
+    its own inline version of this (brief: "기존 run_drawing_set_import는
+    그대로 둔다") -- changing that job's behaviour or WS payload shape is out
+    of scope here.
+    """
+    jobs = get_job_manager(app)
+    connections = get_connection_manager(app)
+    jobs.update(job.id, status=JobStatus.RUNNING, message="running")
+    reporter = ProgressReporter(jobs, connections, job)
+
+    try:
+        await work(reporter)
+    except JobCancelled:
+        jobs.update(job.id, status=JobStatus.CANCELLED, message="cancelled")
+        await connections.broadcast(
+            {
+                "type": "job.failed",
+                "job_id": job.id,
+                "error": "cancelled",
+                "compare_set_id": job.compare_set_id,
+                "kind": job.kind,
+            }
+        )
+        return
+    except Exception as exc:  # noqa: BLE001 - orchestration-level failure, reported then swallowed
+        logger.exception("job %s (%s) crashed", job.id, job.kind)
+        jobs.update(job.id, status=JobStatus.FAILED, error=str(exc), message="internal error")
+        await connections.broadcast(
+            {
+                "type": "job.failed",
+                "job_id": job.id,
+                "error": str(exc),
+                "compare_set_id": job.compare_set_id,
+                "kind": job.kind,
+            }
+        )
+        return
+
+    jobs.update(job.id, status=JobStatus.DONE, progress=1.0, message="done")
+    await connections.broadcast(
+        {
+            "type": "job.done",
+            "job_id": job.id,
+            "compare_set_id": job.compare_set_id,
+            "kind": job.kind,
+        }
+    )
 
 
 def _resolve_acad_bridge_bin(settings: Settings) -> Path | None:
@@ -544,9 +694,13 @@ async def cancel_job(job_id: str, request: Request) -> dict[str, bool]:
 
 __all__ = [
     "CONVERT_TIMEOUT_S",
+    "DRAWING_SET_IMPORT_KIND",
+    "JobCancelled",
     "JobManager",
     "JobRecord",
+    "ProgressReporter",
     "get_job_manager",
     "router",
     "run_drawing_set_import",
+    "run_job",
 ]

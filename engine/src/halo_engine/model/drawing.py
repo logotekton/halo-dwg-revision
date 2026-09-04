@@ -167,6 +167,14 @@ class JobSummary(BaseModel):
     created_at: datetime
     updated_at: datetime
     error: str | None = None
+    #: R1 (``docs/contracts/r1.md`` §6.2): the ``compare_set`` this job works
+    #: on. ``None`` for the pre-R1 drawing-set import job.
+    compare_set_id: str | None = None
+    #: R1 §6.2: ``compare.ingest`` | ``compare.frames`` | ``compare.run`` |
+    #: ``compare.export``, or ``drawing_set.import`` for the pre-R1 job.
+    kind: str = "drawing_set.import"
+    #: R1 §6.2: which step of ``kind`` is running right now, e.g. ``convert``.
+    stage: str | None = None
 
 
 __all__ = [

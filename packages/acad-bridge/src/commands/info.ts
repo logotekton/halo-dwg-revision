@@ -1,11 +1,21 @@
 import { readCadFile } from "../acad/read";
 import { buildStats } from "../acad/stats-builder";
 import { versionName } from "../acad/version";
+import { collectStyles, collectXrefs } from "../acad/xref-style-scan";
 
-const USAGE = "Usage: acad-bridge info <in.dwg|in.dxf>";
+const USAGE = "Usage: acad-bridge info <in.dwg|in.dxf> [--xrefs]";
 
+/**
+ * `--xrefs` (W3-06 addendum 2, "XREF 목록은 acad-ts info --xrefs... 또는
+ * 원본 DWG에서 별도로 얻어 엔진에 전달한다"): adds `xrefs`/`styles` to the
+ * plain `info` output. Additive and opt-in on purpose -- the default `info`
+ * shape (used by other tasks/tests already) does not change, and walking
+ * every BLOCK/STYLE table entry for these two extra arrays costs nothing a
+ * caller that only wants version/entity_count should pay for.
+ */
 export function runInfo(argv: string[]): number {
-  const [input] = argv;
+  const includeXrefs = argv.includes("--xrefs");
+  const [input] = argv.filter((a) => a !== "--xrefs");
   if (!input) {
     process.stderr.write(`${USAGE}\n`);
     return 1;
@@ -28,7 +38,7 @@ export function runInfo(argv: string[]): number {
     }
   }
 
-  const info = {
+  const info: Record<string, unknown> = {
     file: input,
     version: versionName(doc.header.version),
     code_page: doc.header.codePage,
@@ -36,6 +46,10 @@ export function runInfo(argv: string[]): number {
     count_by_type: totals.count_by_type,
     spaces: [...spaces].sort(),
   };
+  if (includeXrefs) {
+    info.xrefs = collectXrefs(doc);
+    info.styles = collectStyles(doc);
+  }
   process.stdout.write(`${JSON.stringify(info, null, 2)}\n`);
   return 0;
 }

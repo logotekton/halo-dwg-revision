@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 
 from halo_engine import __version__
 from halo_engine.api import jobs, ws
-from halo_engine.api.routers import crosscheck, drawing_sets, files, projects, system
+from halo_engine.api.routers import crosscheck, drawing_sets, files, projects, system, xrefs
 from halo_engine.config import Settings
 
 # Electron packaged app origin + the two Vite dev-server origins (docs/PLAN.md §3.7).
@@ -69,6 +69,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(projects.router, prefix="/api/v1/projects", tags=["projects"])
     app.include_router(drawing_sets.router, prefix="/api/v1", tags=["drawing-sets"])
     app.include_router(files.router, prefix="/api/v1/files", tags=["files"])
+    app.include_router(xrefs.router, prefix="/api/v1", tags=["xrefs"])
     app.include_router(jobs.router, prefix="/api/v1/jobs", tags=["jobs"])
     app.include_router(ws.router, prefix="/api/v1", tags=["ws"])
 

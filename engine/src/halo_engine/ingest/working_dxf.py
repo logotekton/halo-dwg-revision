@@ -20,7 +20,7 @@ from typing import Any
 
 from halo_engine.ingest.encoding import load_with_corrected_encoding
 from halo_engine.ingest.stats import compute_layer_stats
-from halo_engine.ingest.xref import HandleMapEntry, embed_all_xrefs
+from halo_engine.ingest.xref import DwgXrefConverter, HandleMapEntry, embed_all_xrefs
 
 #: DXF version and encoding every working DXF is normalised to (ADR-0002).
 WORKING_DXF_VERSION = "AC1032"
@@ -52,6 +52,9 @@ class WorkingDxfResult:
     codepage_declared: str | None
     codepage_effective: str
     xref_count: int
+    resolved_xrefs: list[dict[str, str]]
+    unresolved_xrefs: list[dict[str, str]]
+    converted_xref_dwgs: list[dict[str, str]]
 
 
 def build_working_dxf(
@@ -59,6 +62,8 @@ def build_working_dxf(
     out_dir: str | Path,
     *,
     search_paths: list[Path] | None = None,
+    dwg_converter: DwgXrefConverter | None = None,
+    ignore_patterns: list[str] | None = None,
 ) -> WorkingDxfResult:
     """Build the working-DXF canonical form of ``input_path`` under ``out_dir``.
 
@@ -66,6 +71,15 @@ def build_working_dxf(
     embed every XREF, upgrade to R2018/UTF-8, save, then compute
     ``LayerStatsDocument`` stats and write the handle map -- all keyed off
     the *original* file's sha256.
+
+    ``dwg_converter`` (W3-06 addendum 1) is forwarded to
+    :func:`~halo_engine.ingest.xref.embed_all_xrefs` so an XREF target that
+    turns out to be a ``.dwg`` (the real set's ``XR/`` folder is DWG-only)
+    is converted before it is embedded, recursively. A definition that
+    cannot be resolved or converted no longer aborts the whole build -- it
+    is collected into ``unresolved_xrefs`` instead (``ingest/xref.py``'s
+    module docstring), so the caller can still finish the import and
+    surface the remainder to the UI dialog.
     """
     input_path = Path(input_path)
     out_dir = Path(out_dir)
@@ -76,9 +90,14 @@ def build_working_dxf(
     load_result, codepage_resolution = load_with_corrected_encoding(str(input_path))
     doc = load_result.doc
 
-    handle_map: list[HandleMapEntry] = embed_all_xrefs(
-        doc, host_dir=input_path.resolve().parent, search_paths=search_paths
+    embed_outcome = embed_all_xrefs(
+        doc,
+        host_dir=input_path.resolve().parent,
+        search_paths=search_paths,
+        dwg_converter=dwg_converter,
+        ignore_patterns=ignore_patterns,
     )
+    handle_map: list[HandleMapEntry] = embed_outcome.handle_map
 
     doc.dxfversion = WORKING_DXF_VERSION
     # ezdxf writes R2007+ (>= AC1021) documents as UTF-8 unconditionally
@@ -119,6 +138,9 @@ def build_working_dxf(
         "xref_count": len(handle_map),
         "handle_map_path": handle_map_path.name,
         "stats_path": stats_path.name,
+        "resolved_xrefs": [r.to_dict() for r in embed_outcome.resolved],
+        "unresolved_xrefs": [u.to_dict() for u in embed_outcome.unresolved],
+        "converted_xref_dwgs": [c.to_dict() for c in embed_outcome.converted],
     }
     working_meta_path = out_dir / f"{original_sha256}.working.json"
     working_meta_path.write_text(
@@ -137,6 +159,9 @@ def build_working_dxf(
         codepage_declared=codepage_resolution.codepage_declared,
         codepage_effective=codepage_resolution.codepage_effective,
         xref_count=len(handle_map),
+        resolved_xrefs=[r.to_dict() for r in embed_outcome.resolved],
+        unresolved_xrefs=[u.to_dict() for u in embed_outcome.unresolved],
+        converted_xref_dwgs=[c.to_dict() for c in embed_outcome.converted],
     )
 
 

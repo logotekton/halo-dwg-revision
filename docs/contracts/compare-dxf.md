@@ -87,7 +87,8 @@
 | `revtable.row_height` | 400 |
 | `revtable.text_height` | 250 |
 | `revtable.anchor` | `titleblock_left` — 표제란 블록 bbox의 왼쪽 위 모서리에서 왼쪽으로 붙이고(표 오른쪽 위 = 표제란 왼쪽 위), 아래로 자란다 |
-| `revtable.header` | `[번호, 내용, 일자]` 머리글 행 1개 |
+
+머리글 행은 `revtable.columns` 값 그대로 1행이다(별도 `header` 키 없음).
 
 - LINE + TEXT로만 그린다(TABLE 엔티티 금지). 레이어 `REV-<YYYYMMDD>[-n]`.
 - 행 = 승인된 클러스터(번호 순). 내용 = `user_label`이 있으면 그것, 없으면 `label`. 일자 = `run_date`(`YYYY-MM-DD`).
@@ -125,7 +126,7 @@
 ```
 
 - `id`는 `c<number>`·`ch<seq>`로 **결정론적**이다. DB의 ULID는 파일에 쓰지 않는다.
-- `handle_to_cluster`의 키는 **비교 DXF 안의 핸들**이다(원 도면 핸들이 아님). 뷰어 히트 테스트 → 이 표 → 클러스터.
+- `handle_to_cluster`의 키는 **비교 DXF 안의 핸들**이다(원 도면 핸들이 아님). 뷰어 히트 테스트 → 이 표 → 클러스터. 값이 실제 클러스터를 가리키는지(그리고 `changes[].cluster_id`, `id`↔`number`/`seq`, `counts` 일치)는 JSON Schema로 표현할 수 없어, 엔진(R1-06)은 쓰기 전에 스스로 검사하고 뷰어 쪽은 `@halo-cad/schema`의 `clustersSidecarIntegrityFailures()`로 검사한다.
 - `decision`·`user_label`·`note`는 사용자 편집값이다. 엔진은 비교를 다시 돌릴 때 같은 `pair_key`·같은 클러스터 서명(정렬된 `change_ids`의 `(kind, before_handle, after_handle)` 튜플 해시)이면 이전 판정을 이어받는다.
 - 정렬: `clusters`는 `number` 순, `changes`는 `seq` 순, `handle_to_cluster`는 키 정렬. JSON은 `ensure_ascii=False, indent=2, sort_keys=False`, 줄 끝 `\n`, 개행 LF.
 

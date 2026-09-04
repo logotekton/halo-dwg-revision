@@ -257,8 +257,90 @@ S02_move_door 비교 → 검토 진입(클러스터 1, `REV-20260904`) → 휠�
 바이트는 캐시에 남아 있어 다시 내려받지는 않는다. `cad-core`에 `attach(container)`가 생기면
 이 자리를 대신할 수 있다.
 
+## 화면 D 출력 `ExportScreen.tsx` (R1-10)
+
+화면 C에서 승인·무시를 끝내고 화면 B의 "전체 도곽 출력…"으로 넘어오면 보는 화면. 계약은
+`docs/contracts/r1.md` §7(export 엔드포인트)·§9·§10, 산출물 규칙은 `docs/dev/compare-export.md`
+(R1-09). 구현은 `features/compare/ExportScreen.tsx` + `exportApi.ts`, `state/export.ts`.
+
+### 데이터 흐름
+
+```
+state/compare.ts  compareSetId, summary, pairs, zwcad     # 화면 A·B가 이미 갖고 있다
+        │
+        ▼
+ExportScreen 마운트
+  1. summary.run_date → state/export.ts의 runDate 초기값 (compareSetId가 바뀔 때만 다시 설정)
+  2. cluster_count > 0 && compare_dxf_path가 있는 pairs마다 GET .../clusters (화면 C와 같은
+     호출)를 병렬로 불러 counts.approved/ignored를 합산 → "승인 n건 · 무시 n건 · 대상 도곽 n장"
+     (Run이 아직 없으니 승인·무시 집계를 보여줄 다른 출처가 없다 -- 이 사전 요약만 유일하게
+     사이드카를 다시 읽는다. "출력 실행" 뒤의 결과 표는 전부 Run 필드만 쓴다)
+
+"출력 실행" 클릭
+  1. state/export.ts::runExport({compareSetId, runDate})
+  2. POST /compare/sets/{id}/export {run_date, scope:"all", method:"auto"} → 202 {job_id, run_id}
+  3. GET /jobs/{id} 500ms 폴링(features/compare/api.ts의 pollJob 재사용, kind `compare.export`,
+     stage `markup`/`dwg`) → JobProgress 컴포넌트가 그대로 그린다(단계 이름 매핑이 없으면
+     원문 stage를 그대로 보여준다 -- R1-05의 JobProgress.tsx는 이 태스크 소유가 아니라 손대지
+     않았다. 보고서 "Shared-file patch" 참고)
+  4. 잡 완료 → GET /compare/runs/{run_id} → Run을 스토어에 저장 → 결과 표 렌더
+```
+
+### 결과 표는 `Run` 필드만
+
+브리프 Constraints("렌더러가 파일을 읽지 않는다")를 결과 표에도 그대로 적용했다: 도면번호·
+파일·형식·라이터는 `Run.files[]`를 그대로 옮기고, "경고" 열도 새 데이터를 불러오지 않고
+`writer === 'dxf-only'`일 때만 (ZWCAD 없음 또는 실패로 DXF로 떨어진 경우, `docs/dev/
+compare-export.md`의 "DWG 저장 경로 선택" 표) 경고 문구를 파생시킨다. `compare_set.stats.
+export.warnings`(짝 단위가 아닌 실행 전체 경고)는 Run 스키마에 없는 필드라 화면 D에는
+나오지 않는다 — 필요하면 스키마에 필드를 추가하는 별도 태스크가 맞다(보고서 "Shared-file
+patch").
+
+### 스토어 (`state/export.ts`)
+
+```ts
+useExportStore.getState()
+// runDate, run, exportJob, busy, error, toast
+runExport({ compareSetId, runDate })   // POST export → 잡 폴링 → GET run
+copyTsv()                              // GET .../tsv → clipboard.writeText, 2초 토스트
+openOutput()                           // shell.openPath(run.output_dir)
+cancelActiveJob()                      // 화면을 떠날 때 잡 폴링 정리
+reset()
+```
+
+`state/compare.ts`(어느 세트인지)와 `state/review.ts`(어느 짝을 보고 있는지)가 그렇듯,
+이 스토어는 "이 세트가 지금까지 낸 출력 하나"만 안다 — 여러 짝을 오가는 화면 C와 달리 화면 D는
+세트당 상태가 하나뿐이라 `pairId` 같은 키가 필요 없다.
+
+### API 클라이언트 (`features/compare/exportApi.ts`)
+
+`startExport`·`getRun`·`getRunTsv`. 타입(`Run`, `RunOutputFile`)은 다른 `*Api.ts`들과 같은
+이유로 `packages/schema/gen/ts/compare/run.d.ts`의 손수 미러다. `startExport`는 R1-04/R1-06의
+API처럼 404를 흡수하지 않는다 — 화면 D에 도달했다는 것 자체가 R1-09의 export 라우터가 이미
+병합돼 있다는 뜻이라(브리프 Wave "D5, R1-08·R1-09 병합 후 시작"), 여기서 404는 진짜 오류다.
+
+### 테스트 훅
+
+`ExportScreen.tsx` 모듈 스코프에서 등록한다(화면 C의 `registerReviewTestHooks()`와 같은 이유 --
+`CompareApp.tsx`가 이 파일을 정적으로 임포트하므로 화면 D가 마운트되기 전에도 이미 등록돼 있다).
+
+| 이름 | 동작 |
+|---|---|
+| `compareRunExport({runDate})` | `state/export.ts::runExport`를 완료까지 실행하고 끝난 `Run`으로 resolve. `compareSetId`는 `state/compare.ts`에서 직접 읽는다 |
+| `compareGetLastRun()` | 스토어의 `run` 필드를 그대로 반환(부작용 없음 -- 다시 출력하지 않는다) |
+
+### e2e (`tests/e2e/compare.spec.ts`)
+
+Seed AC4의 수직 슬라이스 전체(세트 지정 → 도곽 목록 → 검토 → 전체 도곽 출력)를 한 스펙으로
+잇는다. 자세한 내용은 `docs/dev/e2e.md`의 "compare 수직 슬라이스" 절 참고. 화면 D 자체는 "출력
+실행" 버튼을 실제로 눌러(하네스 훅이 아니라) 잡 완료까지 기다린 뒤 결과 표·"폴더 열기"·"TSV
+복사"를 확인하고, `compareGetLastRun()`은 부작용 없이 구조화된 `Run` 값을 읽어오는 용도로만
+쓴다(재출력을 유발하는 `compareRunExport` 훅을 같은 스펙에서 또 부르면 `출력/2026-09-04-2`가
+새로 생겨 폴더 이름 단언이 깨진다 -- 두 경로는 어차피 같은 `runExport` 액션을 부른다).
+
 ## Windows 확인이 필요한 부분
 
 없음 — 이 태스크의 기능은 macOS 개발 환경에서도 `tools/verify.sh --e2e`로 전부 검증된다
 (ZWCAD 자체는 R1-02가 검증). ZWCAD 칩은 macOS에서 항상 "자체 변환기 · Windows 아님"으로
-보이는 것이 정상이다.
+보이는 것이 정상이다. 화면 D에서 실제 `.dwg`가 나오는지, 라이터가 `zwcad-com`으로 찍히는지는
+`docs/dev/compare-export.md`의 "Windows 확인 절차"가 다룬다(R1-09 소유 문서).

@@ -74,6 +74,53 @@ CDP 타깃이 생기자마자 resolve되는데, 이는 React가 `StatusBar`(훅�
 마운트하기 *전*일 수 있다. 즉시 한 번만 확인하면 W2-01이 병합돼 있어도 마운트 타이밍과
 경합해 잘못 스킵될 수 있다.
 
+## Compare 화면 e2e와 환경변수 (`tests/e2e/compare*.spec.ts`, R1-05·R1-08·R1-10)
+
+화면 A~D(`docs/dev/compare-ui.md`)는 스모크 테스트 하나가 아니라 스펙 세 개로 나뉘어 있다.
+
+| 스펙 | 소유 | 범위 |
+|---|---|---|
+| `compare-sheets.spec.ts` | R1-05 | 화면 A(세트 지정)·B(도곽 목록), 실제 폴더 선택 버튼 클릭 |
+| `compare-review.spec.ts` | R1-08 | 화면 C(검토), 뷰어 렌더·보기 모드·판정 |
+| `compare.spec.ts` | R1-10 | Seed AC4 수직 슬라이스: 세트 지정 → 도곽 목록 → 검토 → 전체 도곽 출력을 한 스펙으로 이어서, 화면 D(출력) 자체도 함께 검증 |
+
+셋 다 `fixtures/compare/**`(R1-07이 만든 합성 리비전 쌍)를 원본 그대로 두고 임시 폴더에
+**복사**해서 쓴다(`CLAUDE.md` 규칙 1) — `fixtures/`에는 절대 `.halo`나 `출력/`이 생기지 않는다.
+`compare.spec.ts`는 `fixtures/compare/S13_multi_sheet/{before,after}`를 한 임시 프로젝트
+폴더의 형제 디렉터리(`<tmp>/before`, `<tmp>/after`)로 복사한다 — 두 폴더가 형제여야 엔진이
+계산하는 `project_dir`(계약 §1: "전·후 세트 폴더의 공통 부모")이 그 임시 폴더 자신이 되고,
+출력이 `<tmp>/출력/2026-09-04`에 정확히 떨어진다. 테스트가 끝나면 그 임시 프로젝트 폴더 하나를
+지우는 것으로 복사본·`.halo` 번들·출력 폴더가 모두 함께 사라진다.
+
+### 환경변수 (계약 §8)
+
+| 변수 | 방향 | 쓰임 |
+|---|---|---|
+| `HALO_E2E_PICK_FOLDERS` | 테스트 → 앱 | `launchHalo()`가 자식 프로세스를 띄우기 *전*에 설정해 둔다(쉼표 구분 경로 두 개). 화면 A의 "폴더 선택…" 버튼을 실제로 클릭하면 네이티브 다이얼로그 대신 이 값을 앞에서부터 하나씩 소비한다(`apps/desktop/src/main/ipc.ts::pickFolder`) |
+| `HALO_E2E_OPENED_PATHS` | 앱 → 테스트 | 화면 D "폴더 열기"가 (`shell.openPath`를 실제로 부르는 대신) 연 것으로 친 경로를 쉼표로 이어 붙인다. 렌더러가 아니라 **메인 프로세스**의 `process.env`에 쓰이므로, 테스트에서는 `page.evaluate`가 아니라 Playwright의 `ElectronApplication.evaluate()`로 읽는다: `haloApp.app.evaluate(() => process.env.HALO_E2E_OPENED_PATHS)`(`packages/testing/src/electron.ts`의 `HaloElectronApp.app`가 그 핸들이다) |
+
+`compare.spec.ts`는 첫 변수만 직접 설정하고(`compare-sheets.spec.ts`와 같은 패턴), 둘째 변수는
+값을 설정하는 쪽이 아니라 **읽는 쪽**이라 손댈 것이 없다 — "폴더 열기" 버튼을 클릭한 뒤
+`haloApp.app.evaluate(...)`로 확인만 한다.
+
+### 화면 D 고유의 훅
+
+`compareRunExport({runDate})`/`compareGetLastRun()`(계약 §10, `docs/dev/compare-ui.md`의
+"테스트 훅" 절)는 `state/export.ts`를 직접 부르므로 화면 D가 마운트돼 있지 않아도 동작한다.
+`compare.spec.ts`는 그래도 "출력 실행" 버튼을 **실제로 클릭해서** 잡을 돌리고(화면 D 자체의
+배선을 증명하려면 훅으로 우회하면 안 된다), `compareGetLastRun()`은 그 결과를 구조화된 값으로
+다시 읽어오는 부작용 없는 용도로만 쓴다 — `compareRunExport`를 같은 세트에 또 부르면 두 번째
+출력(`출력/2026-09-04-2`)이 새로 생겨 "출력 폴더가 `출력/2026-09-04`로 끝난다"는 단언이
+깨지기 때문이다.
+
+### 스크린샷
+
+`compare.spec.ts`는 네 장을 `test-results/compare/`(저장소 루트) 아래에 남긴다:
+`screen-a-set.png`·`screen-b-sheets.png`·`screen-c-review.png`·`screen-d-export.png`.
+`compare-sheets.spec.ts`·`compare-review.spec.ts`는 각각 `test-results/compare-sheets/`·
+`test-results/compare-review/`를 쓴다 — 스펙마다 디렉터리를 나눠 두면 `tools/verify.sh --e2e`를
+반복 실행해도 서로 다른 스펙의 산출물이 뒤섞이지 않는다.
+
 ## 아티팩트 (실패 시)
 
 - **스크린샷만, 비디오는 없음** (`playwright.config.ts`의 `use: { screenshot:

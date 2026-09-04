@@ -17,6 +17,7 @@ from halo_engine import __version__
 from halo_engine.api import jobs, ws
 from halo_engine.api.routers import (
     compare_clusters,
+    compare_export,
     compare_pairs,
     compare_sets,
     compare_zwcad,
@@ -80,6 +81,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(compare_sets.router, prefix="/api/v1/compare", tags=["compare"])
     app.include_router(compare_pairs.router, prefix="/api/v1/compare", tags=["compare"])
     app.include_router(compare_clusters.router, prefix="/api/v1/compare", tags=["compare"])
+    app.include_router(compare_export.router, prefix="/api/v1/compare", tags=["compare"])
     app.include_router(crosscheck.router, prefix="/api/v1/files", tags=["files"])
     app.include_router(projects.router, prefix="/api/v1/projects", tags=["projects"])
     app.include_router(drawing_sets.router, prefix="/api/v1", tags=["drawing-sets"])

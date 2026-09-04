@@ -10,10 +10,26 @@
  * interface yet — brief W3-01: "test-hooks.ts: getDocuments 추가(openFiles는
  * W3-02/03 후)". It lands once the real import pipeline (W3-02/W3-03) is
  * merged.
+ *
+ * `compare*` hooks are R1-05's addition (docs/contracts/r1.md §10),
+ * registered by `features/compare/CompareApp.tsx`. Return/parameter types
+ * stay loose (`unknown`, plain strings) rather than importing
+ * `state/compare.ts`'s richer types here -- this file is the hook *registry*
+ * only, the same minimal-surface choice `getDocuments`'s inline object type
+ * above already made.
  */
 export interface HaloTestHooks {
   getStatus(): string
   getDocuments(): { fileId: string; name: string; layers: number }[]
+  /** Screen A end-to-end: pick both folders, run ingest, then frames, and
+   * resolve with the new `compare_set_id` once its status is `matched`. */
+  compareStartSet(params: { beforeDir: string; afterDir: string; runDate: string }): Promise<string>
+  compareGetScreen(): string
+  compareGoto(screen: string): void
+  compareGetSummary(): unknown
+  compareGetPairs(): unknown
+  /** Runs `POST .../run` to completion (screen B's "비교 실행" button). */
+  compareRunCompare(): Promise<void>
 }
 
 declare global {

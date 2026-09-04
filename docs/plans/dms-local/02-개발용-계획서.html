@@ -155,7 +155,7 @@
     <!-- NAV:END -->
   </ol>
   <div class="zoomctl" role="group" aria-label="본문 크기"><span>본문 크기</span><button type="button" data-zoom="-" aria-label="축소">−</button><button type="button" class="zv" data-zoom="0" aria-label="원래 크기">100%</button><button type="button" data-zoom="+" aria-label="확대">+</button></div>
-  <p class="navmeta">개발용 계획서 v1 · 2026-09-04<br>독자: 개발 에이전트 · MVP 착수 전<br>보고용 계획서 확정본 기준</p>
+  <p class="navmeta">개발용 계획서 v1 · 2026-09-04<br>독자: 개발 에이전트 · MVP 착수 전<br>보고용 계획서 확정본 기준 · 2026-09-04 인터뷰 장부 반영(장부 우선)</p>
 </nav>
 
 <div class="content">
@@ -190,11 +190,13 @@
   <div class="tablewrap"><table>
     <thead><tr><th>결정 항목</th><th>MVP 기본값</th><th>설정 위치</th></tr></thead>
     <tbody>
-      <tr><td>사소한 변경 기준</td><td>이동 허용오차 1mm, 레이어·색·선종류·선굵기만 바뀐 것, 해치 재생성(경계 동일), MTEXT 서식만 바뀐 것, 치수 재생성(값·문구 동일)은 접는다</td><td><code>compare.yaml</code> · <code>minor</code></td></tr>
-      <tr><td>클라우드 마크 규격</td><td>레이어 <code>REV-CLOUD</code>, 색 1(빨강), 호 현 길이 300mm, 여백 150mm, 번호는 원 안 숫자(반지름 200mm)</td><td><code>compare.yaml</code> · <code>cloud</code></td></tr>
-      <tr><td>리비전 표 양식</td><td>열: 번호·내용·일자·담당. 위치: 표제란 블록의 왼쪽 위 모서리에서 왼쪽으로 붙임. 전체 변경 리스트는 첫 도곽(정렬 첫 번째)에 삽입</td><td><code>compare.yaml</code> · <code>revtable</code></td></tr>
+      <tr><td>사소한 변경 기준</td><td>이동은 <strong>0.01mm 이하</strong>만 접는다(장부 2026-09-04). 레이어·색·선종류·선굵기만 바뀐 것, 해치 재생성(경계 동일), MTEXT 서식만 바뀐 것, 치수 재생성(값·문구 동일)은 구조 규칙으로 접는다. 지문 매칭 허용오차는 별도로 1mm</td><td><code>compare.yaml</code> · <code>minor</code>, <code>match</code></td></tr>
+      <tr><td>클라우드 마크 규격</td><td>레이어 <code>REV-&lt;YYYYMMDD&gt;</code>(실행 날짜, 같은 날 두 번째 실행은 <code>-2</code>), 색 1(빨강), 호 100mm, 여백 50mm, 번호는 한 변 200mm 삼각형 안 숫자. 값은 1:100 도곽 기준 모델 mm이며 도곽 축척 배율을 곱한다(장부 2026-09-04)</td><td><code>compare.yaml</code> · <code>cloud</code></td></tr>
+      <tr><td>리비전 표 양식</td><td>열: 번호·내용·일자(담당 없음). 일자는 실행 날짜. 위치: 표제란 블록 왼쪽. 전체 변경 리스트는 2주차(장부 2026-09-04)</td><td><code>compare.yaml</code> · <code>revtable</code></td></tr>
       <tr><td>도곽 목록 그룹 기준</td><td>구현하지 않는다. 필터 칩과 검색만</td><td>2주 안 결정 후 추가</td></tr>
       <tr><td>출력 폴더</td><td><code>&lt;프로젝트&gt;/출력/&lt;실행 날짜&gt;/</code></td><td><code>compare.yaml</code> · <code>output_dir</code></td></tr>
+      <tr><td>실행 날짜</td><td>Run의 명시 입력(주입 시계). 엔진은 현재 시각을 부르지 않으며 같은 입력·같은 날짜면 비교 DXF·clusters.json·마크업 DWG가 바이트 동일해야 한다</td><td><code>POST /compare/sets</code>·<code>export</code> 본문 <code>run_date</code></td></tr>
+      <tr><td>변환기 짝 규칙</td><td>한 도곽 짝의 전·후 DXF는 같은 변환기여야 한다. 한쪽이 ZWCAD 변환에 실패하면 짝 상대도 자체 변환기로 다시 변환하고, 그래도 안 되면 "변환기 불일치"로 표시</td><td><code>compare/ingest_set.py</code></td></tr>
     </tbody>
   </table></div>
 
@@ -238,7 +240,7 @@
       <tr><td>원래 레이어 그대로</td><td>전·후 모두 있는 엔티티(후 기준). 비교 전용 레이어를 만들지 않는다</td><td>원래 레이어 색</td><td>항상 표시</td></tr>
       <tr><td><code>__CMP_ADDED</code></td><td>후에만 있는 엔티티, 이동 후 위치</td><td>빨강(1)</td><td>겹쳐 보기·후에서 표시</td></tr>
       <tr><td><code>__CMP_REMOVED</code></td><td>전에만 있는 엔티티, 이동 전 위치</td><td>시안(4)</td><td>겹쳐 보기·전에서 표시</td></tr>
-      <tr><td><code>REV-CLOUD</code></td><td>클라우드 마크 폴리라인과 번호 배지</td><td>빨강(1)</td><td>항상 표시</td></tr>
+      <tr><td><code>REV-&lt;YYYYMMDD&gt;</code></td><td>클라우드 마크 폴리라인과 번호 배지(실행 날짜 레이어). 정본은 <code>docs/contracts/compare-dxf.md</code></td><td>빨강(1)</td><td>항상 표시</td></tr>
       <tr><td><code>__CMP_LABEL</code></td><td>번호 배지의 히트 영역과 클러스터 id를 담는 XDATA</td><td>보이지 않음</td><td>클릭 판정용</td></tr>
     </tbody>
   </table></div>
@@ -251,7 +253,7 @@
       <tr><td>React UI</td><td><code>apps/web/src/state/{workspace,documents,viewer,selection}</code>, <code>api/engine.ts</code>, <code>features/files</code>, i18n <code>ko.json</code></td><td>화면 A~D(<code>features/compare/*</code>), 다크 테마 토큰, 비교 상태 조각</td></tr>
       <tr><td>뷰어</td><td><code>packages/cad-core</code>(CadHost, mlightcad 표면), W3-02 브랜치의 뷰어 통합 WIP</td><td>레이어 토글로 보기 모드, 배지 클릭 → 클러스터 선택, 나란히 카메라 동기화</td></tr>
       <tr><td>파이썬 엔진</td><td><code>ingest/{pipeline,dxf_loader,working_dxf,xref,entity_index,stats}</code>, <code>bundle/*</code>(원본 가드), <code>db/*</code>, <code>api/{main,jobs,ws}</code>, <code>validate/crosscheck</code></td><td><code>compare/*</code> 패키지: 변환 브리지, 도곽, 매칭, 비교, 클러스터, 설명, 래스터, 마크업, 이력, 출력. 라우터 <code>/compare/*</code></td></tr>
-      <tr><td>ZWCAD 브리지</td><td>없음</td><td><code>compare/zwcad.py</code>: pywin32 COM. 변환·삽입·저장. Windows에서만 살고 macOS에서는 스텁</td></tr>
+      <tr><td>ZWCAD 브리지</td><td>없음</td><td><code>compare/zwcad.py</code>: comtypes(MIT) COM, ADR-0007. 변환·저장(삽입은 2주차). Windows에서만 살고 macOS에서는 스텁</td></tr>
       <tr><td>스키마</td><td><code>packages/schema</code>(JSON Schema → TS·파이썬 코드젠, provenance 규칙)</td><td><code>sheet-frame</code>, <code>sheet-pair</code>, <code>change</code>, <code>cluster</code>, <code>run</code> 스키마와 예제</td></tr>
       <tr><td>저장소</td><td>프로젝트 번들 규약(<code>bundle/layout.py</code>), SQLite</td><td><code>&lt;프로젝트&gt;/.halo/</code> 아래 파생물·DB·사전, 출력 폴더, 이력 엑셀</td></tr>
     </tbody>
@@ -313,7 +315,7 @@
   <p>짝 없음은 화면 B에서 수동으로 맞추고 <code>SheetPair.match_method=manual</code>로 저장한다. 수동 짝은 같은 프로젝트에서 다음 세트에도 힌트로 쓴다.</p>
 
   <h3>4.4 엔티티 비교</h3>
-  <p>도곽 짝마다 전·후 엔티티를 도곽 로컬 좌표로 옮긴 뒤 세 단계로 짝짓는다. 허용오차 τ는 기본 1mm(도면 단위 기준으로 환산)다.</p>
+  <p>도곽 짝마다 전·후 엔티티를 도곽 로컬 좌표로 옮긴 뒤 세 단계로 짝짓는다. 지문 매칭 허용오차 τ는 1mm(이웃 구간 포함 거리 매칭)이고, 사소한 변경으로 접는 이동은 0.01mm 이하뿐이다(장부 2026-09-04).</p>
   <ol>
     <li><strong>핸들 매칭.</strong> 같은 핸들·같은 타입이면 짝으로 보고 속성을 비교한다. 설계사가 도면을 통째로 다시 그려 핸들이 바뀐 세트에서는 이 단계가 비고 다음 단계로 간다.</li>
     <li><strong>지문 매칭.</strong> 남은 엔티티끼리 지문(타입, 레이어, τ로 반올림한 기하 서명, 문자열)이 같으면 짝이다. 같은 지문이 여럿이면 거리 순으로 짝짓는다.</li>
@@ -335,7 +337,7 @@
 
   <h3>4.5 묶음과 번호</h3>
   <p>변경(사소한 것 제외)의 bbox를 도곽 긴 변의 2% 또는 300mm 중 큰 값만큼 키운 뒤 겹치는 것끼리 합친다(union-find). 묶음은 왼쪽 위에서 오른쪽, 그다음 아래 순(읽는 순서)으로 번호를 붙인다. 이동은 전·후 위치가 한 묶음에 들어가도록 두 bbox의 합집합으로 계산한다.</p>
-  <p>클라우드 마크는 묶음 bbox에 여백 150mm를 더한 사각형을 현 길이 300mm의 호로 두른 LWPOLYLINE(bulge 사용)이다. 번호 배지는 오른쪽 위 모서리의 CIRCLE(반지름 200mm)과 가운데 정렬 TEXT다. 크기 값은 도곽 축척에 따라 실제 인쇄 크기가 같아지도록 축척 배율을 곱한다.</p>
+  <p>클라우드 마크는 묶음 bbox에 여백 50mm를 더한 사각형을 호 100mm로 두른 LWPOLYLINE(bulge 사용)이며 레이어는 <code>REV-&lt;YYYYMMDD&gt;</code>(실행 날짜, 같은 날 두 번째 실행은 <code>-2</code>), 색 1이다. 번호 배지는 오른쪽 위 모서리의 한 변 200mm 삼각형(LWPOLYLINE)과 그 안의 가운데 정렬 TEXT다. 값은 1:100 도곽 기준 모델 mm이고, 도곽 축척에 따라 실제 인쇄 크기가 같아지도록 축척 배율(축척 분모/100)을 곱한다(장부 2026-09-04).</p>
 
   <h3>4.6 설명 생성</h3>
   <p>문구는 <code>{종류} {행위}[ {수치}][ · {힌트}]</code> 틀로 만든다. 종류는 사전, 행위와 수치는 변경 종류, 힌트는 위치 규칙에서 온다. 자연어 생성기나 LLM은 실행 중에 쓰지 않는다.</p>
@@ -356,9 +358,9 @@
   <h3>4.8 마크업 DWG와 리비전 표</h3>
   <ol>
     <li>후 작업용 DXF를 복사한다. 원본 DWG는 건드리지 않는다.</li>
-    <li>승인된 묶음의 클라우드 마크와 번호를 <code>REV-CLOUD</code> 레이어에 넣는다. 수동 마크도 같은 레이어다.</li>
-    <li>도곽별 리비전 표를 표제란 왼쪽에 LINE과 TEXT로 그린다. TABLE 엔티티는 프록시가 될 수 있어 쓰지 않는다. 열은 번호·내용·일자·담당, 행 높이와 글자 크기는 축척 배율을 곱한다.</li>
-    <li>전체 변경 리스트는 첫 도곽에 같은 방식으로 그린다(위치는 8절 결정 뒤 변경).</li>
+    <li>승인된 묶음의 클라우드 마크와 번호를 <code>REV-&lt;YYYYMMDD&gt;</code> 레이어에 넣는다. 수동 마크(2주차)도 같은 레이어다.</li>
+    <li>도곽별 리비전 표를 표제란 왼쪽에 LINE과 TEXT로 그린다. TABLE 엔티티는 프록시가 될 수 있어 쓰지 않는다. 열은 번호·내용·일자(담당 없음), 일자는 실행 날짜, 행 높이와 글자 크기는 축척 배율을 곱한다.</li>
+    <li>전체 변경 리스트는 2주차다(장부 2026-09-04).</li>
     <li>DWG 저장은 백그라운드 ZWCAD의 <code>SaveAs</code>(2013 형식)가 우선이고, 없으면 acad-ts <code>dxf2dwg</code>다. acad-ts 경로는 ATTRIB 복제 결함(W3-06)이 남아 있어 표제란 블록을 건드리지 않는 조건에서만 쓴다.</li>
   </ol>
 
@@ -437,17 +439,19 @@
   <div class="tablewrap"><table>
     <thead><tr><th>일</th><th>ID</th><th>작업</th><th>소유 파일</th><th>완료 조건</th></tr></thead>
     <tbody>
-      <tr><td rowspan="3" class="num">D1</td><td>R1-01</td><td>스키마 5종(sheet-frame, sheet-pair, change, cluster, run)과 예제, TS·파이썬 코드젠</td><td><code>packages/schema/**</code></td><td>예제가 스키마 검증을 통과하고 codegen 산출물이 갱신됨</td></tr>
+      <tr><td rowspan="2" class="num">D0</td><td>R1-00a</td><td>선행 병합: <code>task/W3-06</code>(XREF, 검증 완료) 병합, <code>task/W3-02</code>(CadHost WIP) 검증·수복 + 레이어 가시성 API 추가 후 병합</td><td><code>packages/cad-core/**</code>, <code>apps/web/src/features/viewer/**</code>, <code>apps/desktop/src/main/convert/**</code></td><td><code>tools/verify.sh --e2e</code> 녹색, CadHost에 레이어 가시성 API</td></tr>
+      <tr><td>R1-00b</td><td>Windows 설치본 CI: <code>windows-latest</code>, NSIS x64, PyInstaller x64 사이드카, comtypes, ADR-0007</td><td><code>.github/workflows/windows-installer.yml</code>, <code>apps/desktop/electron-builder.yml</code>, <code>engine/halo-engine.spec</code>, <code>docs/adr/0007-zwcad-com-bridge.md</code></td><td>task 브랜치 푸시마다 설치본 아티팩트가 만들어진다</td></tr>
+      <tr><td rowspan="3" class="num">D1</td><td>R1-01</td><td>스키마 5종(sheet-frame, sheet-pair, change, cluster, run)과 예제, TS·파이썬 코드젠, 비교 DXF 계약 문서(<code>docs/contracts/compare-dxf.md</code>), DB 모델·Alembic 마이그레이션, <code>compare.yaml</code>·<code>frames.yaml</code> 기본값</td><td><code>packages/schema/**</code>, <code>docs/contracts/compare-dxf.md</code>, <code>engine/src/halo_engine/db/**</code>, <code>compare/config.py</code></td><td>예제가 스키마 검증을 통과하고 codegen 산출물이 갱신됨. 마이그레이션이 빈 번들에 적용된다</td></tr>
       <tr><td>R1-02</td><td>ZWCAD COM 브리지: 감지, 숨은 인스턴스, 열기 → SaveAs DXF → 닫기, 시간 제한·재기동, macOS 스텁</td><td><code>engine/src/halo_engine/compare/zwcad.py</code>, 테스트</td><td>스텁으로 계약 테스트 통과. Windows PC에서 실도면 5장 변환 성공(수동 확인 기록)</td></tr>
       <tr><td>R1-03</td><td>인입 확장: 세트 단위 인입, sha1 캐시, ZWCAD 우선·자체 대체, 표본 교차검증, 폰트 누락 목록</td><td><code>compare/ingest_set.py</code>, <code>api/compare_sets.py</code></td><td>실도면 68장 세트가 잡으로 인입되고 진행률이 WS로 온다. 교차검증 불일치가 로그에 남는다</td></tr>
-      <tr><td rowspan="2" class="num">D2</td><td>R1-04</td><td>도곽 추출과 매칭: 표제란 규칙(<code>frames.yaml</code>), 경계, 엔티티 배정, 정규화 키, 4단계 매칭, 수동 짝</td><td><code>compare/frames.py</code>, <code>compare/match.py</code></td><td>실도면 68장 도곽 수 = PDF 페이지 수. 합성 리비전 쌍 짝 맞춤 100%</td></tr>
+      <tr><td rowspan="2" class="num">D2</td><td>R1-04</td><td>도곽 추출과 매칭: 표제란 규칙(<code>frames.yaml</code>), 경계, 엔티티 배정, 정규화 키, 4단계 매칭, 수동 짝, pairs 라우터. <code>_recover</code> 제외, 표제란 없는 파일은 "도곽 미인식"</td><td><code>compare/frames.py</code>, <code>compare/match.py</code>, <code>api/routers/compare_pairs.py</code></td><td>실도면 68장 도곽 수 = PDF 페이지 수. 합성 리비전 쌍 짝 맞춤 100%</td></tr>
       <tr><td>R1-05</td><td>화면 A·B: 폴더 선택, 진행 표시, 도곽 목록(필터 칩·검색·정렬), 짝 없음 수동 짝 맞춤, 다크 테마 토큰</td><td><code>apps/web/src/features/compare/{SetScreen,SheetList}*</code>, <code>state/compare.ts</code>, <code>ko.json</code>, IPC 채널</td><td>세트를 넣으면 목록이 뜨고 짝 없음을 수동으로 맞출 수 있다(Playwright)</td></tr>
-      <tr><td rowspan="2" class="num">D3</td><td>R1-06</td><td>비교 엔진 1차: 로컬 좌표, 핸들·지문 매칭, 속성 비교표, 사소한 변경 필터, 묶음·번호, 클라우드 폴리라인, 비교 DXF 생성</td><td><code>compare/diff.py</code>, <code>compare/cluster.py</code>, <code>compare/compare_dxf.py</code></td><td>합성 쌍에 심은 변경을 전부 검출하고 접힘 규칙이 맞는다. 같은 입력에서 비교 DXF·JSON이 바이트 동일</td></tr>
-      <tr><td>R1-07</td><td>합성 리비전 쌍 생성기와 truth: 기준 DXF에 이동·치수·문구·신설·삭제·해치 재생성을 심고 정답 JSON을 낸다</td><td><code>fixtures/compare/**</code>, <code>packages/testing</code></td><td>시나리오 8종 이상, 생성이 결정론적</td></tr>
+      <tr><td rowspan="2" class="num">D3</td><td>R1-06</td><td>비교 엔진 1차: 로컬 좌표, 핸들·지문 매칭, 속성 비교표, 사소한 변경 필터, 묶음·번호, 클라우드 폴리라인, 비교 DXF 생성, clusters 라우터</td><td><code>compare/diff.py</code>, <code>compare/cluster.py</code>, <code>compare/compare_dxf.py</code>, <code>api/routers/compare_clusters.py</code></td><td>합성 쌍에 심은 변경을 전부 검출하고 접힘 규칙이 맞는다. <code>engine/tests/compare/test_determinism.py</code>가 같은 입력에서 비교 DXF·clusters.json 바이트 동일을 증명</td></tr>
+      <tr><td>R1-07</td><td>합성 리비전 쌍 생성기와 truth: 기준 DXF에 이동·치수·문구·신설·삭제·해치 재생성·통째 사본(핸들 전부 변경)을 심고 정답 JSON을 낸다. 변경 truth JSON 형식은 <code>compare/truth.schema.json</code></td><td><code>fixtures/compare/**</code></td><td>시나리오 8종 이상, 생성이 결정론적</td></tr>
       <tr><td rowspan="2" class="num">D4</td><td>R1-08</td><td>화면 C 1차: CadHost에 비교 DXF, 레이어 토글로 겹쳐 보기·전·후, 번호 이동, 리스트 승인·무시·설명 편집, 접힌 목록</td><td><code>features/compare/CompareScreen*</code>, <code>state/viewer.ts</code></td><td>번호를 누르면 카메라가 가고, 승인·무시가 서버에 저장된다</td></tr>
       <tr><td>R1-09</td><td>마크업 DWG 생성기와 도곽별 리비전 표, 전체 도곽 출력 잡, TSV 복사, DWG 저장(ZWCAD 우선·acad-ts 대체)</td><td><code>compare/markup.py</code>, <code>compare/export.py</code>, <code>api/compare_export.py</code></td><td>합성 쌍에서 승인 항목만 마크업 DWG와 표에 들어간다. DWG가 ZWCAD에서 열린다(Windows 확인)</td></tr>
       <tr><td rowspan="2" class="num">D5</td><td>R1-10</td><td>화면 D 1차: 범위(전체), 넣는 방법, 출력 실행과 결과 폴더 열기. 끝까지 잇는 수직 슬라이스 E2E</td><td><code>features/compare/ExportScreen*</code>, <code>tests/e2e/compare.spec.ts</code></td><td>Playwright로 세트 지정 → 목록 → 검토 → 출력이 한 번에 지나간다</td></tr>
-      <tr><td>R1-11</td><td>Windows 설치본 빌드(NSIS + 사이드카)와 확인: 실도면 68장 인입, 리비전 쌍 1벌 끝까지, 이력 엑셀 최초 생성 확인, 문제 목록 작성</td><td><code>docs/gates/R1.md</code></td><td>MVP 게이트 문서에 결과와 미해결 목록이 적힌다</td></tr>
+      <tr><td>R1-11</td><td>최종 설치본(CI 아티팩트)과 게이트 문서: 사용자가 Windows 노트북에서 설치본으로 실도면 68장 도곽 수 상수 일치, 리비전 쌍 1벌 끝까지, 마크업 DWG가 ZWCAD 2026에서 열림을 확인. 문제 목록 작성</td><td><code>docs/gates/R1.md</code></td><td><code>R1-GATE sheet-count</code>·<code>owner-pair</code>·<code>markup-dwg-opens</code>·<code>installer</code> 네 줄 PASS와 사용자 PC 경로</td></tr>
     </tbody>
   </table></div>
   <h3>2주 테스트·상세 개발</h3>
@@ -466,7 +470,7 @@
       <tr><td>R2-10</td><td>인수 확인과 문서: 담당자 시연, 미결 결정 반영, 매뉴얼 갱신, 게이트 보고</td><td><code>docs/gates/R2.md</code>, 매뉴얼</td><td>보고용 계획서 6절의 확인 방법이 전부 통과 또는 사유가 적힌다</td></tr>
     </tbody>
   </table></div>
-  <p class="note">브랜치·커밋 규칙은 CLAUDE.md를 따른다(<code>task/&lt;ID&gt;</code>, <code>&lt;ID&gt;: what</code>, main 직접 커밋 금지). 검증 게이트는 <code>tools/verify.sh</code>의 종료 코드로만 판단한다. Windows 확인이 필요한 작업(R1-02, R1-09, R1-11, R2-07, R2-09)은 담당자 PC 또는 셀프호스티드 러너에서 하고 결과를 브리프 보고서에 남긴다.</p>
+  <p class="note">브랜치·커밋 규칙은 CLAUDE.md를 따른다(<code>task/&lt;ID&gt;</code>, <code>&lt;ID&gt;: what</code>, main 직접 커밋 금지). 검증 게이트는 <code>tools/verify.sh</code>의 종료 코드로만 판단한다. Windows 확인은 사용자 본인이 Windows 노트북에서 <strong>CI 설치본(<code>windows-latest</code> 아티팩트)으로만</strong> 한다(장부 2026-09-04, 개발 체크아웃·셀프호스티드 러너 없음). 확인이 필요한 작업(R1-02, R1-09, R1-11)은 보고서에 설치본 링크와 확인 절차를 적고 결과를 <code>docs/gates/R1.md</code>에 남긴다.</p>
 
   <h2 id="sec-8"><span class="num">8</span>검증 계획</h2>
   <div class="tablewrap"><table>

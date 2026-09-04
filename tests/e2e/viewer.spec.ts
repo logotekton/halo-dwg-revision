@@ -14,6 +14,7 @@ import {
   viewerPick,
   viewerPopulatedLayers,
   viewerSelectAndHighlight,
+  viewerSelectionEvents,
   viewerSetLayersVisible,
   viewerStatus,
 } from '../../packages/testing/src/viewer'
@@ -142,6 +143,13 @@ test('picks an entity by world coordinate and highlights it', async () => {
   expect(handles.length).toBeLessThan(F06_ENTITIES)
 
   expect(await viewerSelectAndHighlight(session.page, handles)).toEqual(handles)
+
+  // The same handles reached a subscriber registered through `onSelection`
+  // before the first document existed — how screen C maps a badge click onto
+  // `handle_to_cluster` (docs/contracts/compare-dxf.md §9).
+  const events = await viewerSelectionEvents(session.page)
+  expect(events.at(-1)).toEqual(handles)
+
   await session.page.screenshot({ path: join(SCREENSHOT_DIR, 'f06-picked.png') })
 })
 

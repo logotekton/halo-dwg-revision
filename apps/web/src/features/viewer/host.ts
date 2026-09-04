@@ -15,6 +15,15 @@ export const VIEWER_ROOT_ID = 'viewer-root';
 
 let host: CadHost | null = null;
 let creating: Promise<CadHost> | null = null;
+/**
+ * Selection subscribers, kept here rather than on the host.
+ *
+ * A React effect in screen C subscribes when the panel mounts, which is before
+ * the first drawing (and therefore before the host) exists. Holding the
+ * callbacks at module scope means a subscription taken at any time survives the
+ * host's creation — and its disposal.
+ */
+const selectionCallbacks = new Set<(handles: string[]) => void>();
 
 /**
  * Root the viewer assets are served from.
@@ -45,6 +54,7 @@ export async function ensureCadHost(container: HTMLElement): Promise<CadHost> {
     });
     created.on('selectionChanged', ({ handles }) => {
       selection.setState({ handles });
+      for (const callback of selectionCallbacks) callback(handles);
     });
     created.on('documentActivated', ({ fileId }) => {
       viewer.setState((state) => ({ ...state, activeFileId: fileId }));
@@ -163,11 +173,10 @@ export function zoomTo(box: BoxLike, marginRatio?: number): void {
  * that only needs the current set can read that instead.
  */
 export function onSelection(callback: (handles: string[]) => void): () => void {
-  const current = host;
-  if (!current) return () => undefined;
-  return current.on('selectionChanged', ({ handles }) => {
-    callback(handles);
-  });
+  selectionCallbacks.add(callback);
+  return () => {
+    selectionCallbacks.delete(callback);
+  };
 }
 
 /**

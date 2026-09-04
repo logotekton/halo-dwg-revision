@@ -146,10 +146,29 @@ export async function launchHalo(opts: LaunchHaloOptions = {}): Promise<HaloElec
 export async function hasTestHooks(page: Page, timeoutMs = 5_000): Promise<boolean> {
   const deadline = Date.now() + timeoutMs
   for (;;) {
-    if (await page.evaluate(() => typeof window.__haloTest !== 'undefined')) return true
+    // A poll that lands mid-navigation throws "Execution context was destroyed"
+    // instead of returning false: `firstWindow()` can resolve before main's own
+    // `loadURL(index.html)` has committed, so the very first evaluate races that
+    // load. Measured as an intermittent smoke-test failure (R1-00a). A destroyed
+    // context is simply "not yet", so it is retried like any other miss.
+    try {
+      if (await page.evaluate(() => typeof window.__haloTest !== 'undefined')) return true
+    } catch (error) {
+      if (!isNavigationRace(error)) throw error
+    }
     if (Date.now() >= deadline) return false
     await page.waitForTimeout(100)
   }
+}
+
+/** True for the Playwright error raised when the page navigated mid-evaluate. */
+function isNavigationRace(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return (
+    message.includes('Execution context was destroyed') ||
+    message.includes('Target closed') ||
+    message.includes('Target page, context or browser has been closed')
+  )
 }
 
 /**
@@ -162,7 +181,12 @@ export async function waitForStatus(page: Page, state: string, timeoutMs = 30_00
   const deadline = Date.now() + timeoutMs
   let last: string | undefined
   for (;;) {
-    last = await page.evaluate(() => window.__haloTest?.getStatus())
+    // Same navigation race as `hasTestHooks`; a destroyed context is "not yet".
+    try {
+      last = await page.evaluate(() => window.__haloTest?.getStatus())
+    } catch (error) {
+      if (!isNavigationRace(error)) throw error
+    }
     if (last === state) return
     if (Date.now() >= deadline) break
     await page.waitForTimeout(250)

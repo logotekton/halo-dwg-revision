@@ -65,6 +65,7 @@ interface ViewerHooks {
   setLayerVisible(name: string, visible: boolean): boolean
   setLayersVisible(entries: Record<string, boolean>): void
   whenRenderIdle(): Promise<void>
+  selectionEvents(): string[][]
   populatedLayers(): string[]
   close(fileId: string): Promise<void>
   dispose(): Promise<void>
@@ -230,6 +231,18 @@ export function viewerSetLayersVisible(
     },
     { entries, message: NO_HOOK },
   )
+}
+
+/**
+ * Handle sets seen by an `onSelection` subscriber that was taken before any
+ * document was open — the wiring screen C depends on.
+ */
+export function viewerSelectionEvents(page: Page): Promise<string[][]> {
+  return page.evaluate((message) => {
+    const hooks = window.__haloViewer
+    if (!hooks) throw new Error(message)
+    return hooks.selectionEvents()
+  }, NO_HOOK)
 }
 
 /** Layers that actually carry a top-level entity, sorted. */

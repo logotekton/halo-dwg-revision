@@ -22,6 +22,7 @@ import {
   currentHost,
   disposeCadHost,
   layers,
+  onSelection,
   openDrawing,
   setLayersVisible,
   whenRenderIdle,
@@ -80,6 +81,11 @@ interface ViewerTestHooks {
    * crashes, so the e2e reports it for the large real drawings.
    */
   renderLoad(): { topLevel: number; inBlocks: number; total: number };
+  /**
+   * Handle sets delivered to a subscriber taken through `onSelection` *before*
+   * any document existed — the order screen C mounts in.
+   */
+  selectionEvents(): string[][];
   /** Forces a collection when the app was started with `--expose-gc`. */
   collectGarbage(): Promise<boolean>;
 }
@@ -160,6 +166,14 @@ async function openPath(path: string): Promise<OpenedDrawing> {
 }
 
 function installTestHooks(): void {
+  // Subscribed here, at module start-up, with no CadHost yet: screen C's review
+  // panel does the same (it mounts before the compare DXF is fetched), so the
+  // e2e proves a subscription taken that early still receives events.
+  const selectionEvents: string[][] = [];
+  onSelection((handles) => {
+    selectionEvents.push(handles);
+  });
+
   const hooks: ViewerTestHooks = {
     getStatus: () => viewer.getState().status,
     getDocuments: () =>
@@ -207,6 +221,7 @@ function installTestHooks(): void {
       return typeof memory?.usedJSHeapSize === 'number' ? memory.usedJSHeapSize : null;
     },
     viewerDocumentCount: () => currentHost()?.documents().length ?? 0,
+    selectionEvents: () => selectionEvents.map((handles) => [...handles]),
     renderLoad: () => {
       const host = currentHost();
       const document = host?.document();

@@ -22,6 +22,23 @@ const ENGINE_STATUS_CHANNEL = 'halocad:engine:status'
 if (process.env.HALO_E2E === '1') {
   app.commandLine.appendSwitch('js-flags', '--expose-gc')
   app.commandLine.appendSwitch('enable-precise-memory-info')
+  // The viewer e2e needs a working WebGL context on machines that have no GPU
+  // (the GitHub `macos-14` / `windows-latest` runners). Chromium falls back to
+  // SwiftShader there but refuses to expose WebGL over it unless this switch is
+  // set, and the viewer spec would fail with "no WebGL context" rather than
+  // skip. On a machine with a GPU the switch changes nothing: it only lifts the
+  // block on the software path, it does not select it. Set
+  // HALO_E2E_SOFTWARE_GL=1 to select it as well, which is how a GPU machine
+  // reproduces a CI-only rendering difference.
+  app.commandLine.appendSwitch('enable-unsafe-swiftshader')
+  if (process.env.HALO_E2E_SOFTWARE_GL === '1') {
+    // Windows/Linux only. Measured on Electron 44.1.1 / macOS arm64: every way
+    // of *selecting* SwiftShader (`--use-angle=swiftshader`, `--disable-gpu`,
+    // with or without the switch above) leaves the page with no WebGL context
+    // at all, so this must stay opt-in and off by default — see
+    // `docs/dev/viewer-integration.md` "알려진 제한".
+    app.commandLine.appendSwitch('use-angle', 'swiftshader')
+  }
 }
 
 // Custom scheme must be registered as privileged before app 'ready' (Electron

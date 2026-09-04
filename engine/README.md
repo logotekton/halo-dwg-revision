@@ -235,6 +235,20 @@ uv run pytest tests/api/test_compare_sets.py -q
 HALO_REAL_SET=1 uv run pytest tests/compare/test_real_set_ingest.py -q -s   # opt-in, 실도면 필요
 ```
 
+R1-04가 넣은 것 (도곽 추출·짝짓기, 자세한 흐름은 `docs/dev/compare-frames.md`):
+`compare/frames.py`(`extract_frames`·`assign_entities`·`extract_file_frames`·`normalize_key`·
+`parse_scale`·`file_norm_key`), `compare/match.py`(`match_frames`·`match_frames_with_stats`·
+`manual_pair`·`pair_rows`·`natural_sort_key`), `api/routers/compare_pairs.py`(`compare.frames` 잡과
+pairs 4개 엔드포인트). 응답 레코드는 `halo_schema`가 아직 엔진 의존성이 아니라
+`model/compare.py`의 `SheetFrameView`·`SheetPairView`로 내고, `tests/api/test_compare_pairs.py`가
+스키마 파일과 필드 집합을 대조한다. 규칙: 도면번호가 둘 다 있는데 다르면 제목·위치로 짝짓지
+않는다(`docs/gates/R1-questions.md` Q8).
+
+```bash
+uv run pytest tests/compare/test_frames.py tests/compare/test_match.py tests/api/test_compare_pairs.py -q
+HALO_REAL_SET=1 uv run pytest tests/compare/test_real_set_frames.py -q -s   # opt-in, 공종별 도곽 수 표
+```
+
 ## 파일 인입 (ingest, `docs/adr/0002-working-dxf.md`)
 
 ```bash

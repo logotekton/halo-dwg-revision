@@ -8,7 +8,7 @@
  */
 
 import { CadHost } from '@halo-cad/cad-core';
-import type { CadHostWarning, OpenResult } from '@halo-cad/cad-core';
+import type { BoxLike, CadHostWarning, LayerDto, OpenResult } from '@halo-cad/cad-core';
 import { selection, viewer } from './viewer-store';
 
 export const VIEWER_ROOT_ID = 'viewer-root';
@@ -115,6 +115,77 @@ export async function closeDrawing(fileId: string): Promise<void> {
 
 export function currentHost(): CadHost | null {
   return host;
+}
+
+// ---------------------------------------------------------------------------
+// The surface screen C (R1-08) uses — `docs/contracts/r1.md` §9, "뷰어(R1-08)".
+//
+// Thin on purpose: every one of these is one call into `CadHost`, with the
+// store bookkeeping already done by `openDrawing`. They exist so the review
+// screen imports functions rather than reaching for `currentHost()` and having
+// to handle "not created yet" at seven call sites.
+// ---------------------------------------------------------------------------
+
+/**
+ * Opens compare-DXF bytes into the shared viewer.
+ *
+ * Same as {@link openDrawing} without the `OpenResult`: screen C reads what it
+ * needs from the store and from {@link layers}.
+ */
+export async function openBytes(fileId: string, name: string, bytes: ArrayBuffer): Promise<void> {
+  await openDrawing(fileId, name, bytes);
+}
+
+/**
+ * Switches view mode in one repaint (`docs/contracts/compare-dxf.md` §9):
+ * 겹쳐 보기 shows both `__CMP_*` layers, 전 hides `__CMP_ADDED`, 후 hides
+ * `__CMP_REMOVED`. A layer the compare DXF does not have is ignored.
+ */
+export function setLayersVisible(entries: Record<string, boolean>): void {
+  host?.setLayersVisible(entries);
+}
+
+/** The layer table of the open drawing; empty before the first open. */
+export function layers(): LayerDto[] {
+  return host?.layers() ?? [];
+}
+
+/** Frames a cluster box (`clusters[].bbox`, already unpacked). */
+export function zoomTo(box: BoxLike, marginRatio?: number): void {
+  host?.zoomTo(box, marginRatio);
+}
+
+/**
+ * Subscribes to hit-test selection; returns the unsubscribe.
+ *
+ * Screen C maps the handles through the sidecar's `handle_to_cluster`. The
+ * `selection` store is updated by the host wiring either way, so a component
+ * that only needs the current set can read that instead.
+ */
+export function onSelection(callback: (handles: string[]) => void): () => void {
+  const current = host;
+  if (!current) return () => undefined;
+  return current.on('selectionChanged', ({ handles }) => {
+    callback(handles);
+  });
+}
+
+/**
+ * Resolves once the scene has settled and a frame has been painted — what an
+ * e2e (or a screenshot) has to await after a layer toggle or a `zoomTo`.
+ */
+export async function whenRenderIdle(): Promise<void> {
+  await host?.whenRenderIdle();
+}
+
+/** Canvas pixels → drawing millimetres, for click-to-cluster hit testing. */
+export function screenToWorld(point: { x: number; y: number }): { x: number; y: number } {
+  return host?.screenToWorld(point) ?? point;
+}
+
+/** Hit test in drawing coordinates; the radius is in pixels. */
+export function pick(point: { x: number; y: number }, hitRadiusPx?: number): string[] {
+  return host?.pick(point, hitRadiusPx) ?? [];
 }
 
 /** Releases the viewer and its five singletons; used on unmount and by tests. */

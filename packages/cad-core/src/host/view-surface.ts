@@ -67,6 +67,21 @@ export interface ViewSurface {
   activeLayoutHandle(): string | null;
   setActiveLayout(blockRecordHandle: string): boolean;
 
+  /**
+   * Turns one layer on or off in the layer table of the active document.
+   *
+   * Returns false when no layer of that name exists, which is the contract
+   * screen C relies on to notice a compare DXF that is missing `__CMP_ADDED`
+   * or `__CMP_REMOVED`.
+   */
+  setLayerVisible(name: string, visible: boolean): boolean;
+  /**
+   * Batch form. Returns the names that were applied, sorted; names absent from
+   * the layer table are skipped. All changes land before the next painted
+   * frame, so the view repaints once.
+   */
+  setLayersVisible(entries: Record<string, boolean>): string[];
+
   /** `waitUntilIdle`: resolves true when the scene settled inside the timeout. */
   waitUntilIdle(timeoutMs: number): Promise<boolean>;
   /**

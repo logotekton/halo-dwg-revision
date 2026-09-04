@@ -18,6 +18,66 @@ export interface ViewBox {
   max: ViewPoint;
 }
 
+/**
+ * The flat spelling of the same rectangle.
+ *
+ * `docs/contracts/compare-dxf.md` §7 stores cluster and frame boxes as
+ * `[x0, y0, x1, y1]`, and screen C (R1-08) unpacks them into this shape before
+ * calling {@link CadHost.zoomTo}. Both forms are accepted everywhere a box is
+ * taken, so no caller has to keep two conversions straight.
+ */
+export interface FlatBox {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+}
+
+export type BoxLike = ViewBox | FlatBox;
+
+/** Normalises either box spelling to {@link ViewBox}. */
+export function toViewBox(box: BoxLike): ViewBox {
+  if ('min' in box) return box;
+  return {
+    min: { x: box.minX, y: box.minY },
+    max: { x: box.maxX, y: box.maxY },
+  };
+}
+
+/**
+ * One layer as the renderer sees it (brief R1-00a, "레이어 가시성 API").
+ *
+ * `visible` is the DXF *on/off* flag alone, and `frozen` is reported next to
+ * it rather than folded in, because the two are separate switches in the file
+ * and screen C only ever toggles the first one
+ * (`docs/contracts/compare-dxf.md` §9). A layer that is on but frozen is
+ * `{ visible: true, frozen: true }` and draws nothing — {@link renders} is the
+ * predicate for "actually on screen".
+ */
+export interface LayerDto {
+  name: string;
+  /**
+   * ACI index 0–256. A layer that carries a true colour instead reports 7
+   * (the ACI "foreground" slot) here and the exact value in {@link colorRgb},
+   * so a caller that only understands ACI still gets a usable number.
+   */
+  color: number;
+  /** `#RRGGBB` when the layer's colour is a true colour; absent for ACI. */
+  colorRgb?: string;
+  /** False when the layer is off (DXF group 62 negative / `isOff`). */
+  visible: boolean;
+  frozen: boolean;
+  locked: boolean;
+  plottable: boolean;
+  linetype?: string;
+  lineweightMm?: number;
+}
+
+/** True when a layer both is on and is not frozen, i.e. its entities draw. */
+export function renders(layer: LayerDto): boolean {
+  return layer.visible && !layer.frozen;
+}
+
 /** Access mode a document is opened with (`AcEdOpenMode`). */
 export type CadOpenMode = 'read' | 'review' | 'write';
 

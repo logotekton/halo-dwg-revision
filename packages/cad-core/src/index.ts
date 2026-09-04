@@ -68,6 +68,7 @@ export type { DxfPostProcessReport, DxfPostProcessResult } from './dxfout-postpr
 // only touches the DOM once `CadHost.create()` is called.
 export { CadHost } from './host';
 export type {
+  BoxLike,
   CadEditTx,
   CadHostEvent,
   CadHostEventMap,
@@ -76,6 +77,8 @@ export type {
   CadHostWarning,
   CadOpenMode,
   EntityTier,
+  FlatBox,
+  LayerDto,
   OpenProgress,
   OpenResult,
   OverlayEntitySpec,
@@ -84,7 +87,14 @@ export type {
   ViewBox,
   ViewPoint,
 } from './host';
-export { DXF_BYTES_PER_ENTITY, DWG_BYTES_PER_ENTITY, estimateEntityTier, tierOf } from './host';
+export {
+  DXF_BYTES_PER_ENTITY,
+  DWG_BYTES_PER_ENTITY,
+  estimateEntityTier,
+  renders,
+  tierOf,
+  toViewBox,
+} from './host';
 
 export interface OpenDxfOptions {
   /**

@@ -20,7 +20,9 @@ export {
   warningsForTier,
 } from './tier';
 export type { TierEstimate } from './tier';
+export { renders, toViewBox } from './types';
 export type {
+  BoxLike,
   CadEditTx,
   CadHostEvent,
   CadHostEventMap,
@@ -29,6 +31,8 @@ export type {
   CadHostWarning,
   CadOpenMode,
   EntityTier,
+  FlatBox,
+  LayerDto,
   OpenProgress,
   OpenResult,
   OverlayEntitySpec,

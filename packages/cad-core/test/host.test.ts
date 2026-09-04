@@ -19,8 +19,9 @@ import {
   tierChangeWarnings,
   tierOf,
 } from '../src/host/tier';
+import type { ViewBox } from '../src/host/types';
 import type { ViewDocumentEvent, ViewSurface } from '../src/host/view-surface';
-import type { CadHandle } from '../src/surface-types';
+import type { CadHandle, CadLayer } from '../src/surface-types';
 
 // ---------------------------------------------------------------------------
 // state machine
@@ -147,13 +148,47 @@ interface Stub {
   emitSelection(handles: CadHandle[]): void;
   disposed: () => boolean;
   transientCalls: number;
+  /** Boxes handed to `zoomTo`, in call order. */
+  zoomCalls: { box: ViewBox; margin: number | undefined }[];
+  /** How many times a *batch* visibility change was applied. */
+  batchCalls: number;
+}
+
+/** A layer table the visibility tests can mutate, in file order. */
+function layerTable(): CadLayer[] {
+  const layer = (name: string, extra: Partial<CadLayer> = {}): CadLayer => ({
+    name,
+    color: 7,
+    linetype: 'Continuous',
+    lineweightMm: 0.25,
+    isOff: false,
+    isFrozen: false,
+    isLocked: false,
+    isPlottable: true,
+    ...extra,
+  });
+  return [
+    layer('0'),
+    layer('A-WALL', { color: 3 }),
+    // The three layers of `docs/contracts/compare-dxf.md` §2 screen C toggles.
+    layer('__CMP_ADDED', { color: 1 }),
+    layer('__CMP_REMOVED', { color: 4 }),
+    layer('__CMP_LABEL', { color: 8, isOff: true, isPlottable: false }),
+    // A true-colour layer, to pin the ACI fallback of `toLayerDto`.
+    layer('X-TRUECOLOR', { color: '#12AB34' }),
+    layer('X-FROZEN', { isFrozen: true }),
+  ];
 }
 
 function stubSurface(overrides: Partial<ViewSurface> = {}): Stub {
   const documentListeners = new Set<(event: ViewDocumentEvent) => void>();
   const selectionListeners = new Set<(handles: CadHandle[]) => void>();
   let disposed = false;
-  const state = { transientCalls: 0 };
+  const state = { transientCalls: 0, batchCalls: 0 };
+  const zoomCalls: { box: ViewBox; margin: number | undefined }[] = [];
+  const table = layerTable();
+  const find = (name: string): CadLayer | undefined =>
+    table.find((candidate) => candidate.name === name);
   const surface: ViewSurface = {
     workersReady: () => Promise.resolve(true),
     open: () => Promise.resolve(true),
@@ -163,7 +198,24 @@ function stubSurface(overrides: Partial<ViewSurface> = {}): Stub {
     activeDocumentName: () => null,
     documentHandle: () => null,
     entityCount: () => 42,
-    layers: () => [],
+    layers: () => table.map((layer) => ({ ...layer })),
+    setLayerVisible: (name, visible) => {
+      const layer = find(name);
+      if (!layer) return false;
+      layer.isOff = !visible;
+      return true;
+    },
+    setLayersVisible: (entries) => {
+      state.batchCalls += 1;
+      const applied: string[] = [];
+      for (const name of Object.keys(entries).sort()) {
+        const layer = find(name);
+        if (!layer) continue;
+        layer.isOff = entries[name] !== true;
+        applied.push(name);
+      }
+      return applied;
+    },
     layouts: () => [],
     activeLayoutHandle: () => null,
     setActiveLayout: () => true,
@@ -177,7 +229,9 @@ function stubSurface(overrides: Partial<ViewSurface> = {}): Stub {
     selection: () => [],
     highlight: () => undefined,
     unhighlight: () => undefined,
-    zoomTo: () => undefined,
+    zoomTo: (box, margin) => {
+      zoomCalls.push({ box, margin });
+    },
     zoomToFit: () => undefined,
     zoomToLayer: () => true,
     screenToWorld: (point) => point,
@@ -232,6 +286,10 @@ function stubSurface(overrides: Partial<ViewSurface> = {}): Stub {
     disposed: () => disposed,
     get transientCalls() {
       return state.transientCalls;
+    },
+    zoomCalls,
+    get batchCalls() {
+      return state.batchCalls;
     },
   };
 }
@@ -352,5 +410,132 @@ describe('CadHost', () => {
     await host.dispose();
     stub.emitSelection(['A1']);
     expect(selection).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// layer visibility (R1-00a) — the contract screen C (R1-08) uses
+// ---------------------------------------------------------------------------
+
+describe('CadHost layer visibility', () => {
+  it('reports the table as LayerDto: positive `visible`, ACI colour, frozen apart', async () => {
+    const stub = stubSurface();
+    const host = hostOf(stub);
+    const byName = new Map(host.layers().map((layer) => [layer.name, layer]));
+
+    expect([...byName.keys()]).toEqual([
+      '0',
+      'A-WALL',
+      '__CMP_ADDED',
+      '__CMP_REMOVED',
+      '__CMP_LABEL',
+      'X-TRUECOLOR',
+      'X-FROZEN',
+    ]);
+    expect(byName.get('__CMP_ADDED')).toMatchObject({ color: 1, visible: true, frozen: false });
+    // `__CMP_LABEL` ships off and unplottable (compare-dxf §2).
+    expect(byName.get('__CMP_LABEL')).toMatchObject({ visible: false, plottable: false });
+    // A true colour keeps its exact value and still reports a usable ACI slot.
+    expect(byName.get('X-TRUECOLOR')).toMatchObject({ color: 7, colorRgb: '#12AB34' });
+    // Frozen is reported next to `visible`, not folded into it.
+    expect(byName.get('X-FROZEN')).toMatchObject({ visible: true, frozen: true });
+    await host.dispose();
+  });
+
+  it('setLayerVisible(false) shows up in layers() as visible: false', async () => {
+    const stub = stubSurface();
+    const host = hostOf(stub);
+
+    expect(host.setLayerVisible('__CMP_REMOVED', false)).toBe(true);
+    const hidden = host.layers().find((layer) => layer.name === '__CMP_REMOVED');
+    expect(hidden?.visible).toBe(false);
+
+    expect(host.setLayerVisible('__CMP_REMOVED', true)).toBe(true);
+    expect(host.layers().find((layer) => layer.name === '__CMP_REMOVED')?.visible).toBe(true);
+    await host.dispose();
+  });
+
+  it('returns false for a layer the drawing does not have', async () => {
+    const stub = stubSurface();
+    const host = hostOf(stub);
+    expect(host.setLayerVisible('REV-20260904', false)).toBe(false);
+    // …and changes nothing else.
+    expect(host.layers().every((layer) => layer.visible || layer.name === '__CMP_LABEL')).toBe(true);
+    await host.dispose();
+  });
+
+  it('setLayersVisible applies a whole view mode in one batch', async () => {
+    const stub = stubSurface();
+    const host = hostOf(stub);
+
+    // 전 (before): hide what only the after drawing has.
+    host.setLayersVisible({ __CMP_ADDED: false, __CMP_REMOVED: true });
+    expect(stub.batchCalls).toBe(1);
+    const before = new Map(host.layers().map((layer) => [layer.name, layer.visible]));
+    expect(before.get('__CMP_ADDED')).toBe(false);
+    expect(before.get('__CMP_REMOVED')).toBe(true);
+
+    // 겹쳐 보기 (overlay): both on again, still one batch.
+    host.setLayersVisible({ __CMP_ADDED: true, __CMP_REMOVED: true });
+    expect(stub.batchCalls).toBe(2);
+    const overlay = new Map(host.layers().map((layer) => [layer.name, layer.visible]));
+    expect(overlay.get('__CMP_ADDED')).toBe(true);
+    expect(overlay.get('__CMP_REMOVED')).toBe(true);
+    await host.dispose();
+  });
+
+  it('ignores unknown names inside a batch instead of throwing', async () => {
+    const stub = stubSurface();
+    const host = hostOf(stub);
+    expect(() => {
+      host.setLayersVisible({ 'not-a-layer': false, __CMP_ADDED: false });
+    }).not.toThrow();
+    expect(host.layers().find((layer) => layer.name === '__CMP_ADDED')?.visible).toBe(false);
+    await host.dispose();
+  });
+
+  it('refuses layer changes after dispose', async () => {
+    const stub = stubSurface();
+    const host = hostOf(stub);
+    await host.dispose();
+    expect(() => host.setLayerVisible('__CMP_ADDED', false)).toThrow(/disposed/);
+    expect(() => {
+      host.setLayersVisible({ __CMP_ADDED: false });
+    }).toThrow(/disposed/);
+  });
+
+  it('zoomTo accepts both the flat cluster bbox and the {min,max} box', async () => {
+    const stub = stubSurface();
+    const host = hostOf(stub);
+
+    // What `clusters[].bbox` ([x0, y0, x1, y1]) unpacks to in screen C.
+    host.zoomTo({ minX: 10, minY: 20, maxX: 110, maxY: 220 }, 1.2);
+    host.zoomTo({ min: { x: 10, y: 20 }, max: { x: 110, y: 220 } });
+
+    expect(stub.zoomCalls).toEqual([
+      { box: { min: { x: 10, y: 20 }, max: { x: 110, y: 220 } }, margin: 1.2 },
+      { box: { min: { x: 10, y: 20 }, max: { x: 110, y: 220 } }, margin: undefined },
+    ]);
+    await host.dispose();
+  });
+
+  it('whenRenderIdle waits for the scene and then for a painted frame', async () => {
+    const order: string[] = [];
+    const stub = stubSurface({
+      waitUntilIdle: () => {
+        order.push('idle');
+        return Promise.resolve(true);
+      },
+      nextFrame: () => {
+        order.push('frame');
+        return Promise.resolve(true);
+      },
+    });
+    const host = hostOf(stub);
+    // `open()` uses both as well; measure only the explicit call.
+    order.length = 0;
+    expect(await host.whenRenderIdle()).toBe(true);
+    expect(order).toEqual(['idle', 'frame']);
+    await host.dispose();
   });
 });

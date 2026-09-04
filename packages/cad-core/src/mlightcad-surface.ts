@@ -16,6 +16,7 @@ import type {
   AcApDocManager,
   AcApDocManagerOptions,
   AcApDocument,
+  AcApLayerService,
   AcTrView2d,
 } from '@mlightcad/cad-simple-viewer';
 import type * as MlightcadMTextRenderer from '@mlightcad/mtext-renderer';
@@ -1430,6 +1431,61 @@ class MlightcadViewSurface implements ViewSurface {
 
   layers(): CadLayer[] {
     return this.documentHandle()?.layers() ?? [];
+  }
+
+  /**
+   * Layer visibility, through the viewer's own layer service.
+   *
+   * Not by assigning `record.isOff` on a record read out of the layer table:
+   * the renderer only repaints when `AcDbDatabase.events.layerModified` fires,
+   * and that event comes from the write transaction
+   * (`AcApLayerService.setLayerOn` → `acapRunServiceEdit`), not from the
+   * setter. The service also resolves the layer by *name* through
+   * `AcDbLayerTable.getAt`, which matters on real drawings: a layer and a text
+   * style can share an object id, and a lookup by id then edits the wrong
+   * record and silently does nothing (`AcApLayerService.openLayerForWrite`).
+   *
+   * `isFrozen` is deliberately not used for this: its setter in 1.14.3 ORs the
+   * flag in and can never clear it (`AcDbLayerTableRecord.isFrozen`), so a
+   * frozen layer could not be thawed again. Off/on is the reversible switch,
+   * and it is the one `docs/contracts/compare-dxf.md` §9 asks for.
+   */
+  setLayerVisible(name: string, visible: boolean): boolean {
+    const service = this.layerService();
+    if (!service) return false;
+    // `switchCurrentLayer: false`: this is a viewer toggle, not an edit
+    // session; moving CLAYER because the user hid a layer would be a surprise.
+    return service.setLayerOn(name, visible, { switchCurrentLayer: false });
+  }
+
+  setLayersVisible(entries: Record<string, boolean>): string[] {
+    const service = this.layerService();
+    if (!service) return [];
+    const known = new Set(this.layers().map((layer) => layer.name));
+    const on: string[] = [];
+    const off: string[] = [];
+    // Sorted so a batch is deterministic regardless of key insertion order
+    // (CLAUDE.md rule 6).
+    for (const name of Object.keys(entries).sort()) {
+      if (!known.has(name)) continue;
+      (entries[name] === true ? on : off).push(name);
+    }
+    // Two transactions, one repaint: `layerModified` only marks the view dirty
+    // and the paint happens on the next animation frame, so both halves land in
+    // the same frame. `skipCurrentLayer: false` because the caller named the
+    // layers explicitly — the compare layers are never CLAYER, and silently
+    // skipping one would leave the view in a state `layers()` does not report.
+    if (off.length > 0) service.setLayersVisibility(off, true, { skipCurrentLayer: false });
+    if (on.length > 0) service.setLayersVisibility(on, false, { skipCurrentLayer: false });
+    return [...on, ...off].sort();
+  }
+
+  /** The active document's layer service, or null when nothing is open. */
+  private layerService(): AcApLayerService | null {
+    const document: AcApDocument | undefined = this.manager.curDocument;
+    // `curDocument` is typed as always present but is undefined before the
+    // first open in 1.6.3.
+    return document ? document.layerService : null;
   }
 
   layouts(): CadLayout[] {

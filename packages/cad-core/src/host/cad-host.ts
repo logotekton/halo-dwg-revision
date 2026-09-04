@@ -15,7 +15,9 @@ import type { CadDocumentHandle, CadEntity, CadHandle, CadLayer, CadLayout } fro
 import { DocumentStateMachine } from './state-machine';
 import type { DocumentRecord } from './state-machine';
 import { estimateEntityTier, tierChangeWarnings, tierOf } from './tier';
+import { toViewBox } from './types';
 import type {
+  BoxLike,
   CadEditTx,
   CadHostEvent,
   CadHostEventMap,
@@ -23,6 +25,7 @@ import type {
   CadHostStatus,
   CadHostWarning,
   CadOpenMode,
+  LayerDto,
   OpenResult,
   OverlayId,
   OverlayJson,
@@ -394,8 +397,42 @@ export class CadHost {
     }
   }
 
-  layers(): CadLayer[] {
-    return this.surface.layers();
+  /**
+   * The layer table of the active document, in file order.
+   *
+   * The DTO is deliberately not `CadLayer` (the headless shape used by
+   * `statsByLayer`): screen C reads `visible`, and a renderer that had to know
+   * that "off" is spelled `isOff` and inverted would leak a DXF detail into the
+   * UI. `docs/briefs/R1-00a.md` fixes this shape as the contract R1-08 uses.
+   */
+  layers(): LayerDto[] {
+    return this.surface.layers().map(toLayerDto);
+  }
+
+  /**
+   * Turns one layer on or off. `false` when the layer is not in the table.
+   *
+   * The change reaches the canvas on the next painted frame; a caller that is
+   * about to screenshot should await {@link whenRenderIdle} first — turning a
+   * layer back on can need entities that were never converted while it was
+   * hidden (`AcTrView2d.convertMissingEntitiesOnLayer`, fire-and-forget).
+   */
+  setLayerVisible(name: string, visible: boolean): boolean {
+    this.assertLive();
+    return this.surface.setLayerVisible(name, visible);
+  }
+
+  /**
+   * Applies a whole visibility map at once, in one repaint.
+   *
+   * This is how screen C switches 겹쳐 보기 / 전 / 후
+   * (`docs/contracts/compare-dxf.md` §9): one call with `__CMP_ADDED` and
+   * `__CMP_REMOVED` set the way the mode wants them, rather than two toggles
+   * with a frame in between. Names that are not in the layer table are ignored.
+   */
+  setLayersVisible(entries: Record<string, boolean>): void {
+    this.assertLive();
+    this.surface.setLayersVisible(entries);
   }
 
   layouts(): CadLayout[] {
@@ -449,12 +486,34 @@ export class CadHost {
     this.surface.unhighlight(handles);
   }
 
-  zoomTo(box: ViewBox, margin?: number): void {
-    this.surface.zoomTo(box, margin);
+  /**
+   * Frames `box`, which may be given either as `{min, max}` or as the flat
+   * `{minX, minY, maxX, maxY}` that `clusters[].bbox` unpacks to.
+   *
+   * `marginRatio` is a scale on the framed box, not a distance: 1.05 leaves a
+   * 5% border, which is what `zoomToFit()` uses.
+   */
+  zoomTo(box: BoxLike, marginRatio?: number): void {
+    this.surface.zoomTo(toViewBox(box), marginRatio);
   }
 
   zoomToFit(): void {
     this.surface.zoomToFit(this.renderTimeoutMs);
+  }
+
+  /**
+   * Resolves once the scene has settled *and* a frame has been painted.
+   *
+   * `waitUntilIdle` alone is not enough: it reports that no entity conversion
+   * is pending, which is already true when a camera or layer change has only
+   * marked the view dirty. Returns false if either wait timed out.
+   */
+  async whenRenderIdle(timeoutMs?: number): Promise<boolean> {
+    this.assertLive();
+    const budget = timeoutMs ?? this.renderTimeoutMs;
+    const idle = await this.surface.waitUntilIdle(budget);
+    const painted = await this.surface.nextFrame(FRAME_TIMEOUT_MS);
+    return idle && painted;
   }
 
   zoomToLayer(layerName: string): boolean {
@@ -605,6 +664,31 @@ function toViewOverlayEntity(spec: OverlayJson['entities'][number]): ViewOverlay
         heightMm: spec.heightMm ?? DEFAULT_OVERLAY_TEXT_HEIGHT_MM,
       };
   }
+}
+
+/** ACI slot reported for a layer whose colour is a true colour, not an index. */
+const ACI_FOREGROUND = 7;
+
+/**
+ * `CadLayer` (file shape) → {@link LayerDto} (renderer shape).
+ *
+ * Two things change: `isOff` becomes the positive `visible`, and the colour
+ * union `number | string | undefined` becomes a number plus an optional
+ * `#RRGGBB`, so a caller never has to `typeof` a colour.
+ */
+function toLayerDto(layer: CadLayer): LayerDto {
+  const dto: LayerDto = {
+    name: layer.name,
+    color: typeof layer.color === 'number' ? layer.color : ACI_FOREGROUND,
+    visible: !layer.isOff,
+    frozen: layer.isFrozen,
+    locked: layer.isLocked,
+    plottable: layer.isPlottable,
+  };
+  if (typeof layer.color === 'string') dto.colorRgb = layer.color;
+  if (layer.linetype !== undefined) dto.linetype = layer.linetype;
+  if (layer.lineweightMm !== undefined) dto.lineweightMm = layer.lineweightMm;
+  return dto;
 }
 
 /**

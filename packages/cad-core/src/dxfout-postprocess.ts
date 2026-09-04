@@ -71,7 +71,6 @@ const DIMSTYLE_NAME_CODE = 3;
 const BIGFONT_CODE = 4;
 /** The value `dxfOut()` writes where a name is unknown. */
 const UNKNOWN_NAME = '0';
-const HANDLE_REPAIR_BISECT = false;
 
 /** Bit 0 of DXF group 92: this boundary path is an external boundary. */
 const EXTERNAL_BIT = 1;
@@ -401,7 +400,7 @@ export function postProcessDxfOut(text: string): DxfPostProcessResult {
 
     // --- handle uniqueness -------------------------------------------------
     // DIMSTYLE is the one table whose entries carry their handle in group 105.
-    const handleAt = HANDLE_REPAIR_BISECT ? findCode(pairs, record, record.type === 'DIMSTYLE' ? 105 : 5) : null;
+    const handleAt = findCode(pairs, record, record.type === 'DIMSTYLE' ? 105 : 5);
     if (handleAt !== null) {
       const raw = valueAt(pairs, handleAt);
       const handle = raw.trim().toUpperCase();

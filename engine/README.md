@@ -210,8 +210,29 @@ R1-01이 넣은 것:
   `ClusterDecisionRequest`, `ExportRequest` 등). 응답 **레코드**는 여기 두지 않고
   `halo_schema.models.compare.*`(스키마에서 생성)를 쓴다.
 
+R1-03이 넣은 것 (세트 인입 잡, 자세한 흐름은 `docs/dev/compare-ingest.md`):
+
+- `compare/ingest_set.py` — `POST /compare/sets`가 시작하는 `compare.ingest` 잡의 몸통.
+  `plan_set_files(dir, ignore_patterns)`(1단계만, `.dwg`/`.dxf`만, 이름 대소문자 무시 정렬),
+  `pick_converter(zwcad_status, option)`(`auto`/`zwcad`/`builtin`), `enforce_same_converter(...)`
+  (같은 이름 파일 하나가 `builtin`이면 상대 세트 것도 `builtin`으로), 그리고
+  `run_compare_set_ingest(app, *, job, bundle, compare_set_id, zwcad_com=None)`. `zwcad_com`은
+  테스트 전용 주입점(`ComBackend`)이며 운영 호출은 넘기지 않는다. sha256 캐시는 원본 파일의
+  sha256 기준이라, DWG 입력은 `ingest/working_dxf.py`가 실제로 쓰는(변환된 DXF 기준) 경로 옆에
+  같은 내용을 원본 sha256 이름으로도 복사해 둔다(`_mirror_working_dxf_to_original_sha`) — 그래야
+  같은 원본으로 두 번째 인입할 때 변환을 다시 돌리지 않는다.
+- `api/routers/compare_sets.py` — `POST /compare/sets`(202), `GET /compare/sets`,
+  `GET /compare/sets/{id}`, `GET /compare/sets/{id}/files`. `CompareSetSummary`는 `halo_schema`가
+  아직 엔진 의존성으로 배선되지 않아(Follow-up) 같은 필드의 평범한 `dict`로 낸다.
+- `api/jobs.py` 확장 — `JobRecord`/`JobSummary`에 `compare_set_id`·`kind`·`stage`,
+  `JobManager.create(..., compare_set_id=, kind=)`·`latest_for_compare_set(id)`, 그리고
+  모든 `compare.*` 잡이 같이 쓰는 `run_job(app, job, work)`/`ProgressReporter`/`JobCancelled`
+  (계약 §6.2). 기존 `run_drawing_set_import`는 그대로 자기 루프를 쓴다.
+
 ```bash
 uv run pytest tests/compare tests/bundle -q
+uv run pytest tests/api/test_compare_sets.py -q
+HALO_REAL_SET=1 uv run pytest tests/compare/test_real_set_ingest.py -q -s   # opt-in, 실도면 필요
 ```
 
 ## 파일 인입 (ingest, `docs/adr/0002-working-dxf.md`)

@@ -49,6 +49,20 @@ const haloApi = {
     pickDrawings: (): Promise<string[]> =>
       ipcRenderer.invoke('halocad:files:pick-drawings') as Promise<string[]>,
   },
+  // R1-05: docs/contracts/r1.md §8 -- screen A's folder pickers and screen
+  // B's clipboard/"open in OS" actions.
+  dialog: {
+    pickFolder: (title?: string): Promise<string | null> =>
+      ipcRenderer.invoke('halocad:dialog:pick-folder', { title }) as Promise<string | null>,
+  },
+  clipboard: {
+    writeText: (text: string): Promise<void> =>
+      ipcRenderer.invoke('halocad:clipboard:write-text', { text }) as Promise<void>,
+  },
+  shell: {
+    openPath: (path: string): Promise<void> =>
+      ipcRenderer.invoke('halocad:shell:open-path', { path }) as Promise<void>,
+  },
   viewer: {
     /**
      * Root the viewer's workers, wasm and fonts are served from

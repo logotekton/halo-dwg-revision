@@ -1,1 +1,232 @@
 @import 'tailwindcss';
+
+/*
+ * Dark theme tokens (docs/contracts/r1.md §9, brief R1-05 Goal 2). Every
+ * later compare screen (R1-08 review, R1-10 export) reads these same
+ * variable names -- the contract fixes the names, not just the values, so
+ * they must not be renamed here. The 2D viewer canvas itself always paints
+ * `#000000` regardless of theme (contract §9's last line); that is the
+ * viewer's own concern (R1-00a's CadHost), not a token defined here.
+ */
+:root {
+  --bg: #14181c;
+  --panel: #1c2228;
+  --panel-2: #232b33;
+  --text: #e3e8ec;
+  --muted: #8a97a3;
+  --accent: #e06c86;
+  --accent-2: #4fb3c4;
+  --ok: #5fbf8a;
+  --warn: #e3b341;
+  --danger: #e06c6c;
+
+  /* Not part of the contract's fixed token list -- local hairline/tint
+     helpers derived from the tokens above via color-mix(), so a future
+     token change (ADR) keeps borders/hovers in proportion automatically. */
+  --hc-border: color-mix(in srgb, var(--text) 16%, transparent);
+  --hc-border-strong: color-mix(in srgb, var(--text) 28%, transparent);
+  --hc-hover: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+/*
+ * Base component classes (contract §9 Goal 2: "패널·버튼·칩·표·입력").
+ * `hc-` prefix (Halo CAD) keeps these from colliding with Tailwind
+ * utilities or any bare-tag rule a later task might add.
+ */
+@layer components {
+  .hc-panel {
+    background-color: var(--panel);
+    border: 1px solid var(--hc-border);
+    border-radius: 0.375rem;
+  }
+
+  .hc-panel-2 {
+    background-color: var(--panel-2);
+    border: 1px solid var(--hc-border);
+    border-radius: 0.375rem;
+  }
+
+  .hc-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    border: 1px solid var(--hc-border-strong);
+    border-radius: 0.25rem;
+    background-color: transparent;
+    color: var(--text);
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    white-space: nowrap;
+  }
+
+  .hc-btn:hover:not(:disabled) {
+    background-color: var(--hc-hover);
+  }
+
+  .hc-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .hc-btn-primary {
+    border-color: var(--accent);
+    background-color: var(--accent);
+    color: #fff;
+    font-weight: 500;
+  }
+
+  .hc-btn-primary:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--accent) 88%, white);
+  }
+
+  .hc-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: 1px solid var(--hc-border-strong);
+    border-radius: 999px;
+    padding: 0.25rem 0.625rem;
+    font-size: 0.6875rem;
+    color: var(--muted);
+    background-color: transparent;
+  }
+
+  .hc-chip:hover:not(:disabled) {
+    background-color: var(--hc-hover);
+  }
+
+  .hc-chip[data-active='true'] {
+    color: var(--accent);
+    border-color: var(--accent);
+    background-color: color-mix(in srgb, var(--accent) 16%, transparent);
+  }
+
+  .hc-input {
+    border: 1px solid var(--hc-border-strong);
+    border-radius: 0.25rem;
+    background-color: var(--bg);
+    color: var(--text);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .hc-input::placeholder {
+    color: var(--muted);
+  }
+
+  .hc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+  }
+
+  .hc-table th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--muted);
+    padding: 0.375rem 0.5rem;
+    border-bottom: 1px solid var(--hc-border-strong);
+  }
+
+  .hc-table td {
+    padding: 0.375rem 0.5rem;
+    border-bottom: 1px solid var(--hc-border);
+  }
+
+  .hc-table tbody tr[data-selected='true'] {
+    background-color: color-mix(in srgb, var(--accent-2) 14%, transparent);
+  }
+
+  .hc-table tbody tr:hover {
+    background-color: var(--hc-hover);
+  }
+
+  /* Pair/file status badges (docs/dev/compare-ui.md's status table). One
+     class per docs/contracts/r1.md §3 `sheet_pair.status` value, applied
+     alongside `.hc-badge`. */
+  .hc-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.0625rem 0.5rem;
+    font-size: 0.6875rem;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+
+  .hc-badge-changed {
+    color: var(--accent);
+    border-color: var(--accent);
+    background-color: color-mix(in srgb, var(--accent) 16%, transparent);
+  }
+
+  .hc-badge-added {
+    color: var(--accent-2);
+    border-color: var(--accent-2);
+    background-color: color-mix(in srgb, var(--accent-2) 16%, transparent);
+  }
+
+  .hc-badge-same,
+  .hc-badge-removed,
+  .hc-badge-unrecognized,
+  .hc-badge-pending {
+    color: var(--muted);
+    border-color: var(--muted);
+  }
+
+  .hc-badge-unpaired {
+    color: var(--warn);
+    border-color: var(--warn);
+    background-color: color-mix(in srgb, var(--warn) 14%, transparent);
+  }
+
+  .hc-badge-converter_mismatch {
+    color: var(--danger);
+    border-color: var(--danger);
+    background-color: color-mix(in srgb, var(--danger) 16%, transparent);
+  }
+
+  .hc-progress {
+    width: 100%;
+    height: 0.375rem;
+    border-radius: 999px;
+    background-color: var(--hc-border);
+    overflow: hidden;
+  }
+
+  .hc-progress > span {
+    display: block;
+    height: 100%;
+    background-color: var(--accent-2);
+  }
+
+  .hc-toast {
+    border: 1px solid var(--warn);
+    background-color: color-mix(in srgb, var(--warn) 14%, transparent);
+    color: var(--text);
+    border-radius: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .hc-error {
+    border: 1px solid var(--danger);
+    background-color: color-mix(in srgb, var(--danger) 14%, transparent);
+    color: var(--text);
+    border-radius: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+  }
+}

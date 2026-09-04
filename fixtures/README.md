@@ -215,3 +215,110 @@ uv run ruff check .
 (브리프의 수용 기준 명령과 동일한 진입점) 바이트 동일성을 검증한다. F11/F12는 속도를 위해
 이 테스트에서 제외했지만 저장 경로(`fixtures_gen.common.save`)는 다른 모든 픽스처와
 동일하므로 별도 검증이 필요하지 않다.
+
+## 합성 리비전 쌍 (R1-07)
+
+비교 엔진(R1-06)의 합격 기준("심은 변경 100% 검출, 접힘 규칙 정확, 통째 사본에서 오탐 0")을
+재는 결정론적 전·후 DWG(DXF) 쌍과 정답(`truth.json`)이다. 생성기는 `fixtures/compare/gen/`의
+독립 uv 프로젝트(`ezdxf==1.4.4`만 의존, `fixtures/gen/`·`engine/`·`packages/schema`를
+임포트하지 않는다 -- `base_plan.py`/`common.py` 스타일의 헬퍼는 브리프 Inputs에 따라 복사했다).
+
+### 재생성 방법
+
+```bash
+cd fixtures/compare/gen
+uv sync
+uv run python -m compare_fixtures_gen --out ..
+# 단일 시나리오만:
+uv run python -m compare_fixtures_gen --out .. --only S03
+```
+
+같은 명령을 몇 번 실행해도 `fixtures/compare/S*/**`는 바이트 단위로 동일하다(증명:
+`fixtures/compare/gen/tests/test_determinism.py`, `git status --short fixtures/compare`로도
+확인 가능). ezdxf가 OBJECTS 섹션 일부를 내부 set/dict 순회로 정렬해 Python 프로세스별
+문자열 해시 시드에 좌우되는 문제(`fixtures/gen`과 동일, 위 "Decisions" #1)가 있어
+`compare_fixtures_gen.cli.run()`도 시작 시 `PYTHONHASHSEED=0`이 아니면 자기 자신을
+`os.execve`로 한 번 재실행한다.
+
+### 기준 도면 (base plan)
+
+모든 시나리오는 같은 A1 도곽(1:100 → 84,100 x 59,400mm, `TITLEBLOCK` 블록에 ATTRIB
+`DWG_NO`/`TITLE`/`SCALE`/`DATE`/`PROJECT`, 오른쪽 아래)을 `compare_fixtures_gen.base_plan
+.build_base_plan()`으로 만든다. 내용: 그리드 X1-X5/Y1-Y4(원 버블 INSERT `GRID_BUBBLE`),
+이중선(사각형 스트립) 벽 7개로 나눈 방 6개, 문 `DOOR_900` 6개(ATTRIB `TAG` D1~D6), 창
+`WIN_1800` 4개, 기둥 12개(LWPOLYLINE + SOLID 해치), 실명 TEXT 6개, 범례 MTEXT(서식 코드
+`\P`, `{\fArial;}`), 선형 DIMENSION 4개, ANSI31 해치 2개, LEADER 1개. 레이어 9개(`A-WALL`,
+`A-DOOR`, `A-WIND`, `A-COL`, `A-GRID`, `A-TEXT`, `A-DIM`, `A-HATCH`, `TITLE`).
+
+`build_base_plan()`은 서로 독립인 11개 "step" 함수(그리드/벽/기둥/문/창/실명/범례/치수/
+해치/리더/도곽+표제란)의 고정 순서 파이프라인이다. 어떤 step도 다른 step의 산출물을 읽지
+않으므로, S12(`reversed_layout=True`)는 이 순서와 레이어·블록 정의 테이블 순서를 통째로
+뒤집어 기하는 그대로 두고 핸들만 전부 바꿀 수 있다. before/after는 같은 함수를 같은 인자로
+두 번 호출해 만들고(핸들이 같게 나온다), 심는 변경은 만든 뒤 **제자리 수정**한다(S12만
+예외).
+
+### 시나리오 목록
+
+각 `fixtures/compare/S##_이름/`은 `before/*.dxf`, `after/*.dxf`, `truth.json`을 담는다.
+`truth.json`은 `packages/schema/src/compare/truth.schema.json`(R1-01)을 통과한다
+(`fixtures/compare/gen/tests/test_truth_schema.py`가 `referencing` 레지스트리로 다른
+스키마 파일의 `$ref`까지 해석해 검증한다).
+
+| ID | 심은 변경 | 기대 결과 | R1-06이 볼 파일 |
+|---|---|---|---|
+| S01_identical | 없음 | `same`, cluster 0 | `S01_identical/{before,after}/A-101.dxf` |
+| S02_move_door | 문 D1을 동쪽 1,250mm 이동 | `moved` 1, cluster 1 | `S02_move_door/{before,after}/A-101.dxf` |
+| S03_dim_value | 치수(room_a_width) 측정점 이동, +500mm | `dimension` 1(핸들 불변) | `S03_dim_value/{before,after}/A-101.dxf` |
+| S04_text_change | 실명 TEXT 1개 "거실"→"리빙룸" | `text` 1 | `S04_text_change/{before,after}/A-101.dxf` |
+| S05_added | 벽 1 + 문 1(D7) 신설, 3m 이상 이격 | `added` 2, cluster 2 | `S05_added/{before,after}/A-101.dxf` |
+| S06_removed | 기둥 1(폴리라인+해치) 삭제 | `removed` 2, cluster 1 | `S06_removed/{before,after}/A-101.dxf` |
+| S07_hatch_regen | ANSI31 해치 1개를 같은 경계·다른 시작점으로 재생성 | `same`, minor `hatch_regen`, cluster 0 | `S07_hatch_regen/{before,after}/A-101.dxf` |
+| S08_layer_only | 벽 3개를 `A-WALL2`로 이관 | `same`, minor 3 `layer_only`, cluster 0 | `S08_layer_only/{before,after}/A-101.dxf` |
+| S09_mtext_format_only | 범례 MTEXT 서식만 변경(평문 동일) | `same`, minor 1 `mtext_format_only` | `S09_mtext_format_only/{before,after}/A-101.dxf` |
+| S10_move_tiny | 문 D2를 0.005mm 이동 | `same`, minor 1 `move_le_0_01` | `S10_move_tiny/{before,after}/A-101.dxf` |
+| S11_blockdef_change | `DOOR_900` 블록 정의 문짝 LINE 900→850mm | `blockdef` 1(대표 D1, 인스턴스 6개 영향) | `S11_blockdef_change/{before,after}/A-101.dxf` |
+| S12_whole_redraw | 후 도면을 생성 순서 역순으로 재작도(핸들 전부 변경) + S02·S04 | `moved` 1, `text` 1, 나머지 오탐 0 | `S12_whole_redraw/{before,after}/A-101.dxf` |
+| S13_multi_sheet | 한 파일에 도곽 2개(A-101, A-102), 변경은 A-102에만(S05 방식) | A-101 `same`, A-102 `changed`(added 2, cluster 2) | `S13_multi_sheet/{before,after}/plan.dxf` |
+| S14_sheet_added_removed | 전: A-101+A-102, 후: A-102+A-103 | A-101 `removed`, A-102 `same`, A-103 `added` | `S14_sheet_added_removed/{before,after}/plan.dxf` |
+| S15_frame_shift | 후 파일 전체를 (+50000, +20000) 평행이동 | `same`(도곽 로컬 좌표 기준) | `S15_frame_shift/{before,after}/A-101.dxf` |
+| S16_unrecognized | 후 세트에 표제란 없는 `detail.dxf` 추가 | A-101 `same`, `detail.dxf`는 `unrecognized`(sheet_no null) | `S16_unrecognized/after/{A-101,detail}.dxf` |
+| S17_scale_50 | `SCALE`="1:50" 도곽(A1×50)에 문 D1을 1,250mm 이동 | `moved` 1, `scale_denominator` 50 | `S17_scale_50/{before,after}/A-101.dxf` |
+
+### `truth.json` 형식 요약
+
+`RevisionTruth`(`packages/schema/src/compare/truth.schema.json`, docs/contracts/r1.md SS4):
+
+```jsonc
+{
+  "schema_version": "0.1", "scenario": "S02_move_door", "description": "...",
+  "before_dir": "before", "after_dir": "after",
+  "expected_pairs": [
+    { "sheet_no": "A-101", "status": "changed", "match_method": "number",
+      "expected_changes": [
+        { "kind": "moved", "etype": "INSERT", "layer": "A-DOOR",
+          "before_handle": "F8", "after_handle": "F8",
+          "minor": false, "minor_reason": null,
+          "bbox": [14050.0, 17000.0, 16200.0, 18110.0],
+          "note": "door D1 moved 1250mm east" } ],
+      "expected_cluster_count": 1,
+      "clean_regions": [[0.0, 32000.0, 84100.0, 59400.0], [0.0, 0.0, 8000.0, 59400.0]] } ] }
+```
+
+- `bbox`는 후 도면 세계 좌표, 소수점 3자리(`moved`/`text`/`dimension`은 전·후 위치의 합집합).
+- `before_handle`/`after_handle`은 생성기가 실제로 발급한 핸들이다. S12(통째 재작도)만
+  둘 다 `null`이다(핸들이 renumbering으로 의미가 없어져서, 스키마 설명과 일치).
+- `clean_regions`는 도곽 전체에서 항상 비어 있는 두 구역(건물 위쪽 띠, 왼쪽 띠)으로,
+  `base_plan.default_clean_regions(origin, scale_denom)`가 origin/축척에 맞춰 계산한다.
+
+### 테스트
+
+```bash
+cd fixtures/compare/gen
+uv sync
+uv run pytest -q
+```
+
+`tests/test_determinism.py`(서브프로세스 두 번 실행 + 바이트 비교, 커밋된 산출물과의 비교
+포함), `tests/test_truth_schema.py`(17개 truth가 스키마 통과), `tests/test_frames_recognizable.py`
+(재읽기로 표제란 INSERT 수 = 기대 도곽 수, ATTRIB 태그가 `frames.yaml` 태그 목록과 일치),
+`tests/test_planted_bboxes_inside_frame.py`(변경 bbox가 도곽 안, `clean_regions`와 안 겹침).

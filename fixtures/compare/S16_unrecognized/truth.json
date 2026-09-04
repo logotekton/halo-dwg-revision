@@ -1,0 +1,39 @@
+{
+  "schema_version": "0.1",
+  "scenario": "S16_unrecognized",
+  "description": "후 세트에 표제란 없는 파일 detail.dxf를 추가한다. 그 파일은 unrecognized로 분류돼야 한다.",
+  "before_dir": "before",
+  "after_dir": "after",
+  "expected_pairs": [
+    {
+      "sheet_no": "A-101",
+      "status": "same",
+      "match_method": "number",
+      "expected_changes": [],
+      "expected_cluster_count": 0,
+      "clean_regions": [
+        [
+          0.0,
+          32000.0,
+          84100.0,
+          59400.0
+        ],
+        [
+          0.0,
+          0.0,
+          8000.0,
+          59400.0
+        ]
+      ]
+    },
+    {
+      "sheet_no": null,
+      "status": "unrecognized",
+      "match_method": null,
+      "expected_changes": [],
+      "expected_cluster_count": null,
+      "clean_regions": []
+    }
+  ],
+  "notes": "detail.dxf에는 ATTRIB이 min_attribs(3) 이상인 블록이 없어 표제란 후보가 없다(frames.yaml titleblock.min_attribs). sheet_no는 알 수 없으므로 null이고 파일 위치로만 식별된다."
+}

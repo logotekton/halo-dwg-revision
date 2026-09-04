@@ -1,0 +1,47 @@
+{
+  "schema_version": "0.1",
+  "scenario": "S10_move_tiny",
+  "description": "문 INSERT 1개(D2)를 0.005mm만 동쪽으로 이동한다(0.01mm 이하 접힘 규칙).",
+  "before_dir": "before",
+  "after_dir": "after",
+  "expected_pairs": [
+    {
+      "sheet_no": "A-101",
+      "status": "same",
+      "match_method": "number",
+      "expected_changes": [
+        {
+          "kind": "moved",
+          "etype": "INSERT",
+          "minor": true,
+          "before_handle": "FB",
+          "after_handle": "FB",
+          "minor_reason": "move_le_0_01",
+          "layer": "A-DOOR",
+          "bbox": [
+            25550.0,
+            17000.0,
+            26450.005,
+            18110.0
+          ],
+          "note": "door D2 moved 0.005mm east (within compare.yaml minor.move_tolerance)"
+        }
+      ],
+      "expected_cluster_count": 0,
+      "clean_regions": [
+        [
+          0.0,
+          32000.0,
+          84100.0,
+          59400.0
+        ],
+        [
+          0.0,
+          0.0,
+          8000.0,
+          59400.0
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "schema_version": "0.1",
+  "scenario": "S06_removed",
+  "description": "기둥 1개(외곽선 폴리라인 + 솔리드 해치)를 삭제한다.",
+  "before_dir": "before",
+  "after_dir": "after",
+  "expected_pairs": [
+    {
+      "sheet_no": "A-101",
+      "status": "changed",
+      "match_method": "number",
+      "expected_changes": [
+        {
+          "kind": "removed",
+          "etype": "LWPOLYLINE",
+          "minor": false,
+          "before_handle": "E0",
+          "after_handle": null,
+          "minor_reason": null,
+          "layer": "A-COL",
+          "bbox": [
+            9750.0,
+            7750.0,
+            10250.0,
+            8250.0
+          ],
+          "note": "column outline removed"
+        },
+        {
+          "kind": "removed",
+          "etype": "HATCH",
+          "minor": false,
+          "before_handle": "E1",
+          "after_handle": null,
+          "minor_reason": null,
+          "layer": "A-COL",
+          "bbox": [
+            9750.0,
+            7750.0,
+            10250.0,
+            8250.0
+          ],
+          "note": "column solid fill removed"
+        }
+      ],
+      "expected_cluster_count": 1,
+      "clean_regions": [
+        [
+          0.0,
+          32000.0,
+          84100.0,
+          59400.0
+        ],
+        [
+          0.0,
+          0.0,
+          8000.0,
+          59400.0
+        ]
+      ]
+    }
+  ],
+  "notes": "폴리라인과 해치가 같은 위치라 클러스터 1개로 묶여야 한다."
+}

@@ -1,0 +1,64 @@
+{
+  "schema_version": "0.1",
+  "scenario": "S05_added",
+  "description": "벽 폴리라인 1개와 문 INSERT 1개를 서로 3m 이상 떨어진 자리에 신설한다.",
+  "before_dir": "before",
+  "after_dir": "after",
+  "expected_pairs": [
+    {
+      "sheet_no": "A-101",
+      "status": "changed",
+      "match_method": "number",
+      "expected_changes": [
+        {
+          "kind": "added",
+          "etype": "LWPOLYLINE",
+          "minor": false,
+          "before_handle": null,
+          "after_handle": "158",
+          "minor_reason": null,
+          "layer": "A-WALL",
+          "bbox": [
+            46000.0,
+            6400.0,
+            50000.0,
+            6600.0
+          ],
+          "note": "new wall segment added"
+        },
+        {
+          "kind": "added",
+          "etype": "INSERT",
+          "minor": false,
+          "before_handle": null,
+          "after_handle": "159",
+          "minor_reason": null,
+          "layer": "A-DOOR",
+          "bbox": [
+            59550.0,
+            6500.0,
+            60450.0,
+            7610.0
+          ],
+          "note": "new door D7 added"
+        }
+      ],
+      "expected_cluster_count": 2,
+      "clean_regions": [
+        [
+          0.0,
+          32000.0,
+          84100.0,
+          59400.0
+        ],
+        [
+          0.0,
+          0.0,
+          8000.0,
+          59400.0
+        ]
+      ]
+    }
+  ],
+  "notes": "새 벽과 새 문 중심 사이 거리는 약 11,550mm로 cluster.grow 임계값(약 1,682mm)보다 훨씬 커 별도 클러스터가 된다."
+}

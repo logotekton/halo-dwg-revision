@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.halo-cad.internal/v0/compare/truth.schema.json",
+  "title": "RevisionTruth",
+  "description": "What a synthetic revision pair is supposed to produce: `fixtures/compare/<scenario>/truth.json`, written by the generator (R1-07) and read by the comparison tests (R1-06). The generator plants the changes, so the truth file is the plan rather than an observation -- a test that fails against it means the engine disagrees with the drawing that was actually built. `clean_regions` is the other half of the check: an area where a cluster appears is a false positive, which is what catches an over-eager diff rule.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scenario", "before_dir", "after_dir", "expected_pairs"],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/schema_version"
+    },
+    "scenario": {
+      "description": "Directory name of the scenario, e.g. `S03_move`. Sorts the scenario list and names the test case.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+$"
+    },
+    "description": {
+      "description": "What the scenario exercises, in Korean, one sentence.",
+      "type": "string"
+    },
+    "before_dir": {
+      "description": "Sub-directory of the scenario holding the 변경 전 drawings, relative to `truth.json`.",
+      "type": "string"
+    },
+    "after_dir": {
+      "description": "Sub-directory holding the 변경 후 drawings, relative to `truth.json`.",
+      "type": "string"
+    },
+    "expected_pairs": {
+      "description": "One entry per sheet the comparison should report, in any order; the tests match on `sheet_no`.",
+      "type": "array",
+      "items": {
+        "$ref": "https://schema.halo-cad.internal/v0/compare/truth.schema.json#/$defs/expected_pair"
+      }
+    },
+    "notes": {
+      "description": "Anything a reader of a failing test should know -- known tolerances, why a handle is null, which rule the scenario is aimed at.",
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "expected_pair": {
+      "title": "ExpectedPair",
+      "description": "The expected outcome for one sheet.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sheet_no", "status"],
+      "properties": {
+        "sheet_no": {
+          "description": "Drawing number as printed in the title block. Null only for a scenario that deliberately omits it, in which case the pair is identified by position.",
+          "type": ["string", "null"]
+        },
+        "status": {
+          "$ref": "https://schema.halo-cad.internal/v0/compare/sheet-pair.schema.json#/$defs/pair_status"
+        },
+        "match_method": {
+          "description": "How the matcher is expected to pair the two frames. Null when the scenario does not constrain it.",
+          "anyOf": [
+            {
+              "$ref": "https://schema.halo-cad.internal/v0/compare/sheet-pair.schema.json#/$defs/match_method"
+            },
+            { "type": "null" }
+          ]
+        },
+        "expected_changes": {
+          "description": "Changes that were planted. A comparison may legitimately report more (a moved block drags its attributes along), so the tests assert that each of these is present rather than that the counts are equal.",
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.halo-cad.internal/v0/compare/truth.schema.json#/$defs/expected_change"
+          }
+        },
+        "expected_cluster_count": {
+          "description": "How many cloud marks the sheet should end up with. Null when the scenario does not pin it.",
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "clean_regions": {
+          "description": "Boxes where nothing was changed. A cluster whose box intersects one of these is a false positive and fails the test.",
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.halo-cad.internal/v0/compare/sheet-frame.schema.json#/$defs/bbox"
+          }
+        }
+      }
+    },
+    "expected_change": {
+      "title": "ExpectedChange",
+      "description": "One planted change. Handles are the generator's own, so they are known unless the scenario copies a whole file (which renumbers everything) -- then both are null and the box is what the test matches on.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "etype", "minor"],
+      "properties": {
+        "kind": {
+          "$ref": "https://schema.halo-cad.internal/v0/compare/change.schema.json#/$defs/change_kind"
+        },
+        "etype": {
+          "description": "DXF record name of the changed entity.",
+          "type": "string",
+          "maxLength": 32
+        },
+        "layer": {
+          "description": "Layer the change is expected on. Omit when the scenario does not constrain it.",
+          "type": "string",
+          "maxLength": 255
+        },
+        "before_handle": {
+          "description": "Handle in the before drawing, or null when it cannot be known.",
+          "anyOf": [
+            {
+              "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/handle"
+            },
+            { "type": "null" }
+          ]
+        },
+        "after_handle": {
+          "description": "Handle in the after drawing, or null when it cannot be known.",
+          "anyOf": [
+            {
+              "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/handle"
+            },
+            { "type": "null" }
+          ]
+        },
+        "minor": {
+          "description": "Whether the fold rules are expected to call this change minor. A scenario built to test the 0.01mm tolerance sets this true.",
+          "type": "boolean"
+        },
+        "minor_reason": {
+          "description": "The fold reason the rules are expected to record, or null when the change is not minor.",
+          "$ref": "https://schema.halo-cad.internal/v0/compare/change.schema.json#/$defs/minor_reason"
+        },
+        "bbox": {
+          "description": "Where the change is, in the after drawing's world coordinates. Used to match when the handles are null.",
+          "$ref": "https://schema.halo-cad.internal/v0/compare/sheet-frame.schema.json#/$defs/bbox"
+        },
+        "note": {
+          "description": "What was planted, in prose, e.g. `door moved 1250 east`. Printed by a failing assertion.",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

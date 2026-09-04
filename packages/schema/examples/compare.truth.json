@@ -1,0 +1,50 @@
+{
+  "schema_version": "0.1",
+  "scenario": "S03_move",
+  "description": "A-101의 문 블록 하나를 동쪽으로 1,250mm 옮기고, A-102는 레이어만 바꿔 사소한 변경으로 접히는지 본다.",
+  "before_dir": "before",
+  "after_dir": "after",
+  "expected_pairs": [
+    {
+      "sheet_no": "A-101",
+      "status": "changed",
+      "match_method": "number",
+      "expected_changes": [
+        {
+          "kind": "moved",
+          "etype": "INSERT",
+          "layer": "A-DOOR",
+          "before_handle": "1A3",
+          "after_handle": "1A3",
+          "minor": false,
+          "minor_reason": null,
+          "bbox": [12500, 8200, 15150, 10400],
+          "note": "door moved 1250 east"
+        }
+      ],
+      "expected_cluster_count": 1,
+      "clean_regions": [[40000, 0, 84100, 59400]]
+    },
+    {
+      "sheet_no": "A-102",
+      "status": "same",
+      "match_method": "number",
+      "expected_changes": [
+        {
+          "kind": "modified",
+          "etype": "LINE",
+          "layer": "A-WALL",
+          "before_handle": "1B7",
+          "after_handle": "1B7",
+          "minor": true,
+          "minor_reason": "layer_only",
+          "bbox": [30000, 12000, 36000, 12000],
+          "note": "wall line moved from A-WALL to A-WALL-NEW"
+        }
+      ],
+      "expected_cluster_count": 0,
+      "clean_regions": []
+    }
+  ],
+  "notes": "핸들은 생성기가 발급한 값이라 시나리오가 파일을 통째로 복사하지 않는 한 알 수 있다."
+}

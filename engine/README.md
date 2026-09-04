@@ -111,11 +111,18 @@ FastAPI 앱의 OpenAPI 스키마를 JSON으로 내보낸다(`packages/shared-typ
 <name>.halo/
   project.json          # id, name, created_at (사람이 읽을 수 있는 사본)
   project.sqlite        # SQLAlchemy 2 + Alembic, project/drawing_set/drawing_file/xref_link/entity_index
+                        #   + compare_set/sheet_frame/sheet_pair/change/cluster/run (R1)
   originals/<sha256>.<ext>   # 원본 복사본, 0444(CLAUDE.md 규칙 1 — 원본 자체는 절대 쓰지 않는다)
   cache/dxf/<sha256>.working.dxf   # 정본 DXF (ADR-0002)
   cache/mesh/                       # (P3+)
   derivatives/  sidecars/  exports/
+  compare/<pair_id>/compare.dxf, clusters.json, markup.dxf   # 리비전 비교 산출물 (R1)
+  compare.yaml  frames.yaml         # 처음 비교할 때 기본값이 복사된다. 사람이 고쳐도 된다
+  log/<compare_set_id>.log          # 변환 로그·교차검증 불일치·COM 실패 (R1)
 ```
+
+R1은 번들을 `<프로젝트>/.halo`에 두고, 출력은 `<프로젝트>/출력/<YYYY-MM-DD>[-n]/`에 쓴다
+(`docs/contracts/r1.md` §2). 이 둘이 유일한 쓰기 허용 루트다.
 
 엔진 워크스페이스는 한 번에 프로젝트 하나만 연다(`bundle.create.BundleHandle`,
 `app.state.bundle`) — `apps/web`의 `workspace` Zustand 스토어(단수 project)와 대응.
@@ -166,6 +173,46 @@ acad-ts DXF 라이터의 같은 계열 결함이 임베드 단계에서도 나�
 검색 경로로 주고 임포트하면 XREF 3건 중 2건(`TITLE BLOCK-V.dwg`, `단위세대_평면.dwg`)이
 끝까지 임베드되고 `PLAN.dwg`는 위 ATTRIB 결함으로 미해결로 남는다 — 자세한 내용은
 `docs/dev/xref.md`.
+
+## 리비전 비교 (compare, `docs/contracts/r1.md`)
+
+R1의 파이프라인이 사는 패키지다. 세트 인입 → 도곽 추출 → 짝짓기 → 엔티티 비교 → 클러스터 →
+비교 DXF·사이드카 → 마크업 DWG·출력까지 모두 `compare/` 아래에서 계산하고(CLAUDE.md 규칙 4),
+API 라우터와 잡 러너는 순서만 맡는다. 모듈별 소유 태스크는 계약 §6 표에 있다.
+
+R1-01이 넣은 것:
+
+- `compare/config.py` — `compare.yaml`·`frames.yaml`을 읽는다. 번들에 파일이 없으면
+  `compare/defaults/`의 기본값을 **주석까지 그대로** 복사하고(사람이 고치는 파일이다),
+  있으면 기본값 위에 키 단위로 덮는다(중첩 매핑은 병합, 리스트는 통째 교체). 모르는 키·틀린
+  타입은 `CompareConfigError`로 파일 이름과 경로를 담아 실패한다. 인자는 `BundleHandle`·
+  `BundleLayout`·번들 경로 아무거나 받는다.
+  - `load_compare_config(bundle) -> CompareConfig`, `load_frames_config(bundle) -> FramesConfig`
+  - `scale_factor(scale_denominator)` — 1:100 기준 값에 곱할 배율(`1:50` → 0.5, 못 읽으면 1.0).
+  - `CompareConfig.revision_layer(run_date, suffix=None)` — `REV-20260904[-n]`.
+  - ezdxf를 임포트하지 않는다(테스트가 검사한다). pyyaml·pydantic만 쓴다.
+- DB(마이그레이션 `0003_compare_records`) — `compare_set` → `sheet_frame` → `sheet_pair` →
+  `change`·`cluster`, 그리고 출력 1회를 담는 `run`. 기존 `drawing_set`에 `role`·`source_dir`,
+  `drawing_file`에 `converter_meta`·`excluded_reason`·`font_names`가 붙는다. 0003의 모든 문장은
+  존재 검사로 감싸져 있다 — `0001_initial`이 살아 있는 `Base.metadata`로 테이블을 만들기 때문에
+  새로 만든 번들은 0001만으로 이미 여섯 테이블을 갖고 있고, 0002에 멈춰 있던 번들만 실제로 할 일이
+  있다. 양쪽 모두 같은 스키마로 끝나야 한다(`tests/bundle/test_compare_db.py`).
+- `db/repos.py`의 비교 함수 — 단계마다 한 층을 통째로 다시 쓰는 모양(`replace_frames`·
+  `replace_pairs`·`replace_changes`·`replace_clusters`)이다. 다시 돌렸을 때 어제 행이 오늘 행
+  옆에 남는 일을 막는다. `replace_changes`·`replace_clusters`는 짝의 집계(`change_count`·
+  `minor_count`·`cluster_count`)도 같이 갱신하고, `replace_clusters(..., keep_decisions=True)`는
+  같은 `signature`의 이전 `decision`·`user_label`·`note`를 새 클러스터로 이어받는다 —
+  비교를 다시 돌려도 사용자의 승인·무시가 살아남는 이유다.
+- 번들 경로 — `BundleLayout`에 `compare_dir`·`log_dir`·`compare_yaml`·`frames_yaml`과
+  `compare_pair_dir(pair_id)`(ULID가 아니면 `ValueError`). `ensure_dirs()`가 `compare/`·`log/`도
+  만든다.
+- `model/compare.py` — 라우터 요청 본문(`CompareSetCreateRequest`, `ManualPairRequest`,
+  `ClusterDecisionRequest`, `ExportRequest` 등). 응답 **레코드**는 여기 두지 않고
+  `halo_schema.models.compare.*`(스키마에서 생성)를 쓴다.
+
+```bash
+uv run pytest tests/compare tests/bundle -q
+```
 
 ## 파일 인입 (ingest, `docs/adr/0002-working-dxf.md`)
 
@@ -281,13 +328,18 @@ src/halo_engine/
     guard.py          # assert_writable_path -- 원본 쓰기 가드 (CLAUDE.md 규칙 1)
     originals.py      # 원본 복사 -> originals/<sha256><ext>, 0444
     create.py         # create_bundle / open_bundle -> BundleHandle
-  db/              # SQLite 영속화, 파일 계열 테이블만 (W3-03)
+  compare/         # 리비전 비교 (R1) — 계약 docs/contracts/r1.md §6
+    config.py         # compare.yaml/frames.yaml 로더 + scale_factor (R1-01)
+    defaults/         # 기본 compare.yaml·frames.yaml (번들로 복사되는 원본)
+  db/              # SQLite 영속화 (파일 계열 W3-03 + 비교 계열 R1-01)
     models.py         # SQLAlchemy 2 ORM: project/drawing_set/drawing_file/xref_link/entity_index
+                      #   + compare_set/sheet_frame/sheet_pair/change/cluster/run
     session.py        # 번들별 engine/session factory
     repos.py          # ORM을 직접 만지는 유일한 곳
     ids.py            # ULID
     migrate.py        # 이 패키지의 Alembic 마이그레이션을 project.sqlite에 적용
-    alembic/          # env.py + versions/0001_initial.py (alembic.ini 없음, Config는 코드로 구성)
+    alembic/          # env.py + versions/0001_initial.py … 0003_compare_records.py
+                      #   (alembic.ini 없음, Config는 코드로 구성)
   ingest/          # DXF 로드·인코딩·XREF·정본·통계 (W2-03)
     dxf_loader.py    # ezdxf.readfile -> 실패 시 ezdxf.recover, 헤더/감사 추출
     encoding.py      # R2007 이전 코드페이지 모지바케 점수·cp949 재시도, \M+/\U+ 디코드
@@ -304,11 +356,13 @@ src/halo_engine/
     crosscheck.py    # CrosscheckReport
     project.py       # 프로젝트 API 리소스 모델 (W3-03)
     drawing.py       # 드로잉셋/파일/잡 API 리소스 모델 (W3-03)
+    compare.py       # /compare/* 요청 본문·202 응답 (R1-01)
   rules/           # 적산 룰 엔진 (W4+)
   geometry/        # 3D 재구성 기하 (W3+)
 tests/
   ingest/          # ingest/** 단위·통합 테스트
   validate/        # 교차검증 단위·API·스키마 테스트
-  bundle/          # bundle/** + db/** 단위 테스트 (W3-03)
+  bundle/          # bundle/** + db/** 단위 테스트 (W3-03, + test_compare_db.py R1-01)
+  compare/         # compare/** 단위 테스트 (R1); conftest.py가 임시 번들 픽스처 제공
   api/             # projects/drawing-sets/files/jobs/ws 통합 테스트 (W3-03)
 ```

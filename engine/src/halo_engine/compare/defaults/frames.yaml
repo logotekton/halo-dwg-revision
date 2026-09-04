@@ -1,0 +1,50 @@
+# 도곽(표제란) 인식 설정 (기본값)
+#
+# compare.yaml 과 같은 방식으로 <프로젝트>/.halo/frames.yaml 에 복사되고,
+# 프로젝트 파일의 값이 키 단위로 이 기본값을 덮는다. 근거는
+# docs/contracts/r1.md §5.
+#
+# 도곽 하나 = 표제란 블록 INSERT 하나 = 시트 하나. 파일 하나에 도곽이 여러 개
+# 있을 수 있고, 표제란을 못 찾은 파일도 sheet_frame 행 하나
+# (kind = unrecognized_file)로 남아 화면 B에 보인다.
+
+schema_version: "0.1"
+
+titleblock:
+  # ATTRIB 이 이 개수 이상인 블록만 표제란 후보로 본다.
+  min_attribs: 3
+  # 도면번호를 담은 ATTRIB 태그 후보. 앞에 있는 것부터 맞춰본다.
+  number_tags: ["DWG_NO", "DWGNO", "DWG-NO", "SHEET", "SHEET_NO", "NO", "도면번호", "DRAWING_NO"]
+  # 도면명 태그 후보.
+  title_tags: ["TITLE", "DWG_NAME", "DWG_TITLE", "도면명", "제목", "DRAWING_TITLE", "NAME"]
+  # 축척 태그 후보. 읽은 문자열에서 분모를 뽑아 scale_factor 를 정한다.
+  scale_tags: ["SCALE", "SCL", "축척"]
+  # 일자 태그 후보. 읽기만 하고 실행 날짜로는 절대 쓰지 않는다.
+  date_tags: ["DATE", "일자", "날짜"]
+  # 태그가 하나도 안 맞으면, ATTRIB 이 min_attribs 이상이면서 파일에서 가장 많이
+  # 반복되는 블록을 표제란으로 본다.
+  fallback_most_common_block: true
+  # 비어 있지 않으면 이 이름 패턴(fnmatch)에 맞는 블록만 표제란 후보로 본다.
+  block_name_patterns: []
+
+frame:
+  # 도곽 테두리를 정하는 방법. smallest_enclosing_rect = 표제란을 포함하는
+  # 가장 작은 닫힌 사각형 LWPOLYLINE.
+  boundary: smallest_enclosing_rect
+  # 테두리를 못 찾았을 때. modal_size_titleblock_bottom_right = 파일에서 가장
+  # 흔한 도곽 크기를 표제란 오른쪽 아래에 맞춰 잡는다.
+  fallback: modal_size_titleblock_bottom_right
+  # 엔티티를 어느 도곽에 넣을지 정하는 기준. bbox_center = 엔티티 bbox 중심이
+  # 들어 있는 도곽에 배정한다.
+  assign: bbox_center
+
+normalize:
+  # 도면번호·도면명을 맞추기 전에 적용하는 정규화. norm_key 가 이 결과다.
+  # 공백을 모두 없앤다.
+  strip_spaces: true
+  # 전각 문자를 ASCII 로 바꾼다(Ａ-１０１ → A-101).
+  fullwidth_to_ascii: true
+  # 영문을 대문자로 올린다.
+  upper: true
+  # 하이픈 변종(–, —, ―, ‐)을 ASCII 하이픈으로 통일한다.
+  unify_hyphen: true

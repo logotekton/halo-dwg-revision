@@ -1,0 +1,58 @@
+{
+  "id": "01JQ8Z5K3M7P0RSTVWXYZ0A1B2",
+  "project_id": "01JQ8Z5K3M7P0RSTVWXYZ0A1B3",
+  "project_dir": "/Users/dm/현장/한강자이",
+  "status": "compared",
+  "run_date": "2026-09-04",
+  "before": {
+    "set_id": "01JQ8Z5K3M7P0RSTVWXYZ0A1B4",
+    "dir": "/Users/dm/현장/한강자이/20260702_실시도서",
+    "label": "20260702_실시도서",
+    "files": 38,
+    "converted": 37,
+    "failed": 0,
+    "excluded": 1
+  },
+  "after": {
+    "set_id": "01JQ8Z5K3M7P0RSTVWXYZ0A1B5",
+    "dir": "/Users/dm/현장/한강자이/20260820_실시도서",
+    "label": "20260820_실시도서",
+    "files": 38,
+    "converted": 38,
+    "failed": 0,
+    "excluded": 0
+  },
+  "converter": {
+    "before": "zwcad-com",
+    "after": "zwcad-com",
+    "mismatch_files": 0
+  },
+  "zwcad": {
+    "available": true,
+    "installed": true,
+    "version": "2026",
+    "prog_id": "ZWCAD.Application",
+    "reason": null
+  },
+  "fonts_missing": ["HYGothic-Medium", "whgtxt.shx"],
+  "crosscheck": {
+    "sampled": 5,
+    "mismatched": 0
+  },
+  "frames": {
+    "before": 98,
+    "after": 99,
+    "unrecognized_files": 1
+  },
+  "pairs": {
+    "changed": 12,
+    "same": 85,
+    "added": 1,
+    "removed": 0,
+    "unpaired": 1,
+    "unrecognized": 1,
+    "converter_mismatch": 0,
+    "pending": 0
+  },
+  "last_job_id": "01JQ8Z5K3M7P0RSTVWXYZ0A1BD"
+}

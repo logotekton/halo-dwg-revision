@@ -1,0 +1,120 @@
+{
+  "schema_version": "0.1",
+  "pair_id": "01JQ8Z5K3M7P0RSTVWXYZ0A1BA",
+  "pair_key": "A-101",
+  "run_date": "2026-09-04",
+  "layer": "REV-20260904",
+  "frame": {
+    "bbox": [0, 0, 84100, 59400],
+    "scale_denominator": 100,
+    "scale_factor": 1,
+    "offset_before": [0, 0]
+  },
+  "clusters": [
+    {
+      "id": "c1",
+      "number": 1,
+      "signature": "8f14e45fceea167a5a36dedd4bea2543",
+      "bbox": [12500, 8200, 15150, 10400],
+      "kind": "moved",
+      "label": "블록 DOOR_900 이동 1,250mm",
+      "user_label": null,
+      "decision": "pending",
+      "note": null,
+      "change_ids": ["ch1"],
+      "cloud": {
+        "handle": "2F1",
+        "points": [
+          [12450, 8150, 0.5],
+          [15200, 8150, 0.5],
+          [15200, 10450, 0.5],
+          [12450, 10450, 0.5]
+        ]
+      },
+      "badge": {
+        "shape_handle": "2F2",
+        "text_handle": "2F3",
+        "center": [15300, 10650]
+      }
+    }
+  ],
+  "changes": [
+    {
+      "id": "ch1",
+      "seq": 1,
+      "kind": "moved",
+      "etype": "INSERT",
+      "layer": "A-DOOR",
+      "before_handle": "1A3",
+      "after_handle": "1A3",
+      "bbox": [12500, 8200, 15150, 10400],
+      "delta": {
+        "move": [1250, 0],
+        "distance": 1250
+      },
+      "minor": false,
+      "minor_reason": null,
+      "cluster_id": "c1",
+      "compare_handles": {
+        "added": ["2A1"],
+        "removed": ["2A2"]
+      },
+      "provenance": {
+        "before": {
+          "file": "01JQ8Z5K3M7P0RSTVWXYZ0A1B6",
+          "handle": "1A3",
+          "path": [],
+          "space": "MODEL"
+        },
+        "after": {
+          "file": "01JQ8Z5K3M7P0RSTVWXYZ0A1B7",
+          "handle": "1A3",
+          "path": [],
+          "space": "MODEL"
+        }
+      }
+    },
+    {
+      "id": "ch2",
+      "seq": 2,
+      "kind": "modified",
+      "etype": "LINE",
+      "layer": "A-WALL",
+      "before_handle": "1A4",
+      "after_handle": "1A4",
+      "bbox": [30000, 12000, 36000, 12000],
+      "delta": null,
+      "minor": true,
+      "minor_reason": "layer_only",
+      "cluster_id": null,
+      "provenance": {
+        "before": {
+          "file": "01JQ8Z5K3M7P0RSTVWXYZ0A1B6",
+          "handle": "1A4",
+          "path": [],
+          "space": "MODEL"
+        },
+        "after": {
+          "file": "01JQ8Z5K3M7P0RSTVWXYZ0A1B7",
+          "handle": "1A4",
+          "path": [],
+          "space": "MODEL"
+        }
+      }
+    }
+  ],
+  "handle_to_cluster": {
+    "2A1": "c1",
+    "2A2": "c1",
+    "2F1": "c1",
+    "2F2": "c1",
+    "2F3": "c1"
+  },
+  "counts": {
+    "clusters": 1,
+    "changes": 2,
+    "minor": 1,
+    "approved": 0,
+    "ignored": 0
+  }
+}

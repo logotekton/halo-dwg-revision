@@ -50,15 +50,21 @@ def test_example_matches_expectation(name: str, key: str, expected: bool) -> Non
     assert is_valid(key, document) is expected, failures(key, document)
 
 
-#: Examples whose schema is not registered in `SCHEMA_FILES` (`halo_schema/__init__.py`
-#: is hand written, outside this task's "Files you own" glob -- brief W3-08), so
-#: `is_valid(key, ...)` above has no key for them. Each has its own dedicated test
-#: module instead: `test_crosscheck_report.py`.
+#: Examples with a dedicated test module instead of a row in `EXPECTATIONS`:
+#: `crosscheck-report.f06.json` because its schema is not registered in
+#: `SCHEMA_FILES` (`halo_schema/__init__.py` was outside brief W3-08's "Files you
+#: own" glob), and every `compare.*.json` because the R1 comparison family is
+#: checked together with its cross-reference rules in `test_compare.py`.
 _EXAMPLES_COVERED_ELSEWHERE = frozenset({"crosscheck-report.f06.json"})
+_COMPARE_EXAMPLE_PREFIX = "compare."
 
 
 def test_every_example_is_covered(examples_dir) -> None:
-    on_disk = sorted(path.name for path in examples_dir.glob("*.json"))
+    on_disk = sorted(
+        path.name
+        for path in examples_dir.glob("*.json")
+        if not path.name.startswith(_COMPARE_EXAMPLE_PREFIX)
+    )
     covered = sorted(name for name, _, _ in EXPECTATIONS) + sorted(_EXAMPLES_COVERED_ELSEWHERE)
     assert on_disk == sorted(covered)
 

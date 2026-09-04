@@ -5,6 +5,14 @@ import addFormats from "ajv-formats";
 import type { BridgeMessage } from "../gen/ts/bridge/messages";
 import type { EntityRef } from "../gen/ts/common/entity-ref";
 import type { Provenance } from "../gen/ts/common/provenance";
+import type { Change } from "../gen/ts/compare/change";
+import type { Cluster } from "../gen/ts/compare/cluster";
+import type { ClustersSidecar } from "../gen/ts/compare/clusters-sidecar";
+import type { CompareSetSummary } from "../gen/ts/compare/compare-set";
+import type { Run } from "../gen/ts/compare/run";
+import type { SheetFrame } from "../gen/ts/compare/sheet-frame";
+import type { SheetPair } from "../gen/ts/compare/sheet-pair";
+import type { RevisionTruth } from "../gen/ts/compare/truth";
 import type { ConsistencyCheckSet } from "../gen/ts/levels/consistency-check";
 import type { FloorLevelsDocument } from "../gen/ts/levels/floor-levels";
 import type { LevelObservation } from "../gen/ts/levels/level-observation";
@@ -71,6 +79,16 @@ export const validateConsistencyCheck = compiledFor<ConsistencyCheck>(CONSISTENC
 export const validateMarkupSidecar = compiledFor<MarkupSidecar>(SCHEMA_IDS.markupSidecar);
 export const validateTagsSidecar = compiledFor<TagsSidecar>(SCHEMA_IDS.tagsSidecar);
 export const validateBridgeMessage = compiledFor<BridgeMessage>(SCHEMA_IDS.bridgeMessage);
+export const validateSheetFrame = compiledFor<SheetFrame>(SCHEMA_IDS.sheetFrame);
+export const validateSheetPair = compiledFor<SheetPair>(SCHEMA_IDS.sheetPair);
+export const validateChange = compiledFor<Change>(SCHEMA_IDS.change);
+export const validateCluster = compiledFor<Cluster>(SCHEMA_IDS.cluster);
+export const validateRun = compiledFor<Run>(SCHEMA_IDS.run);
+export const validateClustersSidecar = compiledFor<ClustersSidecar>(SCHEMA_IDS.clustersSidecar);
+export const validateCompareSetSummary = compiledFor<CompareSetSummary>(
+  SCHEMA_IDS.compareSetSummary
+);
+export const validateRevisionTruth = compiledFor<RevisionTruth>(SCHEMA_IDS.revisionTruth);
 
 /** A single reason a document was rejected, flattened for logs and for the UI. */
 export interface ValidationFailure {
@@ -126,4 +144,71 @@ export function assertValid<T>(
 /** Validation failures of the last call to `validate`, already flattened. */
 export function failuresOf(validate: ValidateFunction<unknown>): ValidationFailure[] {
   return formatErrors(validate.errors);
+}
+
+/**
+ * Cross-references inside one `clusters.json` that JSON Schema cannot express.
+ *
+ * The sidecar is three views of the same comparison -- the clusters, the
+ * changes, and the compare-DXF handle map the viewer hit-tests against -- and a
+ * dangling reference between them is silent: a click lands on a cluster that is
+ * not in the list, or an approved cluster exports a change that was never
+ * written. `validateClustersSidecar` cannot catch it, because 2020-12 has no way
+ * to say "this string is the `id` of one of those array items". Run this after
+ * it, on anything read from disk or from `GET /compare/pairs/{id}/clusters`.
+ *
+ * Returns one human-readable reason per problem, in a stable order; empty means
+ * the three views agree. Assumes the document already passed the schema.
+ */
+export function clustersSidecarIntegrityFailures(sidecar: ClustersSidecar): string[] {
+  const reasons: string[] = [];
+  const clusterIds = new Set(sidecar.clusters.map((cluster) => cluster.id));
+  const changeIds = new Set(sidecar.changes.map((change) => change.id));
+
+  for (const cluster of sidecar.clusters) {
+    if (cluster.id !== `c${cluster.number}`) {
+      reasons.push(`clusters: id ${cluster.id} does not match number ${cluster.number}`);
+    }
+    for (const changeId of cluster.change_ids) {
+      if (!changeIds.has(changeId)) {
+        reasons.push(`clusters/${cluster.id}: change_ids references unknown change ${changeId}`);
+      }
+    }
+  }
+
+  for (const change of sidecar.changes) {
+    if (change.id !== `ch${change.seq}`) {
+      reasons.push(`changes: id ${change.id} does not match seq ${change.seq}`);
+    }
+    if (change.cluster_id !== null && change.cluster_id !== undefined) {
+      if (!clusterIds.has(change.cluster_id)) {
+        reasons.push(`changes/${change.id}: cluster_id references unknown cluster ${change.cluster_id}`);
+      }
+    }
+  }
+
+  for (const [handle, clusterId] of Object.entries(sidecar.handle_to_cluster)) {
+    if (!clusterIds.has(clusterId)) {
+      reasons.push(`handle_to_cluster/${handle}: references unknown cluster ${clusterId}`);
+    }
+  }
+
+  const minor = sidecar.changes.filter((change) => change.minor).length;
+  const approved = sidecar.clusters.filter((cluster) => cluster.decision === "approved").length;
+  const ignored = sidecar.clusters.filter((cluster) => cluster.decision === "ignored").length;
+  const expected = {
+    clusters: sidecar.clusters.length,
+    changes: sidecar.changes.length,
+    minor,
+    approved,
+    ignored,
+  };
+  for (const [key, value] of Object.entries(expected)) {
+    const written = sidecar.counts[key as keyof typeof expected];
+    if (written !== value) {
+      reasons.push(`counts/${key}: written ${written}, actual ${value}`);
+    }
+  }
+
+  return reasons;
 }

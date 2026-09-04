@@ -1,0 +1,91 @@
+# 리비전 비교 설정 (기본값)
+#
+# 이 파일은 프로젝트를 처음 비교할 때 <프로젝트>/.halo/compare.yaml 로 그대로
+# 복사된다. 복사본은 사람이 고쳐도 되고, 고친 값만 이 기본값 위에 키 단위로
+# 덮인다(없는 키는 기본값 그대로). 값의 근거는 docs/contracts/r1.md §5와
+# 인터뷰 결정 장부(docs/plans/dms-local/interview-mvp-2026-09-04.md)다.
+#
+# 길이 단위는 모두 밀리미터, 도곽 축척 1:100 기준이다. cloud·revtable 값은
+# 실제로 쓸 때 scale_factor(= 도곽 축척 분모 / 100)를 곱한다.
+
+schema_version: "0.1"
+
+ingest:
+  # 세트 폴더에서 이 패턴에 걸리는 파일은 변환하지 않는다. drawing_file 행은
+  # excluded_reason 과 함께 남아서, 몇 개를 왜 건너뛰었는지 화면 A가 말할 수 있다.
+  ignore_patterns: ["*_recover.dwg", "*.bak", "*.dwl", "*.dwl2"]
+  # auto = ZWCAD 이 있으면 ZWCAD, 없으면 자체 변환기(ADR-0002).
+  # zwcad = ZWCAD 만 쓰고 없으면 실패. builtin = 항상 자체 변환기.
+  converter: auto
+  # 파일 하나를 ZWCAD 로 변환할 때 기다리는 최대 초. 넘기면 프로세스 트리를
+  # 죽이고 인스턴스를 다시 띄운다.
+  zwcad_timeout_s: 120
+  # ZWCAD 가 SaveAs 로 쓸 DXF 버전. 작업용 DXF 는 이후 R2018/UTF-8 로 올린다.
+  zwcad_dxf_version: "2013"
+  # 두 변환기가 다 되는 PC에서 세트당 몇 개를 양쪽으로 변환해 대조할지.
+  # 0 이면 교차검증하지 않는다.
+  crosscheck_sample: 5
+
+match:
+  # mm. 도곽 지문(엔티티 위치)을 이 간격으로 반올림해 맞춘다. 장부 값 1mm.
+  fingerprint_tolerance: 1.0
+  # 도면번호가 없을 때 도면명으로 짝지을 최소 자카드 유사도.
+  title_jaccard_min: 0.6
+
+minor:
+  # mm. 이동 거리가 이 값 이하이면 사소한 변경으로 접는다. 장부 값 0.01mm.
+  move_tolerance: 0.01
+  # 기하가 같고 아래 성질만 다른 변경은 접는다. 접힌 변경은 클러스터에도,
+  # 클라우드 마크에도, 리비전 표에도 오르지 않는다(화면 C에서 따로 볼 수 있다).
+  fold: [layer_only, color_only, linetype_only, lineweight_only, hatch_regen, dim_regen, mtext_format_only]
+
+cluster:
+  # 도곽 긴 변의 비율. 이 거리 안에 있는 변경들을 한 클러스터로 묶는다.
+  grow_ratio: 0.02
+  # mm(1:100 기준). grow_ratio 로 계산한 거리가 이보다 작으면 이 값을 쓴다.
+  grow_min: 300
+
+cloud:
+  # 클라우드 마크와 번호 배지. 값은 1:100 기준 모델 mm이며 scale_factor 를 곱한다
+  # (docs/contracts/compare-dxf.md §5).
+  # 레이어 이름은 이 접두 + 실행 날짜(REV-20260904). 같은 날 두 번째 출력은
+  # 뒤에 -2 가 붙지만 비교 DXF에는 접미사가 없다.
+  layer_prefix: "REV-"
+  # ACI 색 번호. 1 = 빨강.
+  color: 1
+  # 클러스터 bbox 사방 여백.
+  margin: 50
+  # 호 하나의 현 길이. 변 길이를 이 값으로 나눠 올림한 개수로 균등 분할한다.
+  arc: 100
+  # LWPOLYLINE bulge = tan(θ/4). 0.5 는 약 106도, 바깥쪽으로 볼록.
+  arc_bulge: 0.5
+  # 번호 삼각형 한 변(정삼각형, 꼭짓점 위).
+  badge_side: 200
+  # 삼각형 안 숫자 높이. 무게중심에 가운데 정렬.
+  badge_text_height: 90
+  # 삼각형을 붙일 자리. R1은 top_right(클라우드 사각형 오른쪽 위 바깥)만 그린다.
+  badge_anchor: top_right
+
+revtable:
+  # 마크업 DWG에만 그리는 리비전 표. 단위 규칙은 cloud 와 같다.
+  # 열 이름이자 머리글 행. 담당 열은 두지 않는다(장부).
+  columns: ["번호", "내용", "일자"]
+  # 열 너비, columns 와 같은 순서·개수.
+  col_widths: [800, 6000, 2000]
+  # 행 높이(머리글 포함).
+  row_height: 400
+  # 표 안 글자 높이.
+  text_height: 250
+  # 표를 붙일 자리. titleblock_left = 표제란 블록 bbox 왼쪽 위 모서리에
+  # 표의 오른쪽 위를 맞추고 아래로 자란다.
+  anchor: titleblock_left
+
+output:
+  # <프로젝트> 아래 출력 폴더 이름. 실제 폴더는 <프로젝트>/출력/<YYYY-MM-DD>[-n]/.
+  dir_name: "출력"
+  # 마크업 파일 이름 틀. {sheet_no} 는 도면번호(없으면 원본 파일 이름),
+  # {after_label} 은 변경 후 세트 폴더 이름.
+  file_pattern: "{sheet_no}_{after_label}_markup"
+  # auto = ZWCAD → acad-ts → dxf-only 순으로 되는 것을 쓴다.
+  # zwcad / acad-ts / dxf-only 는 그 하나만 쓴다.
+  dwg_writer: auto

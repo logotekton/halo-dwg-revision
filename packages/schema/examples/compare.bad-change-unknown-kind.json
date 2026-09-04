@@ -1,0 +1,28 @@
+{
+  "id": "ch1",
+  "seq": 1,
+  "kind": "recolored",
+  "etype": "LINE",
+  "layer": "A-WALL",
+  "before_handle": "1A4",
+  "after_handle": "1A4",
+  "bbox": [30000, 12000, 36000, 12000],
+  "delta": null,
+  "minor": true,
+  "minor_reason": "color_only",
+  "cluster_id": null,
+  "provenance": {
+    "before": {
+      "file": "01JQ8Z5K3M7P0RSTVWXYZ0A1B6",
+      "handle": "1A4",
+      "path": [],
+      "space": "MODEL"
+    },
+    "after": {
+      "file": "01JQ8Z5K3M7P0RSTVWXYZ0A1B7",
+      "handle": "1A4",
+      "path": [],
+      "space": "MODEL"
+    }
+  }
+}

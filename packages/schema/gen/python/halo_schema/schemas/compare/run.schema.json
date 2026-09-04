@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.halo-cad.internal/v0/compare/run.schema.json",
+  "title": "Run",
+  "description": "One export of a compare set: the markup drawings, the change list and this record, all written under `<프로젝트>/출력/<run_date>[-n]/` (docs/contracts/r1.md §2, §3 `run`). Written verbatim as `run.json` next to the outputs and returned by `GET /compare/runs/{run_id}`, so screen D can show what was produced without re-reading the folder. Exporting twice on the same date does not overwrite: the second run gets `출력/<run_date>-2/` and layer `REV-<YYYYMMDD>-2`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "compare_set_id",
+    "run_date",
+    "layer_name",
+    "output_dir",
+    "scope",
+    "method",
+    "pair_ids",
+    "approved_count",
+    "ignored_count",
+    "files",
+    "status"
+  ],
+  "properties": {
+    "schema_version": {
+      "description": "Present in `run.json` on disk; the API response omits it.",
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/schema_version"
+    },
+    "id": {
+      "description": "`run` row id.",
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+    },
+    "compare_set_id": {
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+    },
+    "run_date": {
+      "description": "The date the user entered on screen A, carried through unchanged. Fills the 일자 column of the revision table and the layer name.",
+      "$ref": "https://schema.halo-cad.internal/v0/compare/compare-set.schema.json#/$defs/run_date"
+    },
+    "layer_name": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/run.schema.json#/$defs/layer_name"
+    },
+    "output_dir": {
+      "description": "Absolute path of `<프로젝트>/출력/<run_date>[-n]/`. One of the two roots the write guard allows (docs/contracts/r1.md §2).",
+      "type": "string"
+    },
+    "scope": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/run.schema.json#/$defs/run_scope"
+    },
+    "method": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/run.schema.json#/$defs/run_method"
+    },
+    "pair_ids": {
+      "description": "Sheet pairs that produced a file, in output order. A pair with no approved cluster is not exported and is not listed here.",
+      "type": "array",
+      "items": {
+        "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+      }
+    },
+    "approved_count": {
+      "description": "Clusters exported as cloud marks and revision-table rows across every pair.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "ignored_count": {
+      "description": "Clusters the user marked 무시. Counted for the report; nothing is drawn for them.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "files": {
+      "description": "The markup drawings that were written, in output order.",
+      "type": "array",
+      "items": {
+        "$ref": "https://schema.halo-cad.internal/v0/compare/run.schema.json#/$defs/output_file"
+      }
+    },
+    "status": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/run.schema.json#/$defs/run_status"
+    },
+    "error_message": {
+      "description": "Why the run failed, in Korean, ready to show. Null unless `status` is `failed`.",
+      "type": ["string", "null"]
+    },
+    "created_at": {
+      "description": "When the `run` row was inserted. A database timestamp, not part of the deterministic output (docs/contracts/r1.md §11).",
+      "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/timestamp"
+    }
+  },
+  "$defs": {
+    "layer_name": {
+      "title": "RevisionLayerName",
+      "description": "`REV-<YYYYMMDD>`, with a `-<n>` suffix from the second export of the same date onwards. The compare DXF never carries the suffix -- it is added only by the export (docs/contracts/compare-dxf.md §2).",
+      "type": "string",
+      "pattern": "^REV-[0-9]{8}(-[1-9][0-9]*)?$"
+    },
+    "run_scope": {
+      "title": "RunScope",
+      "description": "R1 exports every pair that has an approved cluster. Exporting a chosen subset of sheets is a week-2 feature (CLAUDE.md rule 10), so the only value is `all`.",
+      "type": "string",
+      "enum": ["all"]
+    },
+    "run_method": {
+      "title": "RunMethod",
+      "description": "How the markup drawing is written, from `compare.yaml` `output.dwg_writer`. `auto` picks ZWCAD when it is available and falls back to `acad-ts`, then to `dxf-only`.",
+      "type": "string",
+      "enum": ["auto", "zwcad", "acad-ts", "dxf-only"]
+    },
+    "run_status": {
+      "title": "RunStatus",
+      "description": "`running` while the export job is working, then `done` or `failed` (docs/contracts/r1.md §3).",
+      "type": "string",
+      "enum": ["running", "done", "failed"]
+    },
+    "writer": {
+      "title": "OutputWriter",
+      "description": "Which writer actually produced this file. `dxf-only` means no DWG writer was available and a `.dxf` was written instead.",
+      "type": "string",
+      "enum": ["zwcad-com", "acad-ts", "dxf-only"]
+    },
+    "output_file": {
+      "title": "RunOutputFile",
+      "description": "One markup drawing written by the run.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pair_id", "sheet_no", "path", "format", "writer"],
+      "properties": {
+        "pair_id": {
+          "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/ulid"
+        },
+        "sheet_no": {
+          "description": "Drawing number used in the file name. Null when the sheet has none, in which case the source file name was used instead.",
+          "type": ["string", "null"]
+        },
+        "path": {
+          "description": "Absolute path of the written file, inside `output_dir`.",
+          "type": "string"
+        },
+        "format": {
+          "description": "`dwg` when a DWG writer succeeded, `dxf` when the run had to fall back.",
+          "type": "string",
+          "enum": ["dwg", "dxf"]
+        },
+        "writer": {
+          "$ref": "https://schema.halo-cad.internal/v0/compare/run.schema.json#/$defs/writer"
+        }
+      }
+    }
+  }
+}

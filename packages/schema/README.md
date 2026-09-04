@@ -32,6 +32,20 @@ scripts/        코드젠·테스트 스크립트
 | `sidecar/markup.schema.json` | `MarkupSidecar` | 구름·화살표·메모·자유선 마크업 |
 | `sidecar/tags.schema.json` | `TagsSidecar` | 엔티티 태깅과 분류 override(`stable_key` 포함) |
 | `bridge/messages.schema.json` | `BridgeMessage` | 3D iframe postMessage(ADR-0004): `ready` `load` `select` `colorize` `camera` `selected` `error` |
+| `compare/sheet-frame.schema.json` | `SheetFrame` | 도곽 하나(표제란 INSERT + 테두리). `GET /compare/sets/{id}/pairs`의 frame 요약 |
+| `compare/sheet-pair.schema.json` | `SheetPair` | 전·후 도곽 짝과 상태·집계. 한쪽만 있으면 `added`/`removed` |
+| `compare/change.schema.json` | `Change` | 엔티티 단위 diff 한 건. id는 `ch<seq>`로 결정론적 |
+| `compare/cluster.schema.json` | `Cluster` | 클라우드 마크 하나(변경 묶음) + 승인·무시 판정. id는 `c<number>` |
+| `compare/run.schema.json` | `Run` | 출력 1회(`run.json`). 레이어 `REV-<YYYYMMDD>[-n]`, 쓴 파일 목록 |
+| `compare/clusters-sidecar.schema.json` | `ClustersSidecar` | `clusters.json` 전체. `handle_to_cluster`가 뷰어 히트 테스트의 열쇠 |
+| `compare/compare-set.schema.json` | `CompareSetSummary` | 화면 A·B가 폴링하는 파이프라인 요약(변환기·ZWCAD·도곽·짝 집계) |
+| `compare/truth.schema.json` | `RevisionTruth` | 합성 리비전 쌍의 정답(`fixtures/compare/<scenario>/truth.json`) |
+
+`compare/*`의 정본은 `docs/contracts/r1.md` §3~§4와 `docs/contracts/compare-dxf.md`다. bbox는 이 계열에서만
+`[x0,y0,x1,y1]` 숫자 4개(`compare/sheet-frame.schema.json`의 `$defs.bbox`)이며, `common/primitives`의
+`bbox`(`{min,max}`)와 다르다 — 사이드카가 그렇게 쓰고 뷰어가 그대로 `zoomTo`에 넣기 때문이다.
+`handle_to_cluster`의 값이 실제 클러스터를 가리키는지는 2020-12로 표현할 수 없어
+`clustersSidecarIntegrityFailures()`(`src/validate.ts`)가 따로 검사한다.
 
 ## 변경 절차
 

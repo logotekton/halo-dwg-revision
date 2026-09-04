@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.halo-cad.internal/v0/compare/cluster.schema.json",
+  "title": "Cluster",
+  "description": "A group of nearby changes drawn as one numbered cloud mark (docs/contracts/r1.md §3 `cluster`, sidecar `clusters[]` in docs/contracts/compare-dxf.md §7). The cluster number is the number in the triangle badge and the row number in the revision table, so it is 1-based and gapless within a pair. `decision`, `user_label` and `note` are the user's edits from screen C; a re-run carries them over to the cluster with the same `signature`, which is what makes 승인·무시 survive re-comparison. Also the body of `PATCH /compare/pairs/{pair_id}/clusters/{number}`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "number",
+    "bbox",
+    "kind",
+    "label",
+    "user_label",
+    "decision",
+    "note",
+    "change_ids",
+    "cloud",
+    "badge"
+  ],
+  "properties": {
+    "id": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/cluster.schema.json#/$defs/cluster_id"
+    },
+    "number": {
+      "description": "Cloud-mark number, 1-based, ordered top-left to bottom-right inside the frame. `id` is `\"c\" + number`.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "signature": {
+      "description": "Hash of the sorted `(kind, before_handle, after_handle)` tuples of the cluster's changes (docs/contracts/compare-dxf.md §7). Stored on the `cluster` row and used to carry `decision`/`user_label`/`note` across a re-run; the sidecar may omit it.",
+      "type": "string",
+      "maxLength": 64
+    },
+    "bbox": {
+      "description": "Union of the member changes' boxes, before the cloud margin is added, in the after sheet's world coordinates (mm). The review list zooms to this box plus the margin.",
+      "$ref": "https://schema.halo-cad.internal/v0/compare/sheet-frame.schema.json#/$defs/bbox"
+    },
+    "kind": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/cluster.schema.json#/$defs/cluster_kind"
+    },
+    "label": {
+      "description": "Automatic Korean label, `{종류} {행위}[ {수치}]` (`compare/labels.py`). Shown when `user_label` is null and written into the revision table's 내용 column.",
+      "type": "string"
+    },
+    "user_label": {
+      "description": "Label the user typed on screen C. Wins over `label` everywhere. Null while untouched.",
+      "type": ["string", "null"],
+      "maxLength": 512
+    },
+    "decision": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/cluster.schema.json#/$defs/decision"
+    },
+    "note": {
+      "description": "Free memo the user attached. Not printed on the drawing; it travels in `changes.tsv`.",
+      "type": ["string", "null"],
+      "maxLength": 4096
+    },
+    "change_ids": {
+      "description": "Member changes, `ch<seq>`, ascending. The `cluster` row stores the same set as `change_seqs` integers; the sidecar writes the ids.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "https://schema.halo-cad.internal/v0/compare/change.schema.json#/$defs/change_id"
+      }
+    },
+    "cloud": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/cluster.schema.json#/$defs/cloud"
+    },
+    "badge": {
+      "$ref": "https://schema.halo-cad.internal/v0/compare/cluster.schema.json#/$defs/badge"
+    }
+  },
+  "$defs": {
+    "cluster_id": {
+      "title": "ClusterId",
+      "description": "`c<number>` -- deterministic within one pair, so the sidecar never carries a database ULID.",
+      "type": "string",
+      "pattern": "^c[1-9][0-9]*$"
+    },
+    "decision": {
+      "title": "ClusterDecision",
+      "description": "`pending` not reviewed yet, `approved` the cloud mark and a revision-table row are exported, `ignored` the cluster is dropped from the output (docs/contracts/r1.md §3).",
+      "type": "string",
+      "enum": ["pending", "approved", "ignored"]
+    },
+    "cluster_kind": {
+      "title": "ClusterKind",
+      "description": "Dominant `Change.kind` of the members, or `mixed` when no single kind accounts for the cluster. Drives the icon in the review list only -- the cloud mark looks the same for every kind.",
+      "type": "string",
+      "enum": [
+        "added",
+        "removed",
+        "modified",
+        "moved",
+        "text",
+        "dimension",
+        "blockdef",
+        "mixed"
+      ]
+    },
+    "cloud": {
+      "title": "CloudMark",
+      "description": "The revision cloud drawn on layer `REV-<YYYYMMDD>`: one closed LWPOLYLINE around `bbox` plus the margin, arcs bulging outwards (docs/contracts/compare-dxf.md §5).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["points"],
+      "properties": {
+        "handle": {
+          "description": "Handle of the LWPOLYLINE inside the compare DXF. Null before the file is written.",
+          "anyOf": [
+            {
+              "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/handle"
+            },
+            { "type": "null" }
+          ]
+        },
+        "points": {
+          "description": "Vertices `[x, y, bulge]`, counter-clockwise from the lower-left corner, closed. Coordinates are rounded to 3 decimals so the file is byte-stable across runs.",
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 3,
+            "maxItems": 3
+          }
+        }
+      }
+    },
+    "badge": {
+      "title": "ClusterBadge",
+      "description": "The numbered triangle anchored outside the cloud rectangle: an equilateral LWPOLYLINE plus the number as TEXT (docs/contracts/compare-dxf.md §5).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["center"],
+      "properties": {
+        "shape_handle": {
+          "description": "Handle of the triangle inside the compare DXF. Null before the file is written.",
+          "anyOf": [
+            {
+              "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/handle"
+            },
+            { "type": "null" }
+          ]
+        },
+        "text_handle": {
+          "description": "Handle of the number TEXT inside the compare DXF. Null before the file is written.",
+          "anyOf": [
+            {
+              "$ref": "https://schema.halo-cad.internal/v0/common/primitives.schema.json#/$defs/handle"
+            },
+            { "type": "null" }
+          ]
+        },
+        "center": {
+          "description": "Centroid of the triangle `[x, y]` in millimetres -- the TEXT insertion point, and where the review list points the camera.",
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    }
+  }
+}
